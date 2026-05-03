@@ -4,7 +4,10 @@ import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
+import { AuraProfileCard } from "@/components/AuraProfileCard";
+import { StreamingChips } from "@/components/StreamingLinks";
 import { getTrack, type Track } from "@/lib/tracks";
+import { PALETTES } from "@/lib/aura";
 import { ArrowLeft } from "lucide-react";
 
 function labelFor(p?: string) {
@@ -54,8 +57,7 @@ function AuraPage() {
   const [, force] = useState(0);
 
   useEffect(() => {
-    const t = getTrack(id);
-    setTrack(t);
+    setTrack(getTrack(id));
   }, [id]);
 
   if (track === undefined) {
@@ -68,14 +70,24 @@ function AuraPage() {
   if (track === null) throw notFound();
 
   const url = typeof window !== "undefined" ? window.location.href : "";
+  const p = PALETTES[track.palette];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* page tint from palette */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-40"
+        style={{
+          background: `radial-gradient(ellipse 70% 40% at 50% -10%, ${p.stops[0]}, transparent 60%), radial-gradient(ellipse 60% 40% at 50% 110%, ${p.stops[2]}, transparent 60%)`,
+        }}
+      />
+
       <header className="px-5 sm:px-8 pt-5 sm:pt-7 flex items-center justify-between">
         <Link to="/" className="hover:opacity-80 transition-opacity">
           <Logo />
         </Link>
-        <ShareDialog url={url} title={`${track.title} — ${track.artist}`} />
+        <ShareDialog track={track} url={url} />
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
@@ -85,6 +97,7 @@ function AuraPage() {
             hueShift={track.seed}
             isPlaying={playing}
             analyser={analyserRef}
+            palette={track.palette}
             className={playing ? "" : "animate-breathe"}
           />
         </div>
@@ -93,7 +106,13 @@ function AuraPage() {
           <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
             {track.title}
           </h1>
-          <p className="mt-2 text-muted-foreground tracking-wide">{track.artist}</p>
+          <Link
+            to="/artist/$handle"
+            params={{ handle: track.artistHandle }}
+            className="mt-2 inline-block text-muted-foreground tracking-wide hover:text-foreground transition-colors"
+          >
+            {track.artist}
+          </Link>
         </div>
 
         <div className="mt-8 w-full animate-fade-up">
@@ -141,16 +160,25 @@ function AuraPage() {
                 </a>
               )}
             </div>
-          ) : track.streamUrl ? (
-            <a
-              href={track.streamUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full glass-strong px-5 h-11 text-sm hover:bg-foreground/10 transition-colors"
-            >
-              Open track ↗
-            </a>
           ) : null}
+        </div>
+
+        {/* Streaming chips */}
+        {track.streaming && (
+          <div className="mt-6 w-full animate-fade-up">
+            <StreamingChips links={track.streaming} />
+          </div>
+        )}
+
+        {/* Aura profile */}
+        <div className="mt-10 w-full max-w-md animate-fade-up">
+          <AuraProfileCard
+            name={track.auraName}
+            moods={track.moods}
+            energy={track.energy}
+            description={track.description}
+            palette={track.palette}
+          />
         </div>
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
