@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import {
@@ -17,6 +17,9 @@ import {
   saveTrack,
   seedFromId,
 } from "@/lib/tracks";
+import { generateAura, slugify } from "@/lib/aura";
+import { MoodPicker } from "@/components/MoodPicker";
+import { OrbVisual } from "@/components/OrbVisual";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/create")({
@@ -44,6 +47,7 @@ function CreatePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [link, setLink] = useState("");
+  const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -62,36 +66,47 @@ function CreatePage() {
     artist.trim() &&
     (mode === "file" ? !!audio : !!linkInfo);
 
+  // Live preview of generated aura
+  const preview = useMemo(
+    () =>
+      generateAura({
+        id: title + artist,
+        title: title || "Untitled",
+        artist: artist || "Unknown",
+        moods,
+      }),
+    [title, artist, moods],
+  );
+
   const submit = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
+      const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods });
+      const base = {
+        id,
+        title: title.trim(),
+        artist: artist.trim(),
+        artistHandle: slugify(artist.trim()) || "artist",
+        coverDataUrl,
+        seed: seedFromId(id),
+        createdAt: Date.now(),
+        moods,
+        ...aura,
+      };
       if (mode === "file") {
         if (!audio) return;
         const audioDataUrl = await fileToDataUrl(audio);
-        saveTrack({
-          id,
-          title: title.trim(),
-          artist: artist.trim(),
-          audioDataUrl,
-          coverDataUrl,
-          seed: seedFromId(id),
-          createdAt: Date.now(),
-        });
+        saveTrack({ ...base, audioDataUrl });
       } else {
         if (!linkInfo) return;
         saveTrack({
-          id,
-          title: title.trim(),
-          artist: artist.trim(),
+          ...base,
           streamUrl: link.trim(),
           provider: linkInfo.provider,
           embedUrl: linkInfo.embedUrl,
-          coverDataUrl,
-          seed: seedFromId(id),
-          createdAt: Date.now(),
         });
       }
       nav({ to: "/generating", search: { id } });
@@ -224,6 +239,26 @@ function CreatePage() {
               onChange={setArtist}
               placeholder="Your name"
             />
+          </div>
+
+          {/* Mood picker + live preview */}
+          <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
+            <MoodPicker value={moods} onChange={setMoods} />
+
+            <div className="flex items-center gap-4 pt-1">
+              <OrbVisual size={72} palette={preview.palette} particles={false} />
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  Your aura
+                </div>
+                <div className="font-display text-base sm:text-lg truncate text-aura-gradient">
+                  {preview.auraName}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Energy {preview.energy}%
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Optional cover */}
