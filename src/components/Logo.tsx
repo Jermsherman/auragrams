@@ -13,24 +13,19 @@ export function Logo({
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <div
-        className="relative shrink-0"
-        style={{ width: size, height: size }}
+        className="shrink-0"
+        style={{
+          width: size,
+          height: size,
+          backgroundImage: `url(${logo})`,
+          backgroundRepeat: "no-repeat",
+          // Source image: A symbol sits roughly centered horizontally, vertically in top ~55%.
+          // Zoom in and offset upward so we crop just the A glyph cleanly.
+          backgroundSize: `${size * 2.2}px auto`,
+          backgroundPosition: `center ${-size * 0.35}px`,
+        }}
         aria-hidden
-      >
-        {/* Crop tightly to just the "A" symbol (top ~70% of source image) */}
-        <img
-          src={logo}
-          alt=""
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-none pointer-events-none select-none"
-          style={{
-            height: size * 2.4,
-            width: "auto",
-            objectFit: "contain",
-            transform: `translate(-50%, calc(-50% - ${size * 0.42}px))`,
-          }}
-          draggable={false}
-        />
-      </div>
+      />
       {showWordmark && (
         <span className="wordmark text-[12px] text-foreground/90">Auragram</span>
       )}
