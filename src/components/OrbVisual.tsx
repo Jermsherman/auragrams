@@ -61,8 +61,7 @@ export function OrbVisual({
           height: dim,
           transform: "scale(var(--orb-scale, 1))",
           transition: "transform 0.08s linear",
-          // @ts-expect-error css var
-          "--hue": `${hueShift}deg`,
+          ["--hue" as string]: `${hueShift}deg`,
         } as React.CSSProperties
       }
     >
