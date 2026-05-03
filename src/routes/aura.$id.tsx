@@ -7,6 +7,17 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { getTrack, type Track } from "@/lib/tracks";
 import { ArrowLeft } from "lucide-react";
 
+function labelFor(p?: string) {
+  return (
+    {
+      spotify: "Spotify",
+      youtube: "YouTube",
+      soundcloud: "SoundCloud",
+      apple: "Apple Music",
+    }[p ?? ""] || "source"
+  );
+}
+
 export const Route = createFileRoute("/aura/$id")({
   head: ({ params }) => ({
     meta: [
@@ -86,14 +97,60 @@ function AuraPage() {
         </div>
 
         <div className="mt-8 w-full animate-fade-up">
-          <AudioPlayer
-            src={track.audioDataUrl}
-            onPlayingChange={setPlaying}
-            onAnalyserReady={(a) => {
-              analyserRef.current = a;
-              force((n) => n + 1);
-            }}
-          />
+          {track.audioDataUrl ? (
+            <AudioPlayer
+              src={track.audioDataUrl}
+              onPlayingChange={setPlaying}
+              onAnalyserReady={(a) => {
+                analyserRef.current = a;
+                force((n) => n + 1);
+              }}
+            />
+          ) : track.embedUrl ? (
+            <div className="mx-auto w-full max-w-md">
+              <div className="glass-strong rounded-2xl overflow-hidden">
+                <iframe
+                  title={`${track.title} player`}
+                  src={track.embedUrl}
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"
+                  loading="lazy"
+                  className="w-full"
+                  style={{
+                    height:
+                      track.provider === "spotify"
+                        ? 152
+                        : track.provider === "soundcloud"
+                          ? 140
+                          : track.provider === "apple"
+                            ? 175
+                            : 200,
+                    border: 0,
+                    background: "transparent",
+                    colorScheme: "normal",
+                  }}
+                />
+              </div>
+              {track.streamUrl && (
+                <a
+                  href={track.streamUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block text-center text-[11px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Open on {labelFor(track.provider)} ↗
+                </a>
+              )}
+            </div>
+          ) : track.streamUrl ? (
+            <a
+              href={track.streamUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-full glass-strong px-5 h-11 text-sm hover:bg-foreground/10 transition-colors"
+            >
+              Open track ↗
+            </a>
+          ) : null}
         </div>
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">

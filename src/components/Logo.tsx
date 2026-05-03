@@ -1,10 +1,10 @@
-import logo from "@/assets/auragram-logo.png";
+import mark from "@/assets/auragram-mark.png";
 import { cn } from "@/lib/utils";
 
 export function Logo({
   className,
   showWordmark = true,
-  size = 28,
+  size = 22,
 }: {
   className?: string;
   showWordmark?: boolean;
@@ -12,22 +12,16 @@ export function Logo({
 }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div
-        className="relative rounded-md overflow-hidden"
-        style={{ width: size, height: size }}
+      <img
+        src={mark}
+        alt=""
         aria-hidden
-      >
-        <img
-          src={logo}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover scale-[1.6] -translate-y-[14%]"
-          draggable={false}
-        />
-      </div>
+        draggable={false}
+        className="shrink-0 select-none"
+        style={{ width: size, height: size, objectFit: "contain" }}
+      />
       {showWordmark && (
-        <span className="wordmark text-[13px] text-foreground/90">
-          Auragram
-        </span>
+        <span className="wordmark text-[12px] text-foreground/90">Auragram</span>
       )}
     </div>
   );
