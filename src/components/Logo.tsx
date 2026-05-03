@@ -1,4 +1,4 @@
-import logo from "@/assets/auragram-logo.png";
+import mark from "@/assets/auragram-mark.png";
 import { cn } from "@/lib/utils";
 
 export function Logo({
@@ -12,19 +12,13 @@ export function Logo({
 }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div
-        className="shrink-0"
-        style={{
-          width: size,
-          height: size,
-          backgroundImage: `url(${logo})`,
-          backgroundRepeat: "no-repeat",
-          // Source image: A symbol sits roughly centered horizontally, vertically in top ~55%.
-          // Zoom in and offset upward so we crop just the A glyph cleanly.
-          backgroundSize: `${size * 2.2}px auto`,
-          backgroundPosition: `center ${-size * 0.35}px`,
-        }}
+      <img
+        src={mark}
+        alt=""
         aria-hidden
+        draggable={false}
+        className="shrink-0 select-none"
+        style={{ width: size, height: size, objectFit: "contain" }}
       />
       {showWordmark && (
         <span className="wordmark text-[12px] text-foreground/90">Auragram</span>
