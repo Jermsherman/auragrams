@@ -147,7 +147,7 @@ function CreatePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav showCta={false} />
-      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20">
+      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20 pb-32 sm:pb-20">
         <div className="text-center animate-fade-up">
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
             Create an <span className="text-aura-gradient">Aura.</span>
