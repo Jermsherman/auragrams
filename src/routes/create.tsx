@@ -11,6 +11,7 @@ import {
   Link as LinkIcon,
   Layers,
   GripVertical,
+  Mic,
 } from "lucide-react";
 import {
   detectProvider,
@@ -20,10 +21,13 @@ import {
   seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
-import { generateAura, slugify } from "@/lib/aura";
-import { detectKey } from "@/lib/keyDetect";
+import { generateAura, slugify, type PitchCenter } from "@/lib/aura";
+import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
+import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
+import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
+import { RawAuraRecorder } from "@/components/RawAuraRecorder";
 import { saveAuraFromTrack } from "@/lib/farm";
 import {
   PROJECT_TYPE_LABELS,
@@ -35,24 +39,24 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
-      { title: "Create an Aura — Auragram" },
+      { title: "Gain an Aura — Auragram" },
       {
         name: "description",
         content:
-          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
-      { property: "og:title", content: "Create an Aura — Auragram" },
+      { property: "og:title", content: "Gain an Aura — Auragram" },
       {
         property: "og:description",
         content:
-          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
     ],
   }),
   component: CreatePage,
 });
 
-type Mode = "file" | "link" | "auracle";
+type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -65,12 +69,28 @@ function CreatePage() {
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [detectedKey, setDetectedKey] = useState<string | null>(null);
+  const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
+  const [features, setFeatures] = useState<AudioFeatures | null>(null);
+  const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
 
   // Auracle (multi-file) state
   const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
   const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
   const [auracleDesc, setAuracleDesc] = useState("");
+
+  const runAnalysis = (f: File) => {
+    setKeyDetection(null);
+    setFeatures(null);
+    setPitchCenter(null);
+    detectKey(f).then((res) => {
+      if (res) {
+        setKeyDetection(res);
+        if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
+      }
+    }).catch(() => {});
+    analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }).catch(() => {});
+    detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }).catch(() => {});
+  };
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
@@ -81,21 +101,75 @@ function CreatePage() {
       return;
     }
     setAudio(f);
-    setDetectedKey(null);
-    // Background key detection (non-blocking)
-    detectKey(f).then((res) => {
-      if (res) {
-        setDetectedKey(res.key);
-        toast.success(`Key detected: ${res.key}`);
-      }
-    }).catch(() => {});
+    runAnalysis(f);
+  };
+
+  const onRawRecorded = (f: File) => {
+    setAudio(f);
+    runAnalysis(f);
+  };
+
+  const onRawClear = () => {
+    setAudio(null);
+    setKeyDetection(null);
+    setFeatures(null);
+    setPitchCenter(null);
   };
 
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
   const ready =
     mode === "auracle"
       ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
-      : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+      : mode === "raw"
+        ? !!audio && artist.trim().length > 0
+        : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+
+  const detectedKeyStr = keyDetection?.key ?? null;
+  const sourceType = mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
+
+  const handleDetectMood = async () => {
+    if (mode === "link") {
+      const sug = suggestMoods({
+        title: title.trim(),
+        artist: artist.trim(),
+        keyDetection,
+        sourceType: "platform_link",
+      });
+      if (sug.length === 0) {
+        toast("Couldn't detect moods yet. Pick up to 4 manually.");
+        return;
+      }
+      setMoods(sug);
+      toast.success("Moods detected. You can still adjust them.");
+      return;
+    }
+    if (!audio) {
+      toast("Couldn't detect moods yet. Pick up to 4 manually.");
+      return;
+    }
+    let feat = features;
+    if (!feat) {
+      feat = await analyzeFile(audio);
+      if (feat) setFeatures(feat);
+    }
+    let kd = keyDetection;
+    if (!kd) {
+      kd = await detectKey(audio);
+      if (kd) setKeyDetection(kd);
+    }
+    const sug = suggestMoods({
+      features: feat,
+      keyDetection: kd,
+      pitchHz: pitchCenter?.hz ?? null,
+      sourceType,
+    });
+    if (sug.length === 0) {
+      toast("Couldn't detect moods yet. Pick up to 4 manually.");
+      return;
+    }
+    setMoods(sug);
+    toast.success("Moods detected. You can still adjust them.");
+  };
 
   const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
     if (!files) return;
@@ -128,13 +202,19 @@ function CreatePage() {
     () =>
       generateAura({
         id: title + artist,
-        title: title || "Untitled",
+        title: title || (mode === "raw" ? "Untitled Raw Aura" : "Untitled"),
         artist: artist || "Unknown",
         moods,
-        detectedKey,
+        detectedKey: detectedKeyStr,
+        pitchCenter,
+        energyOverride: features?.energy ?? null,
+        keyConfidence: keyDetection?.confidence ?? null,
+        sourceType,
       }),
-    [title, artist, moods, detectedKey],
+    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
   );
+
+  const canDetect = mode === "link" ? !!(title.trim() || artist.trim()) : !!audio;
 
   const submit = async () => {
     if (!ready) return;
