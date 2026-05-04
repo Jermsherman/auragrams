@@ -144,7 +144,7 @@ function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity.mode, resolvedIdentity.publicArtistName]);
 
-  const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
+  
   const identityReady =
     identity.mode === "anonymous" ||
     (identity.mode === "username" && !!profile?.username) ||
