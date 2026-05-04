@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
-import { ArrowRight, Sparkles, Share2, Wand2 } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,43 +31,45 @@ function Index() {
       <main className="flex-1">
         {/* HERO */}
         <section className="relative overflow-hidden">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-8 pb-14 sm:pt-24 sm:pb-32 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="order-2 md:order-1 animate-fade-up text-center md:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-aura-gradient" />
-                See your sound
-              </div>
-              <h1 className="mt-6 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
-                Your song deserves <br className="hidden sm:block" />
-                <span className="text-aura-gradient">more than a link.</span>
-              </h1>
-              <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md mx-auto md:mx-0">
-                Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.
-              </p>
-              <div className="mt-8 flex items-center justify-center md:justify-start gap-4">
-                <Link
-                  to="/create"
-                  className="inline-flex items-center gap-2 rounded-full px-6 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_70px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
-                >
-                  Gain Aura <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-              <p className="mt-4 text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                Gain Aura → Save to Farm → Build Auracle → Share AuraLink
-              </p>
-            </div>
-
-            <div className="order-1 md:order-2 relative grid place-items-center justify-self-center animate-fade-up">
+          <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-6 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center animate-fade-up">
+            <div className="relative grid place-items-center">
               <OrbVisual
-                size="min(62vw, 420px)"
+                hero
+                size="min(88vw, 460px)"
                 className="animate-float-y"
               />
+            </div>
+
+            <a
+              href="#how-it-works"
+              className="mt-2 sm:mt-4 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.3em] text-foreground/85 hover:border-foreground/20 transition-colors"
+            >
+              <AudioLines className="h-4 w-4 text-aura-gradient" />
+              See your sound
+            </a>
+
+            <h1 className="mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
+              Your song deserves <br />
+              <span className="text-aura-gradient">more than a link.</span>
+            </h1>
+
+            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
+              Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.
+            </p>
+
+            <div className="mt-10 w-full max-w-sm">
+              <Link
+                to="/create"
+                className="w-full inline-flex items-center justify-center gap-3 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
+              >
+                Gain Aura <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </section>
 
         {/* HOW IT WORKS */}
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <section id="how-it-works" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="font-display text-3xl sm:text-4xl tracking-tight text-center">
             How it works
           </h2>
