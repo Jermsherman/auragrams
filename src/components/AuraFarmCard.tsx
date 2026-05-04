@@ -4,6 +4,7 @@ import { Trash2, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { OrbVisual } from "./OrbVisual";
 import { deleteAura, type SavedAura } from "@/lib/farm";
+import { getPersonality } from "@/lib/aura";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ export function AuraFarmCard({
   onDeleted: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const p = getPersonality(aura.palette);
 
   const sourceBadge =
     aura.sourceType === "upload"
@@ -38,25 +40,32 @@ export function AuraFarmCard({
   };
 
   return (
-    <div className="group relative glass rounded-3xl p-5 flex flex-col gap-4 hover:bg-foreground/[0.04] transition-colors">
-      <div className="flex items-start gap-4">
-        <div className="shrink-0">
-          <OrbVisual size={88} palette={aura.palette} hueShift={aura.seed} particles={false} />
+    <div
+      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass ring-1 ring-foreground/10 hover:-translate-y-0.5 transition-transform overflow-hidden"
+      style={{
+        backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
+      }}
+    >
+      <div className="absolute inset-x-5 top-3 flex items-center justify-between">
+        <span className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
+          {sourceBadge}
+        </span>
+      </div>
+
+      <div className="mt-6 mb-1">
+        <OrbVisual size={120} palette={aura.palette} hueShift={aura.seed} particles={false} />
+      </div>
+
+      <div className="mt-3 min-w-0 w-full">
+        <div className="font-display text-base sm:text-lg truncate text-aura-gradient">
+          {aura.auraName}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-            {sourceBadge}
-          </div>
-          <div className="font-display text-base truncate text-aura-gradient">
-            {aura.auraName}
-          </div>
-          <div className="mt-0.5 text-sm font-medium truncate">{aura.trackTitle}</div>
-          <div className="text-xs text-muted-foreground truncate">{aura.artistName}</div>
-        </div>
+        <div className="mt-0.5 text-sm font-medium truncate">{aura.trackTitle}</div>
+        <div className="text-xs text-muted-foreground truncate">{aura.artistName}</div>
       </div>
 
       {aura.moodTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
           {aura.moodTags.slice(0, 3).map((m) => (
             <span
               key={m}
@@ -68,20 +77,20 @@ export function AuraFarmCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 pt-1">
+      <div className="mt-4 w-full flex items-center gap-2">
         <Link
           to="/aura/$id"
           params={{ id: aura.id }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-9 px-4 text-xs font-medium"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-10 px-4 text-xs font-medium shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.9)]"
         >
-          Open <ArrowUpRight className="h-3.5 w-3.5" />
+          Open AuraLink <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
 
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogTrigger asChild>
             <button
               aria-label="Delete aura"
-              className="rounded-full h-9 w-9 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded-full h-10 w-10 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
             >
               <Trash2 className="h-4 w-4" />
             </button>
