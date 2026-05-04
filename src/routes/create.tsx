@@ -118,10 +118,9 @@ function CreatePage() {
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
-    const okType = f.type.startsWith("audio/");
-    const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
-    if (!okType && !okExt) {
-      toast.error("Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg)");
+    const err = validateAudioFile(f);
+    if (err) {
+      toast.error(err);
       return;
     }
     setAudio(f);
