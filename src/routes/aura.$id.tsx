@@ -283,6 +283,9 @@ function AuraPage() {
             energy={track.energy}
             description={track.description}
             palette={track.palette}
+            musicalKey={track.musicalKey}
+            tempoBand={track.tempoBand}
+            density={track.density}
           />
         </div>
 
