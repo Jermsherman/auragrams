@@ -28,6 +28,7 @@ export function AuraProfileCard({
   editable = false,
   onSaveVibe,
   onRegenerateVibe,
+  colorGuided = false,
 }: {
   name: string;
   moods: string[];
@@ -47,6 +48,7 @@ export function AuraProfileCard({
   editable?: boolean;
   onSaveVibe?: (text: string) => Promise<void> | void;
   onRegenerateVibe?: () => Promise<void> | void;
+  colorGuided?: boolean;
 }) {
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
