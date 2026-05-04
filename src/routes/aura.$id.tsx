@@ -379,6 +379,7 @@ function AuraPage() {
                 pitchCenter: track.pitchCenter ?? null,
                 energyOverride: track.energy,
                 sourceType: track.sourceType,
+                userColorInfluence: track.userColorInfluence,
               });
               const text = gen.vibeDescription;
               updateTrack(track.id, { vibeDescription: text });
