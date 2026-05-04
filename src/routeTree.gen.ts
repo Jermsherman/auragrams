@@ -15,6 +15,7 @@ import { Route as FarmRouteImport } from './routes/farm'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsArtistsRouteImport } from './routes/settings.artists'
 import { Route as AuracleCreateRouteImport } from './routes/auracle.create'
 import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsArtistsRoute = SettingsArtistsRouteImport.update({
+  id: '/settings/artists',
+  path: '/settings/artists',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuracleCreateRoute = AuracleCreateRouteImport.update({
   id: '/auracle/create',
   path: '/auracle/create',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
+  '/settings/artists': typeof SettingsArtistsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
+  '/settings/artists': typeof SettingsArtistsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
+  '/settings/artists': typeof SettingsArtistsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
+    | '/settings/artists'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
+    | '/settings/artists'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
+    | '/settings/artists'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   AuraIdRoute: typeof AuraIdRoute
   AuracleIdRoute: typeof AuracleIdRoute
   AuracleCreateRoute: typeof AuracleCreateRoute
+  SettingsArtistsRoute: typeof SettingsArtistsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/artists': {
+      id: '/settings/artists'
+      path: '/settings/artists'
+      fullPath: '/settings/artists'
+      preLoaderRoute: typeof SettingsArtistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auracle/create': {
       id: '/auracle/create'
       path: '/auracle/create'
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuraIdRoute: AuraIdRoute,
   AuracleIdRoute: AuracleIdRoute,
   AuracleCreateRoute: AuracleCreateRoute,
+  SettingsArtistsRoute: SettingsArtistsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
