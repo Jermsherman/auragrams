@@ -146,6 +146,14 @@ export async function updateAuraVisibility(
   if (error) throw error;
 }
 
+export async function updateAuraVibe(id: string, vibeDescription: string) {
+  const { error } = await supabase
+    .from("auras")
+    .update({ vibe_description: vibeDescription })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ------------- Auracles -------------
 
 export async function saveAuracleToCloud(opts: {

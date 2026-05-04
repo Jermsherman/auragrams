@@ -9,12 +9,13 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { PlatformCard } from "@/components/PlatformCard";
-import { getTrack, providerLabel, type Track } from "@/lib/tracks";
+import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
-import { getPersonality } from "@/lib/aura";
+import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
+import { updateAuraVibe } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { toast } from "sonner";
@@ -356,6 +357,38 @@ function AuraPage() {
             keyDetected={track.keyDetected}
             pitchCenter={track.pitchCenter}
             sourceType={track.sourceType}
+            editable={saved}
+            onSaveVibe={async (text) => {
+              updateTrack(track.id, { vibeDescription: text });
+              setTrack({ ...track, vibeDescription: text });
+              try {
+                await updateAuraVibe(track.id, text);
+                toast.success("Vibe updated");
+              } catch {
+                toast.success("Vibe saved locally");
+              }
+            }}
+            onRegenerateVibe={async () => {
+              const gen = generateAura({
+                id: track.id + "-" + Date.now(),
+                title: track.title,
+                artist: track.artist,
+                moods: track.moods,
+                detectedKey: track.detectedKey ?? null,
+                pitchCenter: track.pitchCenter ?? null,
+                energyOverride: track.energy,
+                sourceType: track.sourceType,
+              });
+              const text = gen.vibeDescription;
+              updateTrack(track.id, { vibeDescription: text });
+              setTrack({ ...track, vibeDescription: text });
+              try {
+                await updateAuraVibe(track.id, text);
+                toast.success("New vibe generated");
+              } catch {
+                toast.success("New vibe (saved locally)");
+              }
+            }}
           />
         </div>
 

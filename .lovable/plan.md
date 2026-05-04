@@ -1,40 +1,43 @@
-## Problem
+## Goal
 
-On mobile (393px viewport), Dialog modals like Share AuraLink overflow the screen. The default `DialogContent` uses `max-w-lg` (~512px) with no horizontal margin, so the dialog gets pushed off-center, content clips ("Share Au…", "Saved i…", "Share vi…"), and the X button collides with the title. The same issue affects Auracle Share, Story Preview, Add to Auracle, and Identity Selector dialogs.
+On the Aura page (`/aura/$id`), let the user either **write their own vibe** or have the system **regenerate the vibe** for that Aura. The vibe is the poetic phrase shown in the "Vibe" section of the Aura Profile (currently `track.vibeDescription`).
 
-## Fix
+## UX
 
-Make all dialogs mobile-first: smaller max width, side padding via `inset` so they never touch screen edges, and tighter inner spacing so modules feel compact and centered.
+In `AuraProfileCard`'s "Vibe" section, alongside the italic vibe quote, add two small icon buttons (visible only to the Aura's owner):
 
-### 1. `src/components/ui/dialog.tsx` — base DialogContent
+- **Edit the vibe** (pencil icon): opens an inline textarea pre-filled with the current vibe. Save / Cancel actions. Save persists to local track + cloud row, then closes.
+- **Generate the vibe** (sparkles icon): regenerates a fresh poetic vibe from the existing mood/key/seed via `generateAura()` and saves it the same way. Brief loading state, toast on success.
 
-Update the default classes so every dialog in the app inherits proper mobile sizing:
+Non-owners (public AuraLink visitors) just see the quote — no buttons.
 
-- Replace `w-full max-w-lg` with `w-[calc(100%-2rem)] max-w-md` so there's always 1rem of breathing room on each side.
-- Reduce default padding from `p-6` to `p-5` for tighter mobile feel (desktop still looks balanced).
-- Keep the centered translate transform.
+## Implementation
 
-This single change fixes overflow for every Dialog instance globally.
+### 1. `src/components/AuraProfileCard.tsx`
+- Add optional props: `editable?: boolean`, `onSaveVibe?: (text: string) => Promise<void> | void`, `onRegenerateVibe?: () => Promise<void> | void`.
+- Inside the `<Section title="Vibe">`:
+  - When `editable` and not in edit mode, show two ghost icon buttons (Pencil, Sparkles) under the quote.
+  - Edit mode: render a `<textarea>` (rows 3, 240 char limit, trim/empty validation via simple length check) with Save / Cancel.
+  - Generate mode: disable buttons, show small spinner while `onRegenerateVibe` is pending.
+- Local component state for `editing`, `draft`, `busy`. Toasts handled by parent.
 
-### 2. `src/components/ShareDialog.tsx`
+### 2. `src/routes/aura.$id.tsx`
+- Track ownership: a track is "mine" if `isAuraSaved(track.id)` (local) — pass that as `editable`.
+- Add handlers:
+  - `handleSaveVibe(text)`: `updateTrack(id, { vibeDescription: text })`, refresh local state, then `updateAuraVibeCloud(id, text)` (best-effort, swallow error with toast).
+  - `handleRegenerateVibe()`: call `generateAura({ id, title, artist, moods: track.moods, detectedKey: track.detectedKey })`, take `gen.vibeDescription`, persist via the same path.
+- Pass both handlers + `editable` to `<AuraProfileCard />`.
 
-- Tighten `DialogContent` further: add `sm:max-w-sm` so even on desktop it stays compact and centered.
-- Reduce inner button heights from `h-12` → `h-11` and `h-11` → `h-10` for the Story Preview / device-share rows so the stack feels lighter.
-- Ensure the URL row truncates correctly (already `truncate`, but verify with smaller container).
-- Hide the duplicate close X (Radix already renders one in top-right) — currently the DialogHeader has no extra X, so just confirm.
+### 3. `src/lib/cloudAura.ts`
+- Add `updateAuraVibe(id: string, vibeDescription: string)` that runs `supabase.from("auras").update({ vibe_description: vibeDescription }).eq("id", id)`. RLS already restricts to owner.
 
-### 3. `src/components/AuracleShareDialog.tsx`
+### 4. Polish
+- Use existing semantic tokens (`text-muted-foreground`, `border-border/60`, `bg-background/30`). No raw colors.
+- Buttons sized small (`h-8 px-3 text-[11px]`) to match the card's tone.
+- Maintain the existing italic quote styling when not editing.
 
-- Same `sm:max-w-sm` constraint and tightened button heights to match.
-
-### 4. `src/components/StoryPreviewDialog.tsx` and `src/components/AuracleStoryDialog.tsx`
-
-- Already use `max-w-sm p-5` — keep, but switch to `w-[calc(100%-2rem)] max-w-sm` so they still inset on tiny screens.
-
-### 5. `src/components/AddToAuracleDialog.tsx` and `src/components/IdentitySelector.tsx` (if dialog-based)
-
-- Inherit the new base; spot-check inner padding and button heights for consistency.
-
-## Result
-
-Every dialog renders centered, with comfortable side padding, no clipped text, and a smaller, more focused footprint on mobile — matching Apple-glass minimal feel.
+## Acceptance
+- Owner sees Pencil + Sparkles next to the vibe quote.
+- "Edit the vibe" lets them write their own text; saved value persists across reloads (local + cloud).
+- "Generate the vibe" produces a new poetic phrase from the engine and saves it.
+- Public visitors see just the quote, no controls.
