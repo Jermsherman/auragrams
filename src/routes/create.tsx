@@ -155,15 +155,15 @@ function CreatePage() {
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
           ? !!audio
-          : !!(title.trim() && (mode === "file" ? !!audio : !!linkInfo))
+          : !!(title.trim() && !!audio)
     );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
-    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
+    mode === "raw" ? "raw_recording" : "upload";
 
   const handleDetectMood = async () => {
-    if (mode === "link") {
+    {
       const sug = suggestMoods({
         title: title.trim(),
         artist: artist.trim(),
