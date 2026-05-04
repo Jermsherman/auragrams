@@ -612,7 +612,7 @@ function BuilderPage() {
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
                 Live Preview
               </div>
-              <div className="rounded-[32px] overflow-hidden ring-1 ring-foreground/10 shadow-2xl bg-black/40 mx-auto max-w-[360px]">
+              <div className="rounded-[28px] overflow-hidden ring-1 ring-foreground/10 shadow-2xl bg-black/40 mx-auto w-full max-w-[360px]">
                 <AuraLinkView page={previewPage} auras={auras} showLogo={false} />
               </div>
             </div>
