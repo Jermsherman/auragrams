@@ -678,6 +678,7 @@ export function generateAura(input: {
   energyOverride?: number | null;
   keyConfidence?: number | null;
   sourceType?: SourceType;
+  userColorInfluence?: UserColorInfluence | null;
 }): AuraProfile {
   const baseKey = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
