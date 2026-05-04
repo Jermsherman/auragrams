@@ -53,13 +53,18 @@ export const Route = createFileRoute("/create")({
       },
     ],
   }),
-  component: CreatePage,
+  component: () => (
+    <RequireAuth>
+      <CreatePage />
+    </RequireAuth>
+  ),
 });
 
 type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
+  const { profile } = useAuth();
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
