@@ -13,7 +13,7 @@ export function AuraProfileCard({
   description: string;
   palette: PaletteKey;
 }) {
-  const p = PALETTES[palette];
+  const p = getPersonality(palette);
   return (
     <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
       <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
