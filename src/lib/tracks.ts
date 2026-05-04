@@ -1,4 +1,4 @@
-import { generateAura, slugify, type PaletteKey } from "./aura";
+import { generateAura, slugify, type PaletteKey, type SourceType, type PitchCenter } from "./aura";
 
 export type Provider =
   | "spotify"
@@ -60,6 +60,12 @@ export type Track = {
   keyDetected?: boolean;
   detectedKey?: string;
   colors?: AuraPalette;
+
+  // Phase 4 — Raw Aura + improved detection
+  sourceType?: SourceType;
+  pitchCenter?: PitchCenter;
+  keyConfidence?: number;
+  detectedEnergy?: number;
 };
 
 export type ArtistProfile = {
@@ -140,6 +146,10 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     keyDetected: t.keyDetected ?? gen.keyDetected,
     detectedKey: t.detectedKey,
     colors: t.colors ?? gen.colors,
+    sourceType: t.sourceType,
+    pitchCenter: t.pitchCenter,
+    keyConfidence: t.keyConfidence,
+    detectedEnergy: t.detectedEnergy,
   };
 }
 

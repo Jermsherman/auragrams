@@ -2,9 +2,9 @@
 // We never store full audio file blobs here — only metadata.
 
 import type { Track, Provider } from "./tracks";
-import type { PaletteKey, AuraPalette } from "./aura";
+import type { PaletteKey, AuraPalette, PitchCenter } from "./aura";
 
-export type SourceType = "upload" | "platform_link" | "external_link";
+export type SourceType = "upload" | "platform_link" | "external_link" | "raw_recording";
 
 export type SavedAura = {
   id: string;
@@ -32,6 +32,8 @@ export type SavedAura = {
   motionKeywords?: string[];
   colors?: AuraPalette;
   keyDetected?: boolean;
+  pitchCenter?: PitchCenter;
+  keyConfidence?: number;
 };
 
 const KEY = "auragram_farm_auras";
@@ -64,13 +66,15 @@ export function deleteAura(id: string) {
 }
 
 export function saveAuraFromTrack(t: Track): SavedAura {
-  const sourceType: SourceType = t.hasLocalAudio
-    ? "upload"
-    : t.provider === "external" || !t.provider
-      ? t.streamUrl
-        ? "external_link"
-        : "upload"
-      : "platform_link";
+  const sourceType: SourceType = t.sourceType === "raw_recording"
+    ? "raw_recording"
+    : t.hasLocalAudio
+      ? "upload"
+      : t.provider === "external" || !t.provider
+        ? t.streamUrl
+          ? "external_link"
+          : "upload"
+        : "platform_link";
 
   const aura: SavedAura = {
     id: t.id,
@@ -99,6 +103,8 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     motionKeywords: t.motionKeywords,
     colors: t.colors,
     keyDetected: t.keyDetected,
+    pitchCenter: t.pitchCenter,
+    keyConfidence: t.keyConfidence,
   };
 
   const all = read();
