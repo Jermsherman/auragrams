@@ -258,7 +258,10 @@ export function OrbVisual({
 
       {/* particles */}
       {particles && particleCount > 0 && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" style={shape}>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{ ...shape, opacity: "var(--orb-shimmer, 1)" }}
+        >
           {Array.from({ length: particleCount }).map((_, i) => (
             <Particle key={i} index={i} kind={p.particle} speed={p.speed} stops={p.stops} />
           ))}
