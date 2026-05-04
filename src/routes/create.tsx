@@ -8,13 +8,13 @@ import {
   ArrowRight,
   X,
   Image as ImageIcon,
-  Link as LinkIcon,
+  
   Layers,
   GripVertical,
   Mic,
 } from "lucide-react";
 import {
-  detectProvider,
+  
   fileToDataUrl,
   makeId,
   saveTrack,
@@ -49,13 +49,13 @@ export const Route = createFileRoute("/create")({
       {
         name: "description",
         content:
-          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
       { property: "og:title", content: "Gain an Aura — Auragram" },
       {
         property: "og:description",
         content:
-          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
     ],
   }),
@@ -66,7 +66,7 @@ export const Route = createFileRoute("/create")({
   ),
 });
 
-type Mode = "file" | "link" | "raw" | "auracle";
+type Mode = "file" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -82,7 +82,7 @@ function CreatePage() {
   );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  const [link, setLink] = useState("");
+  // link mode removed
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -144,7 +144,7 @@ function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity.mode, resolvedIdentity.publicArtistName]);
 
-  const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
+  
   const identityReady =
     identity.mode === "anonymous" ||
     (identity.mode === "username" && !!profile?.username) ||
@@ -155,29 +155,14 @@ function CreatePage() {
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
           ? !!audio
-          : !!(title.trim() && (mode === "file" ? !!audio : !!linkInfo))
+          : !!(title.trim() && !!audio)
     );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
-    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
+    mode === "raw" ? "raw_recording" : "upload";
 
   const handleDetectMood = async () => {
-    if (mode === "link") {
-      const sug = suggestMoods({
-        title: title.trim(),
-        artist: artist.trim(),
-        keyDetection,
-        sourceType: "platform_link",
-      });
-      if (sug.length === 0) {
-        toast("Couldn't detect moods yet. Pick up to 4 manually.");
-        return;
-      }
-      setMoods(sug);
-      toast.success("Moods detected. You can still adjust them.");
-      return;
-    }
     if (!audio) {
       toast("Couldn't detect moods yet. Pick up to 4 manually.");
       return;
@@ -249,7 +234,7 @@ function CreatePage() {
     [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
   );
 
-  const canDetect = mode === "link" ? !!(title.trim() || artist.trim()) : !!audio;
+  const canDetect = !!audio;
 
   const submit = async () => {
     if (!ready) return;
@@ -344,29 +329,19 @@ function CreatePage() {
         detectedEnergy: features?.energy,
         ...aura,
       };
-      if (mode === "file" || mode === "raw") {
-        if (!audio) return;
-        const audioUrl = URL.createObjectURL(audio);
-        const probe = document.createElement("audio");
-        if (audio.type && probe.canPlayType(audio.type) === "") {
-          toast.error(
-            "This audio format may not be supported by your browser. Try MP3 or WAV.",
-          );
-        }
-        setSessionAudio(id, audio, audioUrl);
-        saveTrack({ ...base, hasLocalAudio: true });
-      } else {
-        if (!linkInfo) return;
-        saveTrack({
-          ...base,
-          streamUrl: link.trim(),
-          provider: linkInfo.provider,
-          embedUrl: linkInfo.embedUrl,
-        });
+      if (!audio) return;
+      const audioUrl = URL.createObjectURL(audio);
+      const probe = document.createElement("audio");
+      if (audio.type && probe.canPlayType(audio.type) === "") {
+        toast.error(
+          "This audio format may not be supported by your browser. Try MP3 or WAV.",
+        );
       }
+      setSessionAudio(id, audio, audioUrl);
+      saveTrack({ ...base, hasLocalAudio: true });
       // Persist to cloud (owner-only). Single-aura flow.
       if (profile) {
-        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: mode !== "link", streamUrl: mode === "link" ? link.trim() : undefined, provider: mode === "link" ? linkInfo?.provider : undefined, embedUrl: mode === "link" ? linkInfo?.embedUrl : undefined } as Parameters<typeof saveAuraFromTrack>[0]);
+        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: true } as Parameters<typeof saveAuraFromTrack>[0]);
         await saveAuraToCloud({
           saved, userId: profile.id,
           visibilityMode: identity.mode,
@@ -398,22 +373,17 @@ function CreatePage() {
           <p className="mt-4 text-muted-foreground">
             {mode === "auracle"
               ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
-              : "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share."}
+              : "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share."}
           </p>
         </div>
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-4 text-sm gap-0.5">
+          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm gap-0.5">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
               <UploadCloud className="h-4 w-4" />
               <span className="hidden sm:inline">Upload File</span>
               <span className="sm:hidden">File</span>
-            </ModeTab>
-            <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Paste Link</span>
-              <span className="sm:hidden">Link</span>
             </ModeTab>
             <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
               <Mic className="h-4 w-4" />
@@ -619,31 +589,8 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
-              ) : mode === "raw" ? (
-                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               ) : (
-                <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
-                  <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
-                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <input
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      placeholder="Paste a Spotify, Apple Music, YouTube, or SoundCloud link"
-                      className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <p className="text-[11px] tracking-wide text-muted-foreground px-1">
-                    {linkInfo
-                      ? linkInfo.embedUrl
-                        ? `Detected: ${labelFor(linkInfo.provider)} · we'll embed the player.`
-                        : `We'll link out to ${labelFor(linkInfo.provider)}.`
-                      : link
-                        ? "Doesn't look like a valid URL yet."
-                        : "Spotify · Apple Music · YouTube · SoundCloud"}
-                  </p>
-                </div>
+                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               )}
 
               {/* Fields */}
@@ -789,27 +736,6 @@ function ModeTab({
   );
 }
 
-function labelFor(p: string) {
-  return (
-    {
-      spotify: "Spotify",
-      youtube: "YouTube",
-      "youtube-music": "YouTube Music",
-      soundcloud: "SoundCloud",
-      apple: "Apple Music",
-      audiomack: "Audiomack",
-      bandcamp: "Bandcamp",
-      tidal: "Tidal",
-      deezer: "Deezer",
-      amazon: "Amazon Music",
-      pandora: "Pandora",
-      boomplay: "Boomplay",
-      audius: "Audius",
-      smartlink: "Smart Link",
-      external: "External Link",
-    }[p] || "External Link"
-  );
-}
 
 function Field({
   label,
