@@ -280,7 +280,16 @@ function CreatePage() {
             ...aura,
           };
           saveTrack(track);
-          saveAuraFromTrack(track);
+          const saved = saveAuraFromTrack(track);
+          if (profile) {
+            await saveAuraToCloud({
+              saved, userId: profile.id,
+              visibilityMode: identity.mode,
+              artistProfileId: identity.artistProfileId,
+              publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+              publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+            }).catch((e) => console.error("cloud save aura", e));
+          }
           auraIds.push(id);
         }
         const a = saveAuracle({
@@ -290,6 +299,15 @@ function CreatePage() {
           description: auracleDesc.trim() || undefined,
           auraIds,
         });
+        if (profile) {
+          await saveAuracleToCloud({
+            auracle: a, userId: profile.id,
+            visibilityMode: identity.mode,
+            artistProfileId: identity.artistProfileId,
+            publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+            publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+          }).catch((e) => console.error("cloud save auracle", e));
+        }
         toast.success("Auracle created.");
         nav({ to: "/auracle/$id", params: { id: a.id } });
         return;
@@ -344,6 +362,17 @@ function CreatePage() {
           provider: linkInfo.provider,
           embedUrl: linkInfo.embedUrl,
         });
+      }
+      // Persist to cloud (owner-only). Single-aura flow.
+      if (profile) {
+        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: mode !== "link", streamUrl: mode === "link" ? link.trim() : undefined, provider: mode === "link" ? linkInfo?.provider : undefined, embedUrl: mode === "link" ? linkInfo?.embedUrl : undefined } as Parameters<typeof saveAuraFromTrack>[0]);
+        await saveAuraToCloud({
+          saved, userId: profile.id,
+          visibilityMode: identity.mode,
+          artistProfileId: identity.artistProfileId,
+          publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+          publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+        }).catch((e) => console.error("cloud save aura", e));
       }
       nav({ to: "/generating", search: { id } });
     } catch (e) {
