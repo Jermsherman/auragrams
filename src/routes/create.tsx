@@ -557,11 +557,18 @@ function CreatePage() {
           onClick={submit}
           className="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]"
         >
-          {busy ? "Preparing…" : "Generate Aura"} <ArrowRight className="h-4 w-4" />
+          {busy
+            ? "Preparing…"
+            : mode === "auracle"
+              ? "Create Auracle"
+              : "Generate Aura"}{" "}
+          <ArrowRight className="h-4 w-4" />
         </button>
         {!ready && (
           <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-            Add a track and the song details
+            {mode === "auracle"
+              ? "Add 2+ tracks, project title, and artist"
+              : "Add a track and the song details"}
           </p>
         )}
       </div>
