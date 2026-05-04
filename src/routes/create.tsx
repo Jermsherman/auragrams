@@ -9,6 +9,8 @@ import {
   X,
   Image as ImageIcon,
   Link as LinkIcon,
+  Layers,
+  GripVertical,
 } from "lucide-react";
 import {
   detectProvider,
@@ -22,6 +24,12 @@ import { generateAura, slugify } from "@/lib/aura";
 import { detectKey } from "@/lib/keyDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
+import { saveAuraFromTrack } from "@/lib/farm";
+import {
+  PROJECT_TYPE_LABELS,
+  saveAuracle,
+  type AuracleProjectType,
+} from "@/lib/auracle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/create")({
