@@ -198,7 +198,7 @@ export const MOOD_TRAITS: Record<string, MoodTrait> = {
   Radiant:{base:"euphoric",colors:["#FFFFFF","#F1C75B","#FF3DA1","#3DD2FF"],motion:"pulse",texture:"smooth",particle:"shimmer",speed:1.3,energyBias:10,motionWords:["flare","bloom","bright"],vibe:["a bright expansion","white-gold flare"]},
   Stormy:{base:"cinematic",colors:["#3F4E78","#5A4A8A","#D6D6E5","#1F2A4A"],motion:"smoke",texture:"smoke",particle:"smoke",speed:1.0,energyBias:4,motionWords:["roll","swell","silver"],vibe:["a rolling slate swell","silver inside cloud"]},
   Serene:{base:"coastal",colors:["#BFD6E8","#C8E5C4","#FFFFFF","#D9C7F0"],motion:"tide",texture:"ripple",particle:"tide",speed:0.55,energyBias:-4,motionWords:["calm","ripple","still"],vibe:["a still water ripple","quiet pale air"]},
-  Gritty:{base:"raw" in MOOD_TRAITS_PLACEHOLDER() ? "cinematic" : "cinematic",colors:["#8B3E1A","#3D2A26","#A6262E","#C9A24A"],motion:"pulse",texture:"grain",particle:"embers",speed:0.9,energyBias:4,motionWords:["rough","grit","glow"],vibe:["a rough rust pulse","dirty gold edges"]},
+  Gritty:{base:"cinematic",colors:["#8B3E1A","#3D2A26","#A6262E","#C9A24A"],motion:"pulse",texture:"grain",particle:"embers",speed:0.9,energyBias:4,motionWords:["rough","grit","glow"],vibe:["a rough rust pulse","dirty gold edges"]},
   Hypnotic:{base:"mysterious",colors:["#5E2A6A","#1F8A9A","#FF3DA1","#0E0815"],motion:"shimmer",texture:"silk",particle:"shimmer",speed:0.9,energyBias:2,motionWords:["spiral","loop","pull"],vibe:["a looping liquid spiral","violet-teal pull"]},
   Wistful:{base:"nostalgic",colors:["#A6B8C8","#F0C7D4","#E2A682","#7E97A8"],motion:"drift",texture:"grain",particle:"dust",speed:0.5,energyBias:-6,motionWords:["backward","drift","ache"],vibe:["a backward memory drift","dusty rose ache"]},
   Ethereal:{base:"dreamy",colors:["#F0E8FF","#C8E5F2","#FFFFFF","#D6C8FF"],motion:"shimmer",texture:"mist",particle:"shimmer",speed:0.8,energyBias:0,motionWords:["float","mist","pearl"],vibe:["a pearled floating mist","cyan-lavender breath"]},
@@ -206,8 +206,8 @@ export const MOOD_TRAITS: Record<string, MoodTrait> = {
   Nocturnal:{base:"mysterious",colors:["#0E1638","#5B3494","#9C2BFF","#A8B6CC"],motion:"drift",texture:"mist",particle:"mist",speed:0.6,energyBias:-4,motionWords:["nocturnal","slow","silver"],vibe:["a moonlit nocturnal drift","neon-violet hush"]},
 };
 
-// (avoid TS bootstrap error)
-function MOOD_TRAITS_PLACEHOLDER() { return {} as Record<string,never>; }
+
+
 
 // ----------------- mood list + key map -----------------
 export const MOODS = Object.keys(MOOD_TRAITS) as readonly string[];
