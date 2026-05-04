@@ -107,16 +107,11 @@ function Index() {
                 t: "AuraLinks",
                 d: "A premium music-first share page for bios, stories, and DMs.",
               },
-            ].map(({ I, t, d, soon }) => (
+            ].map(({ I, t, d }) => (
               <div key={t} className="glass rounded-2xl p-6 sm:p-7 relative">
                 <I className="h-5 w-5 text-foreground/80" />
                 <h3 className="mt-4 font-display text-xl">{t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-                {soon && (
-                  <span className="absolute top-5 right-5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground border border-border/70 rounded-full px-2 py-0.5">
-                    Coming soon
-                  </span>
-                )}
               </div>
             ))}
           </div>
