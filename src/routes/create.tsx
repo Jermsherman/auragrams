@@ -52,7 +52,7 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
-type Mode = "file" | "link";
+type Mode = "file" | "link" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -66,6 +66,11 @@ function CreatePage() {
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
+
+  // Auracle (multi-file) state
+  const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
+  const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
+  const [auracleDesc, setAuracleDesc] = useState("");
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
