@@ -154,6 +154,8 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     pitchCenter: t.pitchCenter,
     keyConfidence: t.keyConfidence,
     detectedEnergy: t.detectedEnergy,
+    userColorInfluence: t.userColorInfluence,
+    colorGuided: t.colorGuided ?? gen.colorGuided,
   };
 }
 
