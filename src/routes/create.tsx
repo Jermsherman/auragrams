@@ -17,6 +17,7 @@ import {
   saveTrack,
   seedFromId,
 } from "@/lib/tracks";
+import { setSessionAudio } from "@/lib/session";
 import { generateAura, slugify } from "@/lib/aura";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
@@ -53,10 +54,14 @@ function CreatePage() {
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
-    if (!/^audio\//.test(f.type) && !/\.(mp3|wav|m4a|ogg)$/i.test(f.name)) {
-      toast.error("Please upload an audio file (.mp3, .wav)");
+    const okType = f.type.startsWith("audio/");
+    const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
+    if (!okType && !okExt) {
+      toast.error("Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg)");
       return;
     }
+    console.log("Selected file:", f);
+    console.log("File type:", f.type);
     setAudio(f);
   };
 
@@ -98,8 +103,25 @@ function CreatePage() {
       };
       if (mode === "file") {
         if (!audio) return;
-        const audioDataUrl = await fileToDataUrl(audio);
-        saveTrack({ ...base, audioDataUrl });
+        // Create a temporary object URL — do NOT read or persist the file.
+        const audioUrl = URL.createObjectURL(audio);
+        console.log("Audio URL:", audioUrl);
+
+        // Validate the browser can decode this format before continuing.
+        const probe = document.createElement("audio");
+        const canPlay =
+          probe.canPlayType(audio.type || "") ||
+          probe.canPlayType("audio/mpeg") ||
+          "";
+        if (audio.type && probe.canPlayType(audio.type) === "") {
+          toast.error(
+            "This audio format may not be supported by your browser. Try MP3 or WAV.",
+          );
+        }
+        void canPlay;
+
+        setSessionAudio(id, audio, audioUrl);
+        saveTrack({ ...base, hasLocalAudio: true });
       } else {
         if (!linkInfo) return;
         saveTrack({
@@ -112,7 +134,7 @@ function CreatePage() {
       nav({ to: "/generating", search: { id } });
     } catch (e) {
       console.error(e);
-      toast.error("Could not read that file. Try a smaller one.");
+      toast.error("Something went wrong preparing your track.");
       setBusy(false);
     }
   };

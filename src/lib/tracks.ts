@@ -13,7 +13,10 @@ export type Track = {
   title: string;
   artist: string;
   artistHandle: string;
-  // File-based source (data URL)
+  // File-based source: audio is held in-memory via session store (object URL),
+  // not persisted. This flag indicates the track was created from a local file.
+  hasLocalAudio?: boolean;
+  /** @deprecated legacy data URLs from older sessions; no longer written. */
   audioDataUrl?: string;
   // Streaming-link source
   streamUrl?: string;
@@ -85,6 +88,7 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     title: t.title,
     artist: t.artist,
     artistHandle: t.artistHandle ?? slugify(t.artist),
+    hasLocalAudio: t.hasLocalAudio,
     audioDataUrl: t.audioDataUrl,
     streamUrl: t.streamUrl,
     provider: t.provider,
