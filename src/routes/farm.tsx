@@ -9,6 +9,7 @@ import { AuracleCard } from "@/components/AuracleCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { getSavedAuracles, type Auracle } from "@/lib/auracle";
+import { HelpLink } from "@/components/HelpLink";
 
 export const Route = createFileRoute("/farm")({
   head: () => ({
@@ -67,6 +68,9 @@ function FarmPage() {
           <p className="mt-3 text-muted-foreground">
             Your growing collection of sonic identities — and the Auracles you build from them.
           </p>
+          <div className="mt-4 flex justify-center">
+            <HelpLink hash="farm" label="What is the Farm?" />
+          </div>
         </div>
 
         <Tabs defaultValue="auras" className="mt-10 sm:mt-12 animate-fade-up">

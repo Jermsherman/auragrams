@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as FarmRouteImport } from './routes/farm'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const GeneratingRoute = GeneratingRouteImport.update({
 const FarmRoute = FarmRouteImport.update({
   id: '/farm',
   path: '/farm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/faq'
     | '/farm'
     | '/generating'
     | '/onboarding'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/faq'
     | '/farm'
     | '/generating'
     | '/onboarding'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/faq'
     | '/farm'
     | '/generating'
     | '/onboarding'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
+  FaqRoute: typeof FaqRoute
   FarmRoute: typeof FarmRoute
   GeneratingRoute: typeof GeneratingRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/farm'
       fullPath: '/farm'
       preLoaderRoute: typeof FarmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
+  FaqRoute: FaqRoute,
   FarmRoute: FarmRoute,
   GeneratingRoute: GeneratingRoute,
   OnboardingRoute: OnboardingRoute,

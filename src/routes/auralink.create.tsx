@@ -31,6 +31,7 @@ import {
   type AuraLinkTheme,
 } from "@/lib/auralink";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
+import { HelpLink } from "@/components/HelpLink";
 
 export const Route = createFileRoute("/auralink/create")({
   head: () => ({
@@ -255,6 +256,9 @@ function BuilderPage() {
           <p className="mt-2 text-sm sm:text-base text-muted-foreground px-4">
             Create a music-first link page with streaming links, Auras, or both.
           </p>
+          <div className="mt-4 flex justify-center">
+            <HelpLink hash="auralinks" label="What is an AuraLink?" />
+          </div>
         </div>
 
         {/* Mobile preview toggle */}

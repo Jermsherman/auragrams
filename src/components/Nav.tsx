@@ -33,6 +33,14 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
               </Link>
             </>
           )}
+          <Link
+            to="/faq"
+            activeProps={{ className: "text-foreground" }}
+            inactiveProps={{ className: "text-muted-foreground" }}
+            className="hidden sm:inline text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
+          >
+            FAQ
+          </Link>
           {showCta && (
             <Link
               to="/create"

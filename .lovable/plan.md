@@ -1,56 +1,34 @@
-# Fix: "Publish AuraLink" button does nothing
+# Add FAQ / How It Works help system
 
-## Root cause
+## New files
 
-Clicking **Publish** throws `QuotaExceededError` from `localStorage.setItem` inside `saveAuraLink` (`src/lib/auralink.ts`). The toast/navigate after `saveAuraLink(...)` never runs, so the button appears dead.
+- **`src/lib/faq.ts`** — Source of truth for FAQ content. Exports `FAQ` (7 sections × items per spec) and a `getHomepageFaqs()` helper that returns the 4 preview questions.
+- **`src/routes/faq.tsx`** — `/faq` route. Premium dark layout matching the rest of Auragram (Nav + Footer, `mx-auto max-w-3xl`, gradient title, glass cards). Renders each section with the shadcn `Accordion` component (`type="multiple"`, collapsible). Section headings use the existing `font-display` + `text-aura-gradient` style. Includes head() metadata: title "How to Use Auragram — Auragram", matching og:title/og:description.
+- **`src/components/FaqPreview.tsx`** — Small component used on the homepage. Renders heading "Questions before you create?", an Accordion with the 4 preview FAQs from `getHomepageFaqs()`, and a "View Full FAQ" link (`<Link to="/faq">`).
+- **`src/components/HelpLink.tsx`** — Tiny inline `<Link to="/faq" hash="...">` styled as muted "Need help? Read the FAQ" pill, reused on Create / AuraLink / Farm pages.
 
-The quota is blown because the AuraLink builder reads the chosen cover/avatar image as a base64 data URL and stuffs the whole thing into the page object:
+## Edits
 
-```ts
-// src/routes/auralink.create.tsx
-const onImage = (file: File | null) => {
-  const reader = new FileReader();
-  reader.onload = () => setProfileImageUrl(String(reader.result || ""));
-  reader.readAsDataURL(file);              // ← multi-MB string
-};
-// ...
-profileImageUrl: profileImageUrl || undefined,
-saveAuraLink(page);                         // ← localStorage.setItem blows up
-```
+- **`src/components/Nav.tsx`** — Add a `FAQ` link between AuraLink and Farm (visible on sm+, hidden on xs to avoid mobile crowding — mobile users get it via the footer). Always visible (not gated on auth).
+- **`src/components/Footer.tsx`** — Replace the current single-line footer with a small grid: Logo + tagline on the left, a "Help" column with links to FAQ, Create Aura, Build AuraLink, Farm on the right. Keep the dark/glassy aesthetic.
+- **`src/routes/index.tsx`** — Insert `<FaqPreview />` between the "Aura Farm / AuraLinks" highlight grid section and the "FINAL CTA" section.
+- **`src/routes/create.tsx`** — Add a small "Need help? Read the FAQ" `HelpLink` near the page intro/header (links to `/faq#creating-auras`).
+- **`src/routes/auralink.create.tsx`** — Add "What is an AuraLink?" `HelpLink` under the page subtitle (links to `/faq#auralinks`).
+- **`src/routes/farm.tsx`** — Add "What is the Farm?" `HelpLink` near the page header (links to `/faq#farm`).
 
-A 2–5 MB photo from a phone camera easily exceeds the ~5 MB localStorage cap once combined with existing Farm + AuraLink data.
+No new routes besides `/faq`. Hash anchors here are appropriate (in-page TOC of a single help page), per the route-architecture rules.
 
-## Fix
+## Styling notes
 
-1. **Upload cover images to Supabase Storage** instead of base64 in localStorage.
-   - Reuse the existing public `auragram-audio` bucket via a new `auralinks/` prefix, or add a new public bucket `auralink-images` (cleaner).
-   - On image select, upload immediately and store only the resulting public URL in component state (and ultimately in the page record).
-   - Show a small "Uploading…" state on the file field while in flight; disable Publish until done.
+- Reuse `glass`, `glass-strong`, `text-aura-gradient`, `font-display` utility classes already in `src/styles.css`.
+- Accordion items: dark glass card per section, no heavy borders, generous spacing, short answers — keep it scannable.
+- Mobile-first: `max-w-3xl`, `px-5 sm:px-8`, comfortable line-height; section anchors via `id={section.id}` so `/faq#auralinks` jumps correctly.
 
-2. **Defensive save in `src/lib/auralink.ts`**
-   - Wrap `localStorage.setItem` in try/catch. On `QuotaExceededError`, surface a real error (return `null` / throw) so the caller can `toast.error("Storage full — try a smaller cover image.")` instead of silently failing.
+## Acceptance criteria mapping
 
-3. **Trim payload before persisting**
-   - If `profileImageUrl` is still a `data:` URL for any reason (legacy entries), reject it at save time with a clear error rather than attempting to write.
-
-4. **Compress as a safety net**
-   - Before upload, downscale the image client-side to max 512×512 JPEG (quality 0.85) using a `<canvas>` helper. Keeps uploads fast and predictable.
-
-## Files to change
-
-- `src/lib/auralink.ts` — try/catch around `write()`; bubble quota errors.
-- `src/routes/auralink.create.tsx` — replace `FileReader` data-URL flow with Supabase upload; add upload state; gate Publish on upload completion; show toast on save failure.
-- `src/lib/auralinkImages.ts` *(new)* — small helper: `compressImage(file)` + `uploadAuraLinkCover(file, userId)` returning a public URL.
-- *(optional)* `supabase/migrations/<timestamp>_auralink_images_bucket.sql` — create `auralink-images` public bucket with owner-write RLS, mirroring the audio bucket pattern. If we reuse `auragram-audio`, no migration needed.
-
-## Acceptance criteria
-
-- Selecting a cover image uploads to Supabase Storage and shows a progress indicator.
-- Publish succeeds for users with existing Farm data; the page navigates to `/l/<slug>`.
-- No `QuotaExceededError` in console after publishing.
-- If localStorage ever fills up for another reason, the user sees a clear toast instead of a silent no-op.
-- Existing AuraLinks without a cover image continue to work (fallback to featured Aurascope).
-
-## Decision needed
-
-Reuse `auragram-audio` bucket under an `auralinks/` prefix (no migration), or add a dedicated `auralink-images` bucket (one small migration, cleaner separation)? Default recommendation: **dedicated bucket**.
+1. `/faq` exists — new route file.
+2. Accordion sections — shadcn Accordion, one per section in `FAQ`.
+3. Homepage FAQ preview — `FaqPreview` injected into `index.tsx`.
+4. Covers Aura, Aurascope, Farm, AuraLink, Auracle, uploads, platform links, anonymous posting, troubleshooting — all included in `src/lib/faq.ts`.
+5. Artist-friendly tone — content uses the exact copy from the spec.
+6. Discoverability — Nav link, Footer links, contextual HelpLinks on Create / AuraLink / Farm.
