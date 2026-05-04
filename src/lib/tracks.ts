@@ -80,6 +80,15 @@ export type Track = {
     visibilityMode: "artist" | "username" | "anonymous";
     updatedAt: string;
   };
+
+  // Phase 7 — Persistent audio storage
+  audioStoragePath?: string;
+  audioPublicUrl?: string;
+  audioFileName?: string;
+  audioMimeType?: string;
+  audioSizeBytes?: number;
+  audioDurationSeconds?: number;
+  uploadStatus?: "pending" | "uploading" | "complete" | "failed";
 };
 
 export type ArtistProfile = {
