@@ -36,6 +36,7 @@ type Props = {
   interactive?: boolean;
   hero?: boolean;
   className?: string;
+  style?: CSSProperties;
 };
 
 const SIZE_PX: Record<AurascopeSize, number | string> = {
