@@ -169,6 +169,7 @@ function AuraPage() {
             hueShift={track.seed}
             isPlaying={playing}
             analyser={analyserRef}
+            metricsRef={metricsRef.current ?? undefined}
             palette={track.palette}
             className={playing ? "" : "animate-breathe"}
           />
@@ -194,9 +195,14 @@ function AuraPage() {
           {audioUrl ? (
             <AudioPlayer
               src={audioUrl}
+              palette={track.palette}
               onPlayingChange={setPlaying}
               onAnalyserReady={(a) => {
                 analyserRef.current = a;
+                force((n) => n + 1);
+              }}
+              onMetricsReady={(m) => {
+                metricsRef.current = m;
                 force((n) => n + 1);
               }}
             />
