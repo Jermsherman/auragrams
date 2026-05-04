@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as GeneratingRouteImport } from './routes/generating'
+import { Route as FarmRouteImport } from './routes/farm'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
@@ -18,6 +19,11 @@ import { Route as ArtistHandleRouteImport } from './routes/artist.$handle'
 const GeneratingRoute = GeneratingRouteImport.update({
   id: '/generating',
   path: '/generating',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FarmRoute = FarmRouteImport.update({
+  id: '/farm',
+  path: '/farm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -44,6 +50,7 @@ const ArtistHandleRoute = ArtistHandleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
@@ -59,19 +67,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/create' | '/generating' | '/artist/$handle' | '/aura/$id'
+  fullPaths:
+    | '/'
+    | '/create'
+    | '/farm'
+    | '/generating'
+    | '/artist/$handle'
+    | '/aura/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/create' | '/generating' | '/artist/$handle' | '/aura/$id'
+  to:
+    | '/'
+    | '/create'
+    | '/farm'
+    | '/generating'
+    | '/artist/$handle'
+    | '/aura/$id'
   id:
     | '__root__'
     | '/'
     | '/create'
+    | '/farm'
     | '/generating'
     | '/artist/$handle'
     | '/aura/$id'
@@ -80,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  FarmRoute: typeof FarmRoute
   GeneratingRoute: typeof GeneratingRoute
   ArtistHandleRoute: typeof ArtistHandleRoute
   AuraIdRoute: typeof AuraIdRoute
@@ -92,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/generating'
       fullPath: '/generating'
       preLoaderRoute: typeof GeneratingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farm': {
+      id: '/farm'
+      path: '/farm'
+      fullPath: '/farm'
+      preLoaderRoute: typeof FarmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -128,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  FarmRoute: FarmRoute,
   GeneratingRoute: GeneratingRoute,
   ArtistHandleRoute: ArtistHandleRoute,
   AuraIdRoute: AuraIdRoute,
