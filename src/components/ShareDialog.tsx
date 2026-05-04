@@ -82,7 +82,13 @@ export function ShareDialog({
         <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Share this aura</DialogTitle>
-            <DialogDescription>Made to be shared.</DialogDescription>
+            <DialogDescription>
+              {track.hasLocalAudio
+                ? "Uploaded Audio"
+                : track.provider
+                  ? providerLabel(track.provider)
+                  : "Made to be shared."}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2.5 pt-2">
@@ -96,6 +102,49 @@ export function ShareDialog({
                 {copied ? "Copied" : "Copy link"}
               </button>
             </div>
+
+            {/* Save to Farm */}
+            {saved ? (
+              <div className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-sm text-foreground/85">
+                <BookmarkCheck className="h-4 w-4" /> Saved in Farm
+              </div>
+            ) : onSave ? (
+              <button
+                onClick={() => {
+                  onSave();
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl glass-strong h-11 text-sm hover:bg-foreground/[0.06] transition-colors"
+              >
+                <Bookmark className="h-4 w-4" /> Save to Farm
+              </button>
+            ) : null}
+
+            {/* Platform actions */}
+            {track.streamUrl && track.provider && track.provider !== "external" && (
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={track.streamUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-xs hover:bg-foreground/5 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Open on {providerLabel(track.provider)}
+                </a>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(track.streamUrl!);
+                      toast.success("Platform link copied");
+                    } catch {
+                      toast.error("Could not copy");
+                    }
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-xs hover:bg-foreground/5 transition-colors"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy platform link
+                </button>
+              </div>
+            )}
 
             <button
               onClick={() => {
