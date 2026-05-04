@@ -35,6 +35,11 @@ import {
   type AuracleProjectType,
 } from "@/lib/auracle";
 import { toast } from "sonner";
+import { RequireAuth } from "@/components/RequireAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { IdentitySelector } from "@/components/IdentitySelector";
+import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
+import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
