@@ -27,8 +27,10 @@ export function AuraFarmCard({
   const [open, setOpen] = useState(false);
   const p = getPersonality(aura.palette);
 
-  const sourceBadge =
-    aura.sourceType === "upload"
+  const isRaw = aura.sourceType === "raw_recording";
+  const sourceBadge = isRaw
+    ? "Raw Aura"
+    : aura.sourceType === "upload"
       ? "Uploaded Audio"
       : aura.platformName ?? "External Link";
 
@@ -47,7 +49,13 @@ export function AuraFarmCard({
       }}
     >
       <div className="absolute inset-x-5 top-3 flex items-center justify-between">
-        <span className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
+        <span
+          className={
+            isRaw
+              ? "rounded-full px-2 h-5 inline-flex items-center bg-aura-gradient text-primary-foreground text-[9px] uppercase tracking-[0.24em]"
+              : "text-[9px] uppercase tracking-[0.28em] text-muted-foreground"
+          }
+        >
           {sourceBadge}
         </span>
       </div>
