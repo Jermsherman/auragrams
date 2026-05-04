@@ -1,6 +1,6 @@
-import { useEffect, useRef, useId } from "react";
+import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { getPersonality, type AuraPersonality, type MoodKey } from "@/lib/aura";
+import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
   /** Either a new MoodKey or a legacy palette key. */
   palette?: string;
   personality?: AuraPersonality | MoodKey;
+  /** Full AuraProfile — when provided, palette colors come from profile.colors. */
+  profile?: AuraProfile;
   particles?: boolean;
 };
 
