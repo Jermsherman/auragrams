@@ -26,12 +26,17 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
-      { title: "Create your Auragram" },
-      { name: "description", content: "Upload your track and begin the transformation." },
-      { property: "og:title", content: "Create your Auragram" },
+      { title: "Create an Aura — Auragram" },
+      {
+        name: "description",
+        content:
+          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
+      },
+      { property: "og:title", content: "Create an Aura — Auragram" },
       {
         property: "og:description",
-        content: "Upload your track and turn it into a living visual aura.",
+        content:
+          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
       },
     ],
   }),
@@ -145,10 +150,10 @@ function CreatePage() {
       <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20">
         <div className="text-center animate-fade-up">
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
-            Offer your <span className="text-aura-gradient">sound.</span>
+            Create an <span className="text-aura-gradient">Aura.</span>
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Upload your track or paste a link to begin the transformation.
+            Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.
           </p>
         </div>
 
@@ -156,10 +161,10 @@ function CreatePage() {
           {/* Mode toggle */}
           <div className="glass rounded-full p-1 grid grid-cols-2 text-sm">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" /> Upload file
+              <UploadCloud className="h-4 w-4" /> Upload File
             </ModeTab>
             <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" /> Paste link
+              <LinkIcon className="h-4 w-4" /> Paste Music Link
             </ModeTab>
           </div>
 
