@@ -346,10 +346,20 @@ function labelFor(p: string) {
     {
       spotify: "Spotify",
       youtube: "YouTube",
+      "youtube-music": "YouTube Music",
       soundcloud: "SoundCloud",
       apple: "Apple Music",
-      other: "the source",
-    }[p] || p
+      audiomack: "Audiomack",
+      bandcamp: "Bandcamp",
+      tidal: "Tidal",
+      deezer: "Deezer",
+      amazon: "Amazon Music",
+      pandora: "Pandora",
+      boomplay: "Boomplay",
+      audius: "Audius",
+      smartlink: "Smart Link",
+      external: "External Link",
+    }[p] || "External Link"
   );
 }
 
