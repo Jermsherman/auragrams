@@ -116,6 +116,7 @@ export async function saveAuraToCloud(opts: {
       keyConfidence: saved.keyConfidence,
       userColorInfluence: saved.userColorInfluence ?? null,
       colorGuided: saved.colorGuided ?? false,
+      influenceSettings: saved.influenceSettings ?? null,
     },
   };
   const { error } = await supabase.from("auras").upsert(row);

@@ -36,6 +36,14 @@ export type SavedAura = {
   keyConfidence?: number;
   userColorInfluence?: UserColorInfluence;
   colorGuided?: boolean;
+  visibilityMode?: "artist" | "username" | "anonymous";
+  influenceSettings?: {
+    moodTags: string[];
+    userColorInfluence: UserColorInfluence;
+    vibeNote: string;
+    visibilityMode: "artist" | "username" | "anonymous";
+    updatedAt: string;
+  };
 };
 
 const KEY = "auragram_farm_auras";
@@ -109,6 +117,8 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     keyConfidence: t.keyConfidence,
     userColorInfluence: t.userColorInfluence,
     colorGuided: t.colorGuided,
+    visibilityMode: t.visibilityMode,
+    influenceSettings: t.influenceSettings,
   };
 
   const all = read();
