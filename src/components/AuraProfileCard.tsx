@@ -28,6 +28,7 @@ export function AuraProfileCard({
   editable = false,
   onSaveVibe,
   onRegenerateVibe,
+  colorGuided = false,
 }: {
   name: string;
   moods: string[];
@@ -47,6 +48,7 @@ export function AuraProfileCard({
   editable?: boolean;
   onSaveVibe?: (text: string) => Promise<void> | void;
   onRegenerateVibe?: () => Promise<void> | void;
+  colorGuided?: boolean;
 }) {
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
@@ -143,6 +145,11 @@ export function AuraProfileCard({
             />
           ))}
         </div>
+        {colorGuided && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-aura-gradient/40 border border-foreground/15 px-2.5 h-6 text-[10px] uppercase tracking-[0.24em] text-foreground/90">
+            <Sparkles className="h-3 w-3" /> Color-guided
+          </div>
+        )}
       </Section>
     </div>
   );

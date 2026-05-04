@@ -21,13 +21,14 @@ import {
   seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
-import { generateAura, slugify, type PitchCenter } from "@/lib/aura";
+import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
 import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
 import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
+import { ColorInfluence } from "@/components/ColorInfluence";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
 import { saveAuraFromTrack } from "@/lib/farm";
 import {
@@ -89,6 +90,11 @@ function CreatePage() {
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
+  const [colorInfluence, setColorInfluence] = useState<UserColorInfluence>({
+    mode: "surprise",
+    colors: [],
+    description: "",
+  });
 
   // Auracle (multi-file) state
   const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
@@ -230,8 +236,9 @@ function CreatePage() {
         energyOverride: features?.energy ?? null,
         keyConfidence: keyDetection?.confidence ?? null,
         sourceType,
+        userColorInfluence: colorInfluence,
       }),
-    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
+    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode, colorInfluence],
   );
 
   const canDetect = !!audio;
@@ -312,6 +319,7 @@ function CreatePage() {
         energyOverride: features?.energy ?? null,
         keyConfidence: keyDetection?.confidence ?? null,
         sourceType,
+        userColorInfluence: colorInfluence,
       });
       const base = {
         id,
@@ -627,6 +635,8 @@ function CreatePage() {
                   onDetect={handleDetectMood}
                   canDetect={canDetect}
                 />
+
+                <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
 
                 <div className="flex items-center gap-4 pt-1">
                   <Aurascope

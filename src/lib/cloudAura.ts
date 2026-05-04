@@ -111,7 +111,12 @@ export async function saveAuraToCloud(opts: {
     },
     public_artist_name: publicArtistName,
     public_handle: publicHandle,
-    extra: { coverDataUrl: saved.coverDataUrl ?? null, keyConfidence: saved.keyConfidence },
+    extra: {
+      coverDataUrl: saved.coverDataUrl ?? null,
+      keyConfidence: saved.keyConfidence,
+      userColorInfluence: saved.userColorInfluence ?? null,
+      colorGuided: saved.colorGuided ?? false,
+    },
   };
   const { error } = await supabase.from("auras").upsert(row);
   if (error) throw error;

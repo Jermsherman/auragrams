@@ -337,7 +337,84 @@ export type AuraPalette = {
   swatches: string[];
 };
 
-function buildPalette(moods: string[], keyProfile: KeyProfile | null, seed: number): AuraPalette {
+export type ColorInfluenceMode = "surprise" | "single" | "palette" | "description";
+export type UserColorInfluence = {
+  mode: ColorInfluenceMode;
+  colors: string[];
+  description: string;
+};
+
+// Maps common color words to seed hexes per spec.
+const COLOR_WORD_MAP: Record<string, string[]> = {
+  sunset: ["#FF7E47", "#FF4FA1", "#A35BFF"],
+  ocean: ["#1F8A9A", "#2D5FAE", "#7AD0C8"],
+  teal: ["#1F8A9A", "#7AD0C8"],
+  winter: ["#A8D6F2", "#D6E2EC", "#FFFFFF"],
+  ice: ["#A8D6F2", "#FFFFFF"],
+  icy: ["#A8D6F2", "#D6E2EC"],
+  neon: ["#3DD2FF", "#FF3DA1", "#A8E04F"],
+  gold: ["#F1C75B", "#E89B4A", "#FFE3B0"],
+  amber: ["#E89B4A", "#F1C75B"],
+  yellow: ["#F8E16C", "#FFE3A3"],
+  cream: ["#FFE3B0", "#FFFBEA"],
+  dark: ["#1B1230", "#1A1335", "#3A0F2A"],
+  black: ["#0A0814", "#1B1230"],
+  navy: ["#0E1638", "#1F2D4F"],
+  crimson: ["#8C1E3F", "#B22B3A"],
+  rose: ["#E48498", "#F4C2A1"],
+  pink: ["#FF8FC3", "#FFB6D5", "#FF4FCB"],
+  blush: ["#F5D6E0", "#F0C7D4"],
+  magenta: ["#FF3DA1", "#FF4FCB"],
+  green: ["#3FD0C9", "#A8E04F", "#3B8C6E"],
+  emerald: ["#3B8C6E", "#1F8A9A"],
+  lime: ["#A8E04F"],
+  seafoam: ["#7AD0C8", "#A9DCE6"],
+  red: ["#C0392B", "#8C1E3F", "#E37A4A"],
+  burgundy: ["#5C1E2E", "#7E2F4D"],
+  coral: ["#E8927C", "#FF8E72"],
+  purple: ["#5C2D75", "#9C2BFF", "#B57BFF"],
+  violet: ["#5B3494", "#9C2BFF"],
+  lavender: ["#C4B5F0", "#D6C8FF"],
+  plum: ["#5E3F5C", "#7E2F4D"],
+  blue: ["#2D5FAE", "#3DA9FF"],
+  electric: ["#3DD2FF", "#9C2BFF"],
+  cold: ["#A8D6F2", "#2D5FAE"],
+  white: ["#FFFFFF", "#F2F2F2"],
+  silver: ["#D6E2EC", "#A9B6CC"],
+  orange: ["#FF7E47", "#E89B4A"],
+  dusty: ["#C7BBD2", "#B58FA6"],
+  bedroom: ["#F5D6E0", "#C7BBD2"],
+};
+
+export function colorWordsToHex(text: string): string[] {
+  if (!text) return [];
+  const seeds: string[] = [];
+  // Direct hex matches like "#aabbcc"
+  const hexMatches = text.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+  for (const hx of hexMatches) seeds.push(hx);
+  const lower = text.toLowerCase();
+  for (const [word, hexes] of Object.entries(COLOR_WORD_MAP)) {
+    if (lower.includes(word)) seeds.push(...hexes);
+  }
+  // dedupe, cap 5
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of seeds) {
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+
+function buildPalette(
+  moods: string[],
+  keyProfile: KeyProfile | null,
+  seed: number,
+  influence?: UserColorInfluence | null,
+): AuraPalette {
   const moodColors: string[] = [];
   for (const m of moods) {
     const t = MOOD_TRAITS[m]; if (!t) continue;
@@ -345,17 +422,47 @@ function buildPalette(moods: string[], keyProfile: KeyProfile | null, seed: numb
   }
   if (moodColors.length === 0) moodColors.push("#7C8AB8","#5C5E94","#F4C2A1","#E48498");
   const keyColors = keyProfile?.colors ?? [];
-  // weighted blend
   const pickIdx = (arr:string[], i:number) => arr[((seed>>>i)|0) % arr.length];
   const pA = pickIdx(moodColors, 1);
   const pB = keyColors.length ? pickIdx(keyColors, 3) : pickIdx(moodColors, 7);
-  const primary = mixHex(pA, pB, 0.4);
-  const secondary = pickIdx(moodColors, 5);
-  const accent = keyColors.length ? pickIdx(keyColors, 11) : pickIdx(moodColors, 13);
+  const enginePrimary = mixHex(pA, pB, 0.4);
+  const engineSecondary = pickIdx(moodColors, 5);
+  const engineAccent = keyColors.length ? pickIdx(keyColors, 11) : pickIdx(moodColors, 13);
+
+  // Resolve user seeds
+  let userSeeds: string[] = [];
+  if (influence && influence.mode !== "surprise") {
+    if (influence.mode === "single") userSeeds = influence.colors.slice(0, 1);
+    else if (influence.mode === "palette") userSeeds = influence.colors.slice(0, 5);
+    else if (influence.mode === "description") userSeeds = colorWordsToHex(influence.description);
+  }
+  userSeeds = userSeeds.filter((c) => /^#[0-9a-fA-F]{6}$/.test(c));
+
+  let primary: string, secondary: string, accent: string;
+  if (userSeeds.length === 0) {
+    primary = enginePrimary;
+    secondary = engineSecondary;
+    accent = engineAccent;
+  } else {
+    // ~50% engine / 35% user / 15% energy variation
+    primary = mixHex(enginePrimary, userSeeds[0], 0.42);
+    secondary = userSeeds.length >= 2
+      ? mixHex(engineSecondary, userSeeds[1], 0.45)
+      : shiftHue(engineSecondary, ((seed >>> 5) % 21) - 10);
+    accent = userSeeds[userSeeds.length - 1];
+  }
+
   const shadow = darken(primary, 0.55);
   const glow = lighten(shiftHue(accent, ((seed>>>17)%30)-15), 0.18);
   const particle = lighten(shiftHue(accent, 30), 0.25);
-  const swatches = Array.from(new Set([primary, secondary, accent, lighten(primary,0.18), darken(secondary,0.2), glow])).slice(0,6);
+
+  const swatchSeeds = userSeeds.length
+    ? [primary, secondary, accent, ...userSeeds, lighten(primary,0.18), glow]
+    : [primary, secondary, accent, lighten(primary,0.18), darken(secondary,0.2), glow];
+  const swatches = Array.from(new Set(swatchSeeds.map((s) => s.toLowerCase())))
+    .map((lc) => swatchSeeds.find((s) => s.toLowerCase() === lc)!)
+    .slice(0, 6);
+
   return { primary, secondary, accent, shadow, glow, particle, swatches };
 }
 
@@ -548,6 +655,8 @@ export type AuraProfile = {
   tempoBand: TempoBand;
   density: Density;
   colors: AuraPalette;
+  userColorInfluence?: UserColorInfluence;
+  colorGuided?: boolean;
 };
 
 const RAW_NAME_BANK = [
@@ -569,6 +678,7 @@ export function generateAura(input: {
   energyOverride?: number | null;
   keyConfidence?: number | null;
   sourceType?: SourceType;
+  userColorInfluence?: UserColorInfluence | null;
 }): AuraProfile {
   const baseKey = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
@@ -588,7 +698,13 @@ export function generateAura(input: {
       : fallbackKey;
   const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
 
-  const colors = buildPalette(input.moods, kp, seed);
+  const colors = buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
+  const influence = input.userColorInfluence ?? null;
+  const colorGuided = !!(influence && influence.mode !== "surprise" && (
+    (influence.mode === "single" && influence.colors.length > 0) ||
+    (influence.mode === "palette" && influence.colors.length > 0) ||
+    (influence.mode === "description" && colorWordsToHex(influence.description).length > 0)
+  ));
   const desc = generateDescriptions({ seedKey, moods: input.moods, kp, baseKey });
 
   const isRaw = input.sourceType === "raw_recording";
@@ -625,5 +741,7 @@ export function generateAura(input: {
     tempoBand: tempoBandFor(energy),
     density: densityFor(seedKey, baseKey),
     colors,
+    userColorInfluence: influence ?? undefined,
+    colorGuided,
   };
 }
