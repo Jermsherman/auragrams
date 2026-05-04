@@ -331,6 +331,7 @@ export function OrbVisual({
 
       {/* outer shell (conic) */}
       <div
+        ref={shellRef}
         className="absolute inset-[7%]"
         style={{
           ...shape,
@@ -343,6 +344,7 @@ export function OrbVisual({
       {/* texture overlay */}
       {p.texture !== "smooth" && (
         <div
+          ref={textureRef}
           className="absolute inset-[8%] pointer-events-none"
           style={{
             ...shape,
