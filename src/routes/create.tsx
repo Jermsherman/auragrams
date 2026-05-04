@@ -72,7 +72,7 @@ type Mode = "file" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
