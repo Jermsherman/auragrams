@@ -1,10 +1,10 @@
-import { OrbVisual } from "./OrbVisual";
+import { Aurascope } from "./Aurascope";
 import { getPersonality, type PaletteKey } from "@/lib/aura";
 
 type Member = { palette: PaletteKey; seed: number };
 
 /**
- * Blended "project orb" — base orb in dominant palette, with soft conic
+ * Blended "project Aurascope" — Aurascope in dominant palette, with soft conic
  * overlays drawn from member palettes for a curated, multi-aura feeling.
  */
 export function AuracleOrb({
@@ -36,23 +36,16 @@ export function AuracleOrb({
       {conic && (
         <div
           aria-hidden
-          className="absolute inset-0 rounded-full blur-2xl opacity-60 mix-blend-screen animate-spin-slow"
+          className="absolute inset-[-6%] rounded-[28%] blur-2xl opacity-50 mix-blend-screen animate-spin-slow"
           style={{ background: conic, animationDuration: "32s" }}
         />
       )}
-      <OrbVisual
-        size="86%"
-        palette={dominant}
-        particles={true}
-        className="animate-breathe"
-      />
-      {/* faint rim */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-full"
-        style={{
-          boxShadow: "inset 0 0 60px oklch(1 0 0 / 0.06)",
-        }}
+      <Aurascope
+        aura={{ palette: dominant }}
+        size="large"
+        mode="minimal"
+        className="w-full"
+        showLabel={false}
       />
     </div>
   );

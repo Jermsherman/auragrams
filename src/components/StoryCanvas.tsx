@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { OrbVisual } from "./OrbVisual";
+import { Aurascope } from "./Aurascope";
 import mark from "@/assets/auragram-mark.png";
 import { PALETTES, type PaletteKey } from "@/lib/aura";
 
@@ -38,8 +38,14 @@ export const StoryCanvas = forwardRef<HTMLDivElement, Props>(function StoryCanva
         <span className="wordmark text-[10px] text-foreground/85">Auragram</span>
       </div>
 
-      <div className="absolute inset-0 grid place-items-center">
-        <OrbVisual size="78%" palette={palette} particles={false} />
+      <div className="absolute inset-0 grid place-items-center px-8">
+        <Aurascope
+          aura={{ palette, auraName: title, artistName: artist }}
+          size="large"
+          mode="minimal"
+          showLabel={false}
+          className="w-[78%]"
+        />
       </div>
 
       <div className="absolute inset-x-0 bottom-0 p-6 pb-9 flex flex-col items-center text-center">

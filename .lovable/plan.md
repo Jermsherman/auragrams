@@ -1,159 +1,127 @@
-## Auragram accounts, identity, anonymity
+## Aurascope Visual System
 
-Add real authentication, user-owned data, Artist Profiles, and per-Aura visibility (artist / username / anonymous). Browsing the landing page stays public; everything that creates, saves, publishes, or shares requires an account.
+Build a single reusable `Aurascope` component that wraps the existing `OrbVisual` in a glassmorphic oscilloscope lens, then route every Aura surface through it. The `OrbVisual` we already have (orb + clip-path waveform shell + canvas oscilloscope rings + horizontal trace) becomes the inner lens. Aurascope adds the framed shell, grid, particles, and labels around it, plus a normalized props API.
 
-### 1. Enable Lovable Cloud (Supabase)
-
-The project has no backend yet. Enable Lovable Cloud so we get Supabase Auth + Postgres + RLS. (We will refer to it as "Lovable Cloud" in the UI.)
-
-Auth methods (defaults): Email/password + Google. Sign out everywhere.
-
-### 2. Database schema (migrations via Lovable Cloud)
-
-Create the following tables. RLS is on for every table. `app_role` left out — not needed yet.
-
-- `profiles`
-  - `id uuid pk default gen_random_uuid()`
-  - `auth_user_id uuid unique not null references auth.users(id) on delete cascade`
-  - `username citext unique not null` (lowercase, `^[a-z0-9_.]{3,24}$`)
-  - `display_name text`, `avatar_url text`, `default_visibility text default 'choose'`
-  - `created_at`, `updated_at`
-  - Trigger: on `auth.users` insert, create empty profile row (username filled at onboarding).
-- `artist_profiles`
-  - `id`, `user_id uuid references profiles(id) on delete cascade`
-  - `artist_name text not null`, `artist_handle citext`, `bio text`, `profile_image_url text`, `links jsonb default '[]'`
-  - `created_at`, `updated_at`
-- `auras`
-  - `id`, `user_id` (owner), `artist_profile_id` nullable
-  - `visibility_mode text check in ('artist','username','anonymous') default 'artist'`
-  - `is_anonymous bool generated always as (visibility_mode = 'anonymous') stored`
-  - `track_title`, `source_type` (`upload`/`link`/`raw_recording`), `platform_name`, `platform_url`, `embed_url`
-  - `mood_tags jsonb`, `detected_key text`, `pitch_center text`, `energy_level numeric`
-  - `aura_name`, `aura_description`, `vibe_description`, `color_palette jsonb`, `palette_name`, `visual_style jsonb`
-  - `public_artist_name text`, `public_handle text`
-  - `created_at`, `updated_at`
-- `auracles`
-  - `id`, `user_id`, `artist_profile_id` nullable, `visibility_mode`, `title`, `project_type`, `description`, `aura_ids jsonb`
-  - `created_at`, `updated_at`
-
-RLS:
-- `profiles`, `artist_profiles`, `auracles`: `select/insert/update/delete` only when `user_id = (select id from profiles where auth_user_id = auth.uid())` (helper SQL function `current_profile_id()` SECURITY DEFINER, stable).
-- Auras: same owner rule for insert/update/delete; **public select policy**: `true` (so AuraLink pages work). Public consumers only see the columns we expose via a `public_auras` view that drops `user_id`, `artist_profile_id`, and `public_handle/public_artist_name` when `is_anonymous`.
-- We will use the `public_auras` view (security_invoker = on) for the `/aura/$id` route's public reads, and the base table (RLS-scoped) for owner reads in `/farm`.
-
-### 3. Auth surface
-
-- New route `/auth` — single tabbed page (Sign in / Sign up). Email+password and "Continue with Google".
-  - Copy: "Create your Auragram account." / "Save your Auras, grow your Farm, and share AuraLinks." / CTA "Continue".
-- Use Supabase browser client (`@/integrations/supabase/client`). Set up `onAuthStateChange` listener BEFORE `getSession`.
-- New `src/hooks/useAuth.ts` exposes `{ user, profile, loading, signIn, signUp, signInWithGoogle, signOut }`, refreshing profile via a `getMyProfile` server function.
-- `_authenticated` pathless layout route gates: `/create`, `/farm`, `/auracle/create`, `/onboarding`, `/settings/*`. Unauthenticated → redirect to `/auth?redirect=...`.
-- Public routes stay open: `/`, `/aura/$id`, `/auracle/$id`, `/artist/$handle`.
-
-### 4. Onboarding `/onboarding`
-
-Three steps in one screen with progress dots:
-1. Username (+ optional display name). Validate format client-side; check uniqueness via server function `checkUsername`.
-2. First Artist Profile: artistName (required), artistHandle, shortBio, profileImage (optional URL upload deferred — text input for now).
-3. Default public identity: radio — `artist` / `username` / `choose` / plus toggle "Allow anonymous AuraLinks". Saved to `profiles.default_visibility`.
-CTA "Start Creating" → `/create`.
-Route guard: if `profile.username` is null after auth, force `/onboarding`.
-
-### 5. Server functions (`src/server/*.functions.ts`)
-
-All use `requireSupabaseAuth` middleware (RLS-scoped) unless noted.
-- `getMyProfile`, `updateMyProfile`, `checkUsername`, `completeOnboarding`
-- `listArtistProfiles`, `createArtistProfile`, `updateArtistProfile`, `deleteArtistProfile` (rejects when in-use unless `reassignTo` provided)
-- `createAura`, `updateAura`, `updateAuraVisibility`, `deleteAura`, `listMyAuras`
-- `getPublicAura(id)` — **no auth middleware**, queries `public_auras` view
-- `createAuracle`, `updateAuracle`, `deleteAuracle`, `listMyAuracles`, `getPublicAuracle(id)`
-- `getArtistByHandle(handle)` — public; returns artist profile + their non-anonymous public auras
-
-Input validation: Zod, in `.inputValidator()`.
-
-### 6. Identity selector + anonymity (Create flow)
-
-Update `/create` (`src/routes/create.tsx`) — keeps current Source / Track Info / Mood / Preview layout. Add new "Public Identity" block after Track Info:
+### What gets built
 
 ```
-Who is this Aura for?
-( ) Artist Profile  [ Stevie Cosmic ▾ ]   ← lists user's artist profiles + "+ New Artist Profile"
-( ) Username        @yourname
-( ) Anonymous       Posted as "Anonymous Aura"
+src/components/aurascope/
+  Aurascope.tsx          — main component, props API, size + mode variants
+  AurascopeShell.tsx     — glass outer frame (rounded square / circular)
+  AurascopeGrid.tsx      — SVG oscilloscope grid (center lines, ticks, ring marks)
+  AurascopeWaveRing.tsx  — SVG circular waveform path (audio or simulated)
+  AurascopeParticles.tsx — small CSS/SVG particle layer reacting to treble/mood
+  AurascopeLabel.tsx     — title + identity + tiny "Aurascope" caption
+src/lib/
+  auraColors.ts          — normalize aura → {primary,secondary,accent,shadow,glow,particle} + CSS vars
+  auraMotion.ts          — mood/key/energy → simulated motion params (amplitude, speed, jitter)
+  waveformToCircularPath.ts — smooth circular SVG path from Uint8Array
+src/hooks/
+  useAurascopeMotion.ts  — single rAF loop driving simulated metrics when no analyser
 ```
 
-If Anonymous: helper "Your AuraLink will not show your artist name or username, but it will still be saved privately to your Farm."
+### Props API
 
-On submit: call `createAura` with `visibilityMode`, `artistProfileId`, `publicArtistName`, `publicHandle` derived from selection. The current `artistName` field becomes the artist-profile picker; for `username` mode we read `profile.username`; for `anonymous` we send empty publicArtistName.
+```ts
+type AurascopeProps = {
+  aura: Track;               // existing Track type already has palette/colors/mood/key/sourceType
+  size?: "large" | "medium" | "small" | "mini";
+  mode?: "full" | "minimal" | "card" | "story";
+  isPlaying?: boolean;
+  audioAnalysisData?: {       // optional; when missing → simulated motion
+    analyser?: AnalyserNode;
+    metricsRef?: React.RefObject<AudioMetrics>;
+  };
+  showLabel?: boolean;
+  showControls?: boolean;
+  interactive?: boolean;
+  className?: string;
+};
+```
 
-`/auracle/create` gets the same identity selector and writes `auracles.visibility_mode` + `artist_profile_id`.
+Internally Aurascope passes `analyser` / `metricsRef` straight into the existing `OrbVisual` (which already drives clip-path and canvas rings from those). When neither is present and `mode !== "minimal"`, `useAurascopeMotion` synthesizes a soft waveform from mood/key/energy and feeds the SVG ring + particles.
 
-### 7. Farm = mine only (`/farm`)
+### Layered structure (z-order, per spec)
 
-- Owner-only: query `listMyAuras` and `listMyAuracles`. If unauthenticated → redirect via `_authenticated`.
-- Header copy: "Your Aura Farm — Your growing collection of sonic identities."
-- Each card: existing visuals + small "Anonymous" badge when `visibility_mode = 'anonymous'`. Per-card actions: Open, Share AuraLink, Edit visibility (popover with the same 3-radio selector), Delete.
-- Existing local-storage `farm.ts` is replaced by the Supabase queries; we keep the type shape so cards don't need rewriting. A migration helper imports any existing `localStorage` farm rows into Supabase the first time the user lands on `/farm` after signing in (best-effort, optional).
+```
+[AurascopeShell]  rounded-2xl glass, gradient rim tinted by aura.glow
+  └─ [AurascopeGrid]      SVG, low opacity, scales with size
+  └─ [AurascopeWaveRing]  circular SVG path (smooth, rounded caps, faint trail copy)
+  └─ [OrbVisual]          existing orb + horizontal trace canvas (passed profile/palette)
+  └─ [AurascopeParticles] absolute, count scales with size + treble
+  └─ [AurascopeLabel]     full/story modes only
+```
 
-### 8. Public AuraLink (`/aura/$id`) and Auracle pages
+Glass shell uses `backdrop-filter: blur(24px)`, deep `oklch(0.12 0.04 280 / 0.55)` background, inner highlight border, and an outer halo gradient driven by `--aura-glow`. CSS variables `--aura-primary/secondary/accent/glow/shadow/particle` are set on the Aurascope root from `auraColors.ts`.
 
-- Use `getPublicAura` (queries `public_auras` view).
-- Identity block respects `visibility_mode`:
-  - `artist` → artist name + handle, link to `/artist/$handle`.
-  - `username` → `@username` (linked to artist page later — for now plain).
-  - `anonymous` → label "Anonymous Aura", no profile link, no Farm link.
-- Owner-only buttons (Edit visibility, Delete, Add to Auracle, Save to Farm) only render when `auth.user_id === aura.owner_user_id`. Owner identity comes from a separate authenticated `getAuraOwnership(id)` call that returns `{ isOwner: boolean }` (so anon visitors never see it).
-- ShareDialog: when anonymous, footer says "Shared anonymously".
+### Size & mode matrix
 
-### 9. Account menu in Nav
+| size   | container        | grid | particles | label   | typical use            |
+|--------|------------------|------|-----------|---------|------------------------|
+| large  | min(88vw,460px)  | yes  | full      | yes     | /aura/$id              |
+| medium | 220px            | yes  | reduced   | optional| Auracle track / preview|
+| small  | 140px            | faint| 4–6       | no      | Farm cards             |
+| mini   | 56–72px          | none | none      | no      | stacked badges         |
 
-Update `src/components/Nav.tsx`:
-- Signed out: `Sign In` + `Gain Aura` (CTA goes to `/auth?redirect=/create`).
-- Signed in: avatar (or initials) → DropdownMenu: `@username`, `Farm`, `Artist Profiles` (`/settings/artists`), `Settings`, `Sign Out`.
-- Mobile keeps it minimal (avatar + Create).
+| mode    | layers                                          |
+|---------|-------------------------------------------------|
+| full    | shell + grid + ring + orb + trace + particles + label |
+| minimal | shell + ring + orb                              |
+| card    | shell + ring + orb + tiny title                 |
+| story   | 9:16 framing, full layers, watermark            |
 
-### 10. Settings — Artist Profiles (`/settings/artists`)
+`small` and `mini` opt out of the canvas oscilloscope rings (pass a flag to `OrbVisual` to skip the heavy canvas loop). Only one Aurascope per page runs the full canvas; cards use SVG-only ring for performance.
 
-Simple list page:
-- Cards for each artist profile with edit/delete.
-- "+ New Artist Profile" opens the same modal used in onboarding step 2.
-- Delete: blocked if any aura references it; offer "Reassign to: [select]" before delete.
+### Audio reactivity
 
-### 11. Sharing & gating
+- Reuses the existing `useAudioAnalyser` hook + `AudioMetrics` ref.
+- `OrbVisual` already maps volume→scale, bass→halo, treble→shimmer, peak→clip-path deform — keep as-is.
+- The new `AurascopeWaveRing` SVG samples `metricsRef.current.waveform` (or `analyser.getByteTimeDomainData`) each frame via the shared rAF loop, produces a smoothed circular path with `waveformToCircularPath`, and draws a 30%-opacity duplicate trail underneath.
+- When neither analyser nor metrics is available, `useAurascopeMotion` generates a sine+noise waveform parameterized by mood/key/energy — slow & low for melancholy/minor, fast & jittery for electric/euphoric, etc.
 
-- AuraLink generation only persists for signed-in users. Unauthenticated preview path (e.g., someone landing on a freshly recorded Raw Aura via session) shows banner: "Create an account to save and share this AuraLink." with `Sign up` CTA.
-- ShareDialog adds "Edit Visibility" entry that opens the visibility radio.
+### Color integration
 
-### 12. Files touched / created
+`auraColors.ts` normalizes a `Track` to the 6-slot palette:
+```
+primary    = colors?.primary    ?? stops[0]
+secondary  = colors?.secondary  ?? stops[1]
+accent     = colors?.accent     ?? stops[2]
+shadow     = colors?.shadow     ?? atmosphere
+glow       = colors?.glow       ?? glow
+particle   = colors?.particle   ?? accent
+```
+These are written as CSS vars on the Aurascope root and consumed by every layer.
 
-Created:
-- `src/integrations/supabase/{client.ts, client.server.ts, auth-middleware.ts, types.ts}` (auto-generated by Cloud)
-- `src/hooks/useAuth.ts`
-- `src/server/profiles.functions.ts`, `artists.functions.ts`, `auras.functions.ts`, `auracles.functions.ts`, `public.functions.ts`
-- `src/routes/_authenticated.tsx` (pathless guard)
-- `src/routes/auth.tsx`, `src/routes/onboarding.tsx`
-- `src/routes/_authenticated/settings.artists.tsx`
-- `src/components/IdentitySelector.tsx`, `src/components/VisibilityBadge.tsx`, `src/components/UserMenu.tsx`
-- DB migration with the four tables + view + RLS + trigger
+### Surfaces to migrate
 
-Edited:
-- `src/routes/__root.tsx` — provide `auth` context
-- `src/routes/index.tsx` — Nav swap (no other changes)
-- `src/routes/create.tsx` — IdentitySelector, server-side save via `createAura`, redirect-to-auth gate
-- `src/routes/auracle.create.tsx` — same gating + selector
-- `src/routes/farm.tsx` — Supabase-backed lists + visibility badges + edit/delete
-- `src/routes/aura.$id.tsx` and `src/routes/auracle.$id.tsx` — public read via view + identity block + owner-only actions
-- `src/components/Nav.tsx` — UserMenu
-- `src/components/ShareDialog.tsx` — anonymous footer + Edit Visibility entry
-- `src/lib/farm.ts`, `src/lib/auracle.ts`, `src/lib/tracks.ts` — keep types, swap storage to thin server-fn wrappers; legacy localStorage kept only as a one-time import source
+Replace direct `OrbVisual` usage with `Aurascope`:
 
-### 13. Out of scope
+- `src/routes/aura.$id.tsx` — line 179: `<Aurascope aura={track} size="large" mode="full" isPlaying={...} audioAnalysisData={{analyser, metricsRef}} showLabel />`
+- `src/routes/farm.tsx` (via `AuraFarmCard.tsx` line 64) — `size="small" mode="card"`
+- `src/routes/auracle.$id.tsx` line 214 — track items use `size="medium" mode="minimal"`; the hero (line 80) uses a new "blended" Aurascope built from the Auracle's tracks (averaged palette + dominant mood + mean energy via a small `blendAuras()` helper)
+- `src/routes/auracle.create.tsx` lines 224, 255 — `size="mini" mode="minimal"`
+- `src/components/StoryCanvas.tsx` & `AuracleStoryDialog.tsx` — `mode="story"`
+- `src/routes/index.tsx` line 36 (hero) — `size="large" mode="full"` with `hero` synthetic motion (forwarded into OrbVisual's existing `hero` prop)
+- `src/routes/create.tsx` line 684 preview — `size="medium" mode="card"`
+- `src/components/StackedOrbs.tsx`, `AuracleOrb.tsx`, `artist.$handle.tsx` — `mini`/`small` as appropriate
 
-- Avatar / artist image uploads (text URL field only for now)
-- Following / discovery feed
-- Roles/admin
-- Multi-Auracle public artist page beyond the existing `/artist/$handle`
+`OrbVisual` itself stays; Aurascope composes it. We pass through `profile`, `palette`, `analyser`, `metricsRef`, `isPlaying`, `hero`, and a new `compact` flag to skip the canvas in small sizes.
 
-### 14. Acceptance
+### Performance rules
 
-Matches the 12 acceptance criteria in the brief: signup→login→logout work; `/create`, `/farm`, `/auracle/create` are gated; new users land on `/onboarding`; auras and auracles carry `user_id`; identity selector with artist/username/anonymous works; Farm shows only owner data; public AuraLink pages respect visibility (anonymous reveals nothing); owner-only actions are hidden for non-owners; artist profiles are CRUD-able; nav UX stays minimal.
+- One shared `requestAnimationFrame` loop per Aurascope; small/mini sizes use a 20fps throttle.
+- Farm grids: SVG ring only, no canvas, no particles.
+- `IntersectionObserver` on the Aurascope root pauses the rAF loop when offscreen.
+- `prefers-reduced-motion` clamps amplitude and disables particles.
+
+### Acceptance verified by
+
+1. `Aurascope` exported from `@/components/aurascope`.
+2. Every former `OrbVisual` call site renders an Aurascope (except inside Aurascope itself).
+3. /aura/:id, /farm, /auracle/:id, story dialogs, and landing hero all show the glass lens.
+4. Uploaded audio drives smooth circular waveform + orb motion; platform-only auras use simulated motion.
+5. The ring is smooth (rounded caps, sampled & mildly low-passed) — no sawblade.
+6. Mobile: large lens caps at 88vw; cards stay lightweight.
+7. Visual identity reads as "Apple-glass oscilloscope" — translucent shell, faint grid, luminous orb, neon ring tinted by aura palette.
+
+No backend changes. No new dependencies.

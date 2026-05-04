@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Trash2, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
-import { OrbVisual } from "./OrbVisual";
+import { Aurascope } from "./Aurascope";
 import { deleteAura, type SavedAura } from "@/lib/farm";
 import { getPersonality } from "@/lib/aura";
 import {
@@ -61,7 +61,19 @@ export function AuraFarmCard({
       </div>
 
       <div className="mt-6 mb-1">
-        <OrbVisual size={120} palette={aura.palette} hueShift={aura.seed} particles={false} />
+        <Aurascope
+          aura={{
+            id: aura.id,
+            palette: aura.palette,
+            seed: aura.seed,
+            auraName: aura.auraName,
+            trackTitle: aura.trackTitle,
+            artistName: aura.artistName,
+            colors: aura.colors,
+          }}
+          size="small"
+          mode="minimal"
+        />
       </div>
 
       <div className="mt-3 min-w-0 w-full">
