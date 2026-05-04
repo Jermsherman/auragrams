@@ -21,7 +21,7 @@ export function Logo({
         style={{ width: size, height: size, objectFit: "contain" }}
       />
       {showWordmark && (
-        <span className="wordmark text-[12px] text-foreground/90">Auragram</span>
+        <span className="wordmark text-[12px] text-foreground/90 hidden sm:inline">Auragram</span>
       )}
     </div>
   );
