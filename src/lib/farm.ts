@@ -34,6 +34,8 @@ export type SavedAura = {
   keyDetected?: boolean;
   pitchCenter?: PitchCenter;
   keyConfidence?: number;
+  userColorInfluence?: UserColorInfluence;
+  colorGuided?: boolean;
 };
 
 const KEY = "auragram_farm_auras";
