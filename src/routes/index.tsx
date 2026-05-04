@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
-import { ArrowRight, Sparkles, Share2, Wand2 } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
