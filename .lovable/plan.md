@@ -1,200 +1,115 @@
-## Goal
+## Aura Engine v3 — patch plan
 
-Introduce **Auracle** — a curated collection of multiple saved Auras (album / EP / playlist / demo pack / rollout) — alongside the existing Aura + Farm + AuraLink system. Farm remains the master library; Auracles are projects built from it.
+Scoped to the Aura generation pipeline + mood UI + orb wiring. No global redesign.
 
-Final ecosystem sentence everywhere user-facing:
-> "Turn songs into Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks."
+### 1. Rebuild `src/lib/aura.ts` as the engine
 
----
+Replace the fixed 12 `PERSONALITIES` with a layered system:
 
-## 1. Data layer — `src/lib/auracle.ts` (new)
+- **`MOOD_TRAITS`** (54 moods): each has `colors: string[]` (hex), `motion: MotionKind`, `texture: TextureKind`, `particle: ParticleKind`, `speed`, `energyBias`, `phrases`. Source = the full mood list in the brief (Warm…Nocturnal).
+- **`KEY_PROFILES`** for all 12 tonics × major/minor: `{ tonic, mode, emotionalBias: string[], colors: string[] }` from the music-theory map in the brief. Enharmonic equivalents share one entry (`F#/Gb`, `Db/C#`, etc.).
+- **`PALETTE_NAMES`**: poetic 2-word bank ("Blue Hour Velvet", "Neon Mourning", "Dusk Tide"…) plus a generator that combines a color-word + texture/time-word seeded by track id, so names rarely repeat.
+- **`AURA_NAMES`**: expanded bank from the brief ("Velvet Current", "Afterglow Theory", …) + procedural patterns: `{Color}+{Image}`, `{Emotion}+{Texture}`, `{Time}+{Motion}`, `{Element}+{Feeling}`. Heavily de-bias prior favorites ("Coastal Drift", "Quiet Drift", "Dark Glow") via a blocklist.
 
-localStorage key: `auragram_farm_auracles`.
+New core functions:
 
 ```ts
-export type AuracleProjectType = "album" | "ep" | "playlist" | "demo_pack" | "rollout";
-
-export type Auracle = {
-  id: string;
-  createdAt: number;
-  title: string;
-  artistName: string;
-  projectType: AuracleProjectType;
-  description?: string;
-  auraIds: string[];           // ordered
-  // derived/cached
-  moodTagsSummary: string[];   // top 4 moods across selection
-  dominantPalette: PaletteKey; // most common palette
-  auracleName?: string;        // optional alternate display name
-  auracleDescription?: string; // generated from member auras
-  shareUrl?: string;           // computed at runtime if absent
-};
+generateAura({ id, title, artist, moods, detectedKey? }) → AuraProfile
 ```
 
-API:
-- `getSavedAuracles(): Auracle[]` — sorted newest first
-- `getAuracle(id): Auracle | null`
-- `saveAuracle(input): Auracle` — generates id, derives summary fields
-- `updateAuracle(a): void`
-- `deleteAuracle(id): void`
-- `isAuracleSaved(id): boolean`
-- `addAuraToAuracle(auracleId, auraId)` / `removeAuraFromAuracle(...)`
-- helpers: `summarizeMoods(auras)`, `pickDominantPalette(auras)`, `composeAuracleDescription(auras, type)`
+Returns:
+```ts
+{
+  auraName, paletteName,
+  palette: { primary, secondary, accent, shadow, glow, particle }, // all hex
+  swatches: string[],          // 4–6 hex stops for UI
+  stops: [s0..s4],             // OKLCH for orb conic (derived from hex)
+  motion, texture, particle, particleCount, speed, hueShift,
+  shape,
+  energy, tempoBand, density,
+  musicalKey, tonic, mode,     // mode: "major" | "minor" | undefined
+  shortDescription,            // poetic 1–2 lines
+  vibeDescription,             // human "feels like..." sentence
+  motionKeywords: string[],    // e.g. ["drift","mist","pulse","shimmer"]
+}
+```
 
-Derivation reads from `getSavedAuras()` in `lib/farm.ts`. Project-type label map: Album, EP, Playlist, Demo Pack, Rollout.
+Color blending:
+- Take 1–4 mood color sets + key colors → blend via weighted hex mixing (mood weight 0.6, key 0.4 with a small seeded jitter).
+- Derive `shadow` (darken primary), `glow` (lighten/saturate), `particle` (accent shifted).
 
----
+Description generation:
+- Templates seeded by `hash(id|moods|key)`. Multiple sentence skeletons per mode (major/minor) avoid repetition. Vibe sentence pulls from a pool of "this song feels like…" frames keyed off motion + time-of-day + mood.
 
-## 2. Farm page — tabs
+Backward compatibility: keep `PaletteKey`/`PALETTES`/`personalityFromMoods`/`getPersonality` exported. Old saved tracks (palette = "warm" etc.) still resolve to a personality object derived from the new engine using their stored mood key.
 
-`src/routes/farm.tsx`: add a Tabs UI (existing `@/components/ui/tabs`) with two tabs:
+### 2. Mood picker — 4-slot + expanded set
 
-1. **Auras** — current grid of `AuraFarmCard`.
-2. **Auracles** — grid of new `AuracleCard`. Top-right: `Create Auracle` button → `/auracle/create`.
+`src/components/MoodPicker.tsx`:
+- `MAX = 4`, counter shows `n/4`.
+- Render full 54-mood list. Mobile: `max-h-[40vh] overflow-y-auto` scroll inside the card; pills wrap; subtle gradient fade at top/bottom.
+- Selected pills: stronger gradient ring + glow using the *current preview palette's* glow color (so picker glows match the live aura).
+- Disable unselected when `n === 4`.
 
-Empty Auracles state:
-- Title: "No Auracles yet."
-- Subtitle: "Group Auras from your Farm into a living project."
-- CTA: "Create Auracle"
-- Disabled with helper text "Save at least 2 Auras first" if `getSavedAuras().length < 2`.
+`src/lib/aura.ts` `MOODS` const expanded to 54 labels (in brief order).
 
----
+### 3. Audio key detection
 
-## 3. New components
+New `src/lib/keyDetect.ts` — Web Audio + Krumhansl-Schmuckler chroma profile (no extra dependency, works in a Worker-friendly way; avoids Essentia.js bundle bloat).
 
-### `src/components/AuracleCard.tsx`
-Premium card (4:5, glass, gradient ring), shows:
-- Project-type badge (Album / EP / Playlist / Demo Pack / Rollout).
-- Stacked mini-orbs: up to 3 overlapping `OrbVisual size={56}` using palettes/seeds of first 3 member Auras.
-- Auracle title + artist name.
-- "N Auras" + first 3 mood chips.
-- Actions row: `Open Auracle` (Link to `/auracle/$id`), `Share Auracle` (opens `AuracleShareDialog`), trash (AlertDialog confirm).
+```ts
+detectKey(file: File): Promise<{ key: string; tonic: string; mode: "major"|"minor"; confidence: number } | null>
+```
 
-### `src/components/StackedOrbs.tsx`
-Tiny helper rendering N overlapping orbs given a list of `{palette, seed}`. Used by `AuracleCard` and detail header.
+Steps: `decodeAudioData` → downsample to mono 11.025 kHz → take ~30 s window from middle of track → FFT in chunks → accumulate chroma vector (12 bins) → correlate against major + minor Krumhansl profiles for all 12 rotations → pick max correlation. Confidence = winner / runner-up ratio.
 
-### `src/components/AuracleOrb.tsx`
-"Blended project orb" — wraps `OrbVisual` with a CSS layer that overlays the palettes of member Auras at low opacity to imply a blended identity. Uses average energy to set scale/breath, dominant palette as base.
+Fallback: if decode fails or confidence < 0.85, return `null` → UI shows `Key: Unknown` with optional manual selector.
 
-### `src/components/AuracleShareDialog.tsx`
-Mirrors `ShareDialog` but for Auracles:
-- Title: "Share Auracle".
-- Copy Auracle Link (window URL or `/auracle/:id`).
-- Native share.
-- Story Preview button → `AuracleStoryDialog`.
-- Open Public Auracle Page (Link).
-- Copy success toast: "Auracle link copied."
+Wired in `create.tsx` after file pick (background promise, doesn't block submit). Result stored on the Track as `detectedKey`. For platform links: skip detection, allow optional manual `musicalKey`.
 
-### `src/components/AuracleStoryDialog.tsx` + `AuracleStoryCanvas.tsx`
-9:16 export (reuse `html-to-image` like existing `StoryPreviewDialog`):
-- Auragram logo watermark.
-- Auracle title, artist, project type.
-- Blended `AuracleOrb` centered.
-- 3–5 mini Aura orbs in a row beneath.
-- CTA text: "Listen to the Auracle".
+### 4. Track + Aura data updates
 
----
+`src/lib/tracks.ts` Track adds: `paletteName`, `swatches`, `palette` (the hex object), `tonic`, `mode`, `shortDescription`, `vibeDescription`, `motionKeywords`. Existing fields kept; hydrate() backfills via `generateAura`. SavedAura mirrors these.
 
-## 4. Create flow — `src/routes/auracle.create.tsx` (new)
+### 5. Orb visual variation
 
-Page:
-- Title: "Create Auracle".
-- Subtitle: "Group Auras from your Farm into a living album, EP, playlist, or rollout."
+`src/components/OrbVisual.tsx`:
+- Accept an optional `profile?: AuraProfile`. When present, derive `stops/glow/atmosphere/motion/texture/particle/speed/particleCount/shape` from it instead of the static personality.
+- `stops` come from the blended hex palette converted to OKLCH-ish CSS via `color-mix(in oklab, …)` fallbacks (or just use hex directly inside the existing `conic-gradient` — works in CSS).
+- Particle color uses `palette.particle`. Halo uses `palette.glow`. Atmosphere uses `palette.shadow`.
+- Motion/animation already switches on `motion` kind; keep that wiring. Energy multiplies `speed` and particle count: `count = base * (0.6 + energy/100)`.
 
-Form:
-- **Auracle title** (required)
-- **Artist name** (required, prefilled from most recent saved Aura)
-- **Project type** chip selector: Album · EP · Playlist · Demo Pack · Rollout (required)
-- **Description** (optional textarea)
-- **Select Auras from Farm**: grid of saved Auras (compact `AuraFarmCard` selectable variant). Selected cards get a glowing ring + check icon. Tap to toggle.
-- **Order** the selected list below the grid as draggable rows. Use simple ↑ / ↓ buttons + drag handle (HTML5 drag) for ordering — no new dependency.
+`AuraAtmosphere.tsx` uses `palette.shadow` for the bg radial.
 
-Sticky bottom bar (mobile-first, like Create page):
-- `Create Auracle` button (disabled until title + artist + ≥2 Auras + projectType).
-- Helper text: "Add a title, artist, and at least 2 Auras."
+### 6. Aura Profile UI
 
-On submit → `saveAuracle(...)` → `nav({ to: "/auracle/$id", params: { id } })` + toast "Auracle created.".
+`src/components/AuraProfileCard.tsx` extended:
+- Aura name (gradient).
+- Mood pills (up to 4).
+- Key (or "Unknown" with optional inline `<select>` if `mode === "link"` and key not set).
+- Energy bar (current).
+- Palette name + swatch row (4–6 hex circles).
+- Short description.
+- Vibe description.
+- Motion keywords as tiny chips.
+- Mobile: wrap content in 3 `Collapsible` sections — Profile / Vibe / Palette — collapsed by default below `sm` breakpoint.
 
-Empty Farm state: redirect-style card with link to `/create` — "Save at least 2 Auras to your Farm first."
+Used on both `/create` preview block and `/aura/$id`.
 
----
+### 7. Files touched
 
-## 5. Detail page — `src/routes/auracle.$id.tsx` (new)
+- edit `src/lib/aura.ts` (engine rewrite, exports preserved)
+- new  `src/lib/keyDetect.ts`
+- edit `src/lib/tracks.ts` (Track fields, hydrate)
+- edit `src/lib/farm.ts` (SavedAura fields)
+- edit `src/components/MoodPicker.tsx` (4-cap, scroll, glow)
+- edit `src/components/OrbVisual.tsx` (profile-driven palette)
+- edit `src/components/AuraAtmosphere.tsx`
+- edit `src/components/AuraProfileCard.tsx` (palette name, vibe, motion, collapsibles)
+- edit `src/routes/create.tsx` (run keyDetect, pass detected key into generateAura)
+- edit `src/routes/aura.$id.tsx` (use new profile fields)
+- edit `src/routes/generating.tsx` if it pre-generates (pass detectedKey through)
 
-Public/shareable project experience. Structure:
+### 8. Acceptance check
 
-- `AuraAtmosphere` using dominant palette of selection.
-- Header: `Logo`, right side: `Save/Copy AuraLink-style` actions row → `Share Auracle`, `Story Preview`, edit (only if local), delete.
-- Hero block (centered):
-  - Project-type badge.
-  - `AuracleOrb` (large, blended).
-  - Auracle title (display font).
-  - Artist name.
-  - Description (or generated `auracleDescription`).
-- Action row: `Share Auracle` (primary), `Story Preview`, `Copy Link`.
-- **Tracklist**: ordered list of member Auras. Each row:
-  - Track number.
-  - Mini `OrbVisual size={48}` with member's palette + seed.
-  - Track title + Aura name.
-  - 1–2 mood chips.
-  - Source badge (Uploaded Audio / platform name).
-  - `Open Aura` link (→ `/aura/$id`).
-- Footer: "A living project on Auragram".
-
-Head meta uses Auracle title + artist + project type.
-
----
-
-## 6. Aura page — Add to Auracle
-
-`src/routes/aura.$id.tsx`:
-- Add a secondary action under the primary row: small pill `Add to Auracle` (icon `Layers` or `FolderPlus`).
-- Opens `AddToAuracleDialog` (new component) listing existing Auracles with checkboxes; saving updates `auraIds` of selected Auracles via `updateAuracle`.
-- Bottom of dialog: `Create New Auracle` → `nav({ to: "/auracle/create" })` (the new page can preselect the current Aura via search param `?seed=<auraId>` — handled in step 4 by reading `Route.useSearch()`).
-- Toast "Added to Auracle.".
-
----
-
-## 7. Navigation + copy
-
-- `Nav.tsx`: keep current items (Farm, Create) — no clutter. Inside Farm, the new Auracles tab + Create Auracle CTA.
-- Landing page (`src/routes/index.tsx`):
-  - Hero subheadline → "Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks."
-  - "How it works": expand to 4 steps — Create Aura, Grow Your Farm, Build Auracles, Share AuraLinks. Use a 2×2 grid on `sm`+ to avoid crowding.
-  - Footer chip line: "Create Aura → Save to Farm → Build Auracle → Share AuraLink".
-- Farm page subtitle stays focused on Auras; Auracles tab introduces the concept inline.
-
----
-
-## 8. Routing
-
-New TanStack route files (auto-registered):
-- `src/routes/auracle.create.tsx`
-- `src/routes/auracle.$id.tsx`
-
-Use flat dot-naming. Include `head()` + `notFoundComponent` on the detail route. `Route.useSearch()` on create route accepts optional `?seed=<auraId>`.
-
-Do not edit `src/routeTree.gen.ts`.
-
----
-
-## 9. Visual design rules
-
-Auracle UI must feel premium / cinematic / curated, never like a folder, playlist row, or NFT collection page. Use:
-- Dark background, glass cards, gradient rings, soft shadows.
-- Stacked mini orbs as the visual signature for grouping.
-- Generous spacing, minimal type, `font-display` for titles.
-- No emojis. No "collection / album / playlist" as a primary product term.
-
----
-
-## 10. Acceptance check (build-time)
-
-1. localStorage key `auragram_farm_auracles` reads/writes via `lib/auracle.ts`.
-2. `/farm` shows two tabs: Auras, Auracles.
-3. `/auracle/create` builds an Auracle from ≥2 saved Auras with project type and order.
-4. `/auracle/:id` renders blended orb, tracklist, share + story actions.
-5. Aura page exposes optional `Add to Auracle`.
-6. Sharing copies `Auracle link copied.`; native share + story export work.
-7. Landing copy mentions Auracles in the ecosystem sentence and "How it works".
-8. No new npm dependencies.
+After implementation: pick 5 random combos (e.g. `[Melancholy, Intimate, Oceanic, Wistful] + E min`, `[Euphoric, Electric] + D maj`, `[Dark, Brooding] + C min`, `[Coastal, Hopeful] + G maj`, `[Romantic, Velvet] + Db maj`) and verify each produces distinct palette name, distinct swatches, distinct orb feel, distinct vibe sentence.
