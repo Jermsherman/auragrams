@@ -1,4 +1,4 @@
-import { OrbVisual } from "./OrbVisual";
+import { Aurascope } from "./Aurascope";
 import type { PaletteKey } from "@/lib/aura";
 
 type Item = { palette: PaletteKey; seed: number };
@@ -35,7 +35,7 @@ export function StackedOrbs({
             filter: `drop-shadow(0 4px 18px oklch(0.6 0.18 290 / 0.35))`,
           }}
         >
-          <OrbVisual size={size} palette={it.palette} hueShift={it.seed} particles={false} />
+          <Aurascope aura={{ palette: it.palette, seed: it.seed }} size="mini" mode="minimal" className="w-full h-full" />
         </div>
       ))}
     </div>
