@@ -302,7 +302,10 @@ function CreatePage() {
               artistProfileId: identity.artistProfileId,
               publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
               publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
-            }).catch((e) => console.error("cloud save aura", e));
+            }).catch((e) => {
+              console.error("cloud save aura", e);
+              toast.error("We couldn't save this Aura to the cloud.");
+            });
           }
           auraIds.push(id);
         }
@@ -320,7 +323,10 @@ function CreatePage() {
             artistProfileId: identity.artistProfileId,
             publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
             publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
-          }).catch((e) => console.error("cloud save auracle", e));
+          }).catch((e) => {
+            console.error("cloud save auracle", e);
+            toast.error("We couldn't save this Auracle to the cloud.");
+          });
         }
         toast.success("Auracle created.");
         nav({ to: "/auracle/$id", params: { id: a.id } });
@@ -407,7 +413,10 @@ function CreatePage() {
           artistProfileId: identity.artistProfileId,
           publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
           publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
-        }).catch((e) => console.error("cloud save aura", e));
+        }).catch((e) => {
+          console.error("cloud save aura", e);
+          toast.error("We couldn't save your Aura to the cloud. Try again.");
+        });
       }
       nav({ to: "/generating", search: { id } });
     } catch (e) {
