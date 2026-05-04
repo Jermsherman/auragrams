@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope } from "@/components/Aurascope";
 import { ArrowRight, Sparkles, Share2, Wand2, AudioLines } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -33,10 +34,13 @@ function Index() {
         <section className="relative overflow-hidden">
           <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-6 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center animate-fade-up">
             <div className="relative grid place-items-center">
-              <OrbVisual
+              <Aurascope
+                aura={{ palette: "euphoric", auraName: "Auragram" }}
+                size="large"
+                mode="minimal"
                 hero
-                size="min(88vw, 460px)"
                 className="animate-float-y"
+                showLabel={false}
               />
             </div>
 
