@@ -183,6 +183,22 @@ function AuraPage() {
             analyser={analyserRef}
             metricsRef={metricsRef.current ?? undefined}
             palette={track.palette}
+            profile={track.colors ? {
+              palette: track.palette,
+              auraName: track.auraName,
+              paletteName: track.paletteName ?? "",
+              energy: track.energy,
+              description: track.description,
+              vibeDescription: track.vibeDescription ?? "",
+              motionKeywords: track.motionKeywords ?? [],
+              musicalKey: track.musicalKey ?? "",
+              tonic: track.tonic,
+              mode: track.mode,
+              keyDetected: track.keyDetected,
+              tempoBand: (track.tempoBand as "Slow"|"Mid"|"Fast") ?? "Mid",
+              density: (track.density as "Sparse"|"Lush"|"Dense") ?? "Lush",
+              colors: track.colors,
+            } : undefined}
             className={playing ? "" : "animate-breathe"}
           />
         </div>
@@ -344,6 +360,11 @@ function AuraPage() {
             musicalKey={track.musicalKey}
             tempoBand={track.tempoBand}
             density={track.density}
+            paletteName={track.paletteName}
+            vibeDescription={track.vibeDescription}
+            motionKeywords={track.motionKeywords}
+            colors={track.colors}
+            keyDetected={track.keyDetected}
           />
         </div>
 
