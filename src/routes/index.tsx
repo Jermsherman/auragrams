@@ -31,8 +31,8 @@ function Index() {
       <main className="flex-1">
         {/* HERO */}
         <section className="relative overflow-hidden">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-16 pb-24 sm:pt-24 sm:pb-32 grid md:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-up">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-8 pb-14 sm:pt-24 sm:pb-32 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="order-2 md:order-1 animate-fade-up text-center md:text-left">
               <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-aura-gradient" />
                 See your sound
@@ -41,10 +41,10 @@ function Index() {
                 Your song deserves <br className="hidden sm:block" />
                 <span className="text-aura-gradient">more than a link.</span>
               </h1>
-              <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
+              <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md mx-auto md:mx-0">
                 Turn any song into a living Aura, save it to your Farm, and share it anywhere with an AuraLink.
               </p>
-              <div className="mt-8 flex items-center gap-4">
+              <div className="mt-8 flex items-center justify-center md:justify-start gap-4">
                 <Link
                   to="/create"
                   className="inline-flex items-center gap-2 rounded-full px-6 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_70px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
@@ -57,8 +57,11 @@ function Index() {
               </p>
             </div>
 
-            <div className="relative grid place-items-center md:order-last animate-fade-up">
-              <OrbVisual size="min(78vw, 460px)" className="animate-float-y" />
+            <div className="order-1 md:order-2 relative grid place-items-center justify-self-center animate-fade-up">
+              <OrbVisual
+                size="min(62vw, 420px)"
+                className="animate-float-y"
+              />
             </div>
           </div>
         </section>
