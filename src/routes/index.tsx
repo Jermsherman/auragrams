@@ -49,11 +49,11 @@ function Index() {
                   to="/create"
                   className="inline-flex items-center gap-2 rounded-full px-6 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_70px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
                 >
-                  Create Aura <ArrowRight className="h-4 w-4" />
+                  Gain Aura <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
               <p className="mt-4 text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                Create Aura → Save to Farm → Build Auracle → Share AuraLink
+                Gain Aura → Save to Farm → Build Auracle → Share AuraLink
               </p>
             </div>
 
@@ -73,7 +73,7 @@ function Index() {
           </h2>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { n: "01", t: "Create Aura", d: "Upload a sound or paste a music link." },
+              { n: "01", t: "Gain Aura", d: "Upload a sound or paste a music link." },
               { n: "02", t: "Grow Your Farm", d: "Save your visual music identities in one place." },
               { n: "03", t: "Build Auracles", d: "Group Auras into living albums, EPs, playlists, or rollouts." },
               { n: "04", t: "Share AuraLinks", d: "Give every track or project a living link built for bios, stories, DMs, and posts." },
@@ -134,7 +134,7 @@ function Index() {
               to="/create"
               className="mt-10 inline-flex items-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
             >
-              Create Aura <ArrowRight className="h-4 w-4" />
+              Gain Aura <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>

@@ -50,7 +50,7 @@ export const Route = createFileRoute("/aura/$id")({
           to="/create"
           className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm bg-aura-gradient text-primary-foreground"
         >
-          Create Aura <ArrowLeft className="h-4 w-4 rotate-180" />
+          Gain Aura <ArrowLeft className="h-4 w-4 rotate-180" />
         </Link>
       </div>
     </div>
