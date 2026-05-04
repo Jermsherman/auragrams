@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+/**
+ * Connects an HTMLAudioElement to a Web Audio AnalyserNode so the orb can
+ * read both time-domain (waveform) and frequency-domain (FFT) data.
+ */
 export function useAudioReactive(audioRef: React.RefObject<HTMLAudioElement | null>) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -16,16 +20,17 @@ export function useAudioReactive(audioRef: React.RefObject<HTMLAudioElement | nu
       const ctx = new Ctx();
       const source = ctx.createMediaElementSource(audio);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.7;
+      // Larger FFT → smoother waveform reads, more frequency bins.
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.6;
       source.connect(analyser);
       analyser.connect(ctx.destination);
       ctxRef.current = ctx;
       sourceRef.current = source;
       analyserRef.current = analyser;
       setReady(true);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn("Audio analyser unavailable", e);
     }
   };
 
