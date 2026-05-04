@@ -183,6 +183,9 @@ function AuraPage() {
           >
             {track.artist}
           </Link>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Save it to your Farm or share it anywhere with an AuraLink.
+          </p>
         </div>
 
         <div className="mt-8 w-full animate-fade-up">
