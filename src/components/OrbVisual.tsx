@@ -17,6 +17,8 @@ type Props = {
   /** Full AuraProfile — when provided, palette colors come from profile.colors. */
   profile?: AuraProfile;
   particles?: boolean;
+  /** Hero mode: self-animates with synthetic waveform when no analyser is given. */
+  hero?: boolean;
 };
 
 function shapeStyle(shape: AuraPersonality["shape"]): React.CSSProperties {
