@@ -67,6 +67,9 @@ function FarmPage() {
           <p className="mt-3 text-muted-foreground">
             Your growing collection of sonic identities — and the Auracles you build from them.
           </p>
+          <div className="mt-4 flex justify-center">
+            <HelpLink hash="farm" label="What is the Farm?" />
+          </div>
         </div>
 
         <Tabs defaultValue="auras" className="mt-10 sm:mt-12 animate-fade-up">

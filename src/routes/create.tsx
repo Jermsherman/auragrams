@@ -38,6 +38,7 @@ import {
 } from "@/lib/auracle";
 import { toast } from "sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
@@ -433,6 +434,9 @@ function CreatePage() {
               ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
               : "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share."}
           </p>
+          <div className="mt-4 flex justify-center">
+            <HelpLink hash="creating-auras" />
+          </div>
         </div>
 
         <div className="mt-10 space-y-5 animate-fade-up">

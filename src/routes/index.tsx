@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2 } from "lucide-react";
+import { FaqPreview } from "@/components/FaqPreview";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -166,6 +167,9 @@ function Index() {
             ))}
           </div>
         </section>
+
+        {/* FAQ PREVIEW */}
+        <FaqPreview />
 
         {/* FINAL CTA */}
         <section className="relative">
