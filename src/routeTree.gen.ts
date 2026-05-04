@@ -20,6 +20,7 @@ import { Route as AuracleCreateRouteImport } from './routes/auracle.create'
 import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
 import { Route as ArtistHandleRouteImport } from './routes/artist.$handle'
+import { Route as AuraIdInfluenceRouteImport } from './routes/aura.$id.influence'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -76,6 +77,11 @@ const ArtistHandleRoute = ArtistHandleRouteImport.update({
   path: '/artist/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuraIdInfluenceRoute = AuraIdInfluenceRouteImport.update({
+  id: '/influence',
+  path: '/influence',
+  getParentRoute: () => AuraIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,10 +91,11 @@ export interface FileRoutesByFullPath {
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
-  '/aura/$id': typeof AuraIdRoute
+  '/aura/$id': typeof AuraIdRouteWithChildren
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/aura/$id/influence': typeof AuraIdInfluenceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,10 +105,11 @@ export interface FileRoutesByTo {
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
-  '/aura/$id': typeof AuraIdRoute
+  '/aura/$id': typeof AuraIdRouteWithChildren
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/aura/$id/influence': typeof AuraIdInfluenceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,10 +120,11 @@ export interface FileRoutesById {
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
-  '/aura/$id': typeof AuraIdRoute
+  '/aura/$id': typeof AuraIdRouteWithChildren
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/aura/$id/influence': typeof AuraIdInfluenceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/auracle/$id'
     | '/auracle/create'
     | '/settings/artists'
+    | '/aura/$id/influence'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/auracle/$id'
     | '/auracle/create'
     | '/settings/artists'
+    | '/aura/$id/influence'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/auracle/$id'
     | '/auracle/create'
     | '/settings/artists'
+    | '/aura/$id/influence'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -167,7 +179,7 @@ export interface RootRouteChildren {
   GeneratingRoute: typeof GeneratingRoute
   OnboardingRoute: typeof OnboardingRoute
   ArtistHandleRoute: typeof ArtistHandleRoute
-  AuraIdRoute: typeof AuraIdRoute
+  AuraIdRoute: typeof AuraIdRouteWithChildren
   AuracleIdRoute: typeof AuracleIdRoute
   AuracleCreateRoute: typeof AuracleCreateRoute
   SettingsArtistsRoute: typeof SettingsArtistsRoute
@@ -252,8 +264,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aura/$id/influence': {
+      id: '/aura/$id/influence'
+      path: '/influence'
+      fullPath: '/aura/$id/influence'
+      preLoaderRoute: typeof AuraIdInfluenceRouteImport
+      parentRoute: typeof AuraIdRoute
+    }
   }
 }
+
+interface AuraIdRouteChildren {
+  AuraIdInfluenceRoute: typeof AuraIdInfluenceRoute
+}
+
+const AuraIdRouteChildren: AuraIdRouteChildren = {
+  AuraIdInfluenceRoute: AuraIdInfluenceRoute,
+}
+
+const AuraIdRouteWithChildren =
+  AuraIdRoute._addFileChildren(AuraIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -263,7 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   GeneratingRoute: GeneratingRoute,
   OnboardingRoute: OnboardingRoute,
   ArtistHandleRoute: ArtistHandleRoute,
-  AuraIdRoute: AuraIdRoute,
+  AuraIdRoute: AuraIdRouteWithChildren,
   AuracleIdRoute: AuracleIdRoute,
   AuracleCreateRoute: AuracleCreateRoute,
   SettingsArtistsRoute: SettingsArtistsRoute,
