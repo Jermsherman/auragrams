@@ -113,6 +113,7 @@ function CreatePage() {
         seed: seedFromId(id),
         createdAt: Date.now(),
         moods,
+        detectedKey: detectedKey ?? undefined,
         ...aura,
       };
       if (mode === "file") {
@@ -279,7 +280,7 @@ function CreatePage() {
 
           {/* Mood picker + live preview */}
           <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
-            <MoodPicker value={moods} onChange={setMoods} />
+            <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
 
             <div className="flex items-center gap-4 pt-1">
               <OrbVisual size={72} palette={preview.palette} particles={false} />
