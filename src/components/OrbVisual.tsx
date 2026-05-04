@@ -64,6 +64,7 @@ export function OrbVisual({
   isPlaying = false,
   palette,
   personality,
+  profile,
   particles = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
