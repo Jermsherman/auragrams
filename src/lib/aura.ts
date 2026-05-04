@@ -613,6 +613,38 @@ export function slugify(s: string): string {
     .slice(0, 48);
 }
 
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
+const MINOR_BIAS = new Set<MoodKey>(["melancholy", "dark", "mysterious", "nostalgic", "intimate"]);
+const MAJOR_BIAS = new Set<MoodKey>(["warm", "euphoric", "coastal", "energetic", "dreamy"]);
+
+export type MusicalKey = `${(typeof NOTES)[number]} ${"maj" | "min"}`;
+export type TempoBand = "Slow" | "Mid" | "Fast";
+export type Density = "Sparse" | "Lush" | "Dense";
+
+export function keyFor(seed: string, mood: MoodKey): MusicalKey {
+  const h = hash(seed + "|key|" + mood);
+  const note = NOTES[h % NOTES.length];
+  const bit = (h >>> 5) & 3; // 0..3
+  const minor =
+    MINOR_BIAS.has(mood) ? bit !== 0 : MAJOR_BIAS.has(mood) ? bit === 0 : bit < 2;
+  return `${note} ${minor ? "min" : "maj"}` as MusicalKey;
+}
+
+export function tempoBandFor(energy: number): TempoBand {
+  if (energy < 45) return "Slow";
+  if (energy < 75) return "Mid";
+  return "Fast";
+}
+
+const DENSE_MOODS = new Set<MoodKey>(["cinematic", "euphoric", "energetic", "dark"]);
+const SPARSE_MOODS = new Set<MoodKey>(["intimate", "melancholy", "nostalgic"]);
+export function densityFor(seed: string, mood: MoodKey): Density {
+  const h = hash(seed + "|d|" + mood) >>> 4;
+  if (DENSE_MOODS.has(mood)) return (h & 1) ? "Dense" : "Lush";
+  if (SPARSE_MOODS.has(mood)) return (h & 1) ? "Sparse" : "Lush";
+  return (h & 3) === 0 ? "Dense" : (h & 3) === 1 ? "Sparse" : "Lush";
+}
+
 export function generateAura(input: {
   id: string;
   title: string;
@@ -621,10 +653,20 @@ export function generateAura(input: {
 }) {
   const palette = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
+  const energy = energyFor(seedKey, input.moods);
+  const musicalKey = keyFor(seedKey, palette);
+  const tempoBand = tempoBandFor(energy);
+  const density = densityFor(seedKey, palette);
+  const baseDesc = descriptionFor(input.moods, palette, seedKey);
+  const isMinor = musicalKey.endsWith("min");
+  const description = `${baseDesc.replace(/\.$/, "")}, in a ${isMinor ? "minor" : "major"} key.`;
   return {
     palette,
     auraName: auraNameFor(seedKey, input.moods),
-    energy: energyFor(seedKey, input.moods),
-    description: descriptionFor(input.moods, palette, seedKey),
+    energy,
+    description,
+    musicalKey,
+    tempoBand,
+    density,
   };
 }
