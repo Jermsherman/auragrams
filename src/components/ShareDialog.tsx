@@ -231,6 +231,25 @@ export function ShareDialog({
                 </button>
               </div>
             )}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setAddToAuraLinkOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-xs hover:bg-foreground/5 transition-colors"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Add to AuraLink
+              </button>
+              <Link
+                to="/auralink/create"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-xs hover:bg-foreground/5 transition-colors"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Build new AuraLink
+              </Link>
+            </div>
+
             <Link
               to="/aura/$id/influence"
               params={{ id: track.id }}
@@ -243,6 +262,11 @@ export function ShareDialog({
         </DialogContent>
       </Dialog>
       <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
+      <AddToAuraLinkDialog
+        aura={{ id: track.id }}
+        open={addToAuraLinkOpen}
+        onOpenChange={setAddToAuraLinkOpen}
+      />
     </>
   );
 }
