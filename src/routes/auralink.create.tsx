@@ -341,6 +341,16 @@ function BuilderPage() {
                     onChange={(e) => onImage(e.target.files?.[0] ?? null)}
                     className="block text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs"
                   />
+                  {uploadingCover && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploading…
+                    </div>
+                  )}
+                  {!uploadingCover && profileImageUrl && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploaded ✓
+                    </div>
+                  )}
                 </Field>
                 <Field label="Description (optional)" className="sm:col-span-2">
                   <textarea
