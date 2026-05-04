@@ -108,7 +108,37 @@ function Index() {
           </div>
         </section>
 
-        {/* FEATURES */}
+        {/* AURALINK SPOTLIGHT */}
+        <section className="mx-auto max-w-5xl px-5 sm:px-8 pb-8 sm:pb-12">
+          <div className="rounded-3xl glass-strong p-7 sm:p-12 relative overflow-hidden">
+            <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, oklch(0.7 0.22 310 / 0.6), transparent 70%)" }} />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                <Link2 className="h-3 w-3" /> AuraLink
+              </div>
+              <h2 className="mt-4 font-display text-3xl sm:text-4xl tracking-tight">
+                AuraLink is your <span className="text-aura-gradient">music-first link page.</span>
+              </h2>
+              <p className="mt-3 text-muted-foreground max-w-xl">
+                Group your streaming links, Auras, and releases into one living page built for bios, stories, DMs, and rollouts.
+              </p>
+              <ul className="mt-6 grid sm:grid-cols-2 gap-2.5 text-sm text-foreground/85 max-w-xl">
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and more.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Feature your best Auras.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Share one clean music-first link.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Make your profile feel alive, not generic.</li>
+              </ul>
+              <Link
+                to="/auralink/create"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground px-6 h-12 text-sm font-medium shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                Build AuraLink <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24">
           <div className="grid sm:grid-cols-3 gap-5">
             {[
