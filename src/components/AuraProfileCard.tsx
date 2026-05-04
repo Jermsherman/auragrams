@@ -53,6 +53,9 @@ export function AuraProfileCard({
       </div>
 
       <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <div className="mt-3 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80">
+        {p.motion} · {p.texture} · {p.particle}
+      </div>
 
       <div className="mt-5 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mr-1">
