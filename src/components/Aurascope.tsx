@@ -1,5 +1,4 @@
 import { useMemo, type CSSProperties } from "react";
-import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { OrbVisual } from "./OrbVisual";
 import { getPersonality, type AuraProfile, type AuraPalette } from "@/lib/aura";
@@ -375,5 +374,3 @@ function Label({ aura, mode }: { aura: AurascopeAura; mode: AurascopeMode }) {
 }
 
 export default Aurascope;
-// Avoid unused import warning when Link tree-shakes
-void Link;
