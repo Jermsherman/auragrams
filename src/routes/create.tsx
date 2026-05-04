@@ -366,10 +366,40 @@ function CreatePage() {
         );
       }
       setSessionAudio(id, audio, audioUrl);
-      saveTrack({ ...base, hasLocalAudio: true });
+
+      // Upload to persistent storage (best effort — playback still works locally if it fails)
+      let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+      if (user) {
+        try {
+          uploaded = await uploadAuraAudio({
+            authUserId: user.id,
+            auraId: id,
+            file: audio,
+            rawRecording: mode === "raw",
+          });
+        } catch (e) {
+          console.error("audio upload", e);
+          toast.error("Upload failed. Please try again.");
+          setBusy(false);
+          return;
+        }
+      }
+
+      const fullTrack = {
+        ...base,
+        hasLocalAudio: true,
+        audioStoragePath: uploaded?.storagePath,
+        audioPublicUrl: uploaded?.publicUrl,
+        audioFileName: uploaded?.fileName,
+        audioMimeType: uploaded?.mimeType,
+        audioSizeBytes: uploaded?.sizeBytes,
+        audioDurationSeconds: uploaded?.durationSeconds ?? undefined,
+        uploadStatus: uploaded ? ("complete" as const) : ("failed" as const),
+      };
+      saveTrack(fullTrack);
       // Persist to cloud (owner-only). Single-aura flow.
       if (profile) {
-        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: true } as Parameters<typeof saveAuraFromTrack>[0]);
+        const saved = saveAuraFromTrack(fullTrack as Parameters<typeof saveAuraFromTrack>[0]);
         await saveAuraToCloud({
           saved, userId: profile.id,
           visibilityMode: identity.mode,
