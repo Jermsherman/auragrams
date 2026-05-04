@@ -184,3 +184,114 @@ function Section({
     </div>
   );
 }
+
+function VibeEditor({
+  vibeDescription,
+  editable,
+  onSaveVibe,
+  onRegenerateVibe,
+}: {
+  vibeDescription?: string;
+  editable: boolean;
+  onSaveVibe?: (text: string) => Promise<void> | void;
+  onRegenerateVibe?: () => Promise<void> | void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(vibeDescription ?? "");
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(vibeDescription ?? "");
+  }, [vibeDescription, editing]);
+
+  if (editing) {
+    return (
+      <div className="mt-3 space-y-2">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.slice(0, 240))}
+          rows={3}
+          maxLength={240}
+          placeholder="Describe the vibe in your own words…"
+          className="w-full rounded-xl bg-background/40 border border-border/60 px-3 py-2 text-sm italic outline-none focus:border-foreground/25 resize-none"
+        />
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            {draft.length}/240
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setDraft(vibeDescription ?? "");
+              }}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const t = draft.trim();
+                if (!t || !onSaveVibe) return;
+                setSaving(true);
+                try {
+                  await onSaveVibe(t);
+                  setEditing(false);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving || !draft.trim()}
+              className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-8 px-3.5 text-[11px] disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Save vibe
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {vibeDescription && (
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground italic">
+          “{vibeDescription}”
+        </p>
+      )}
+      {editable && (
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit the vibe
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!onRegenerateVibe) return;
+              setGenerating(true);
+              try {
+                await onRegenerateVibe();
+              } finally {
+                setGenerating(false);
+              }
+            }}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors disabled:opacity-60"
+          >
+            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Generate the vibe
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
