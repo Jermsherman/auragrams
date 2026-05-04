@@ -357,6 +357,7 @@ function AuraPage() {
             keyDetected={track.keyDetected}
             pitchCenter={track.pitchCenter}
             sourceType={track.sourceType}
+            colorGuided={track.colorGuided}
             editable={saved}
             onSaveVibe={async (text) => {
               updateTrack(track.id, { vibeDescription: text });
