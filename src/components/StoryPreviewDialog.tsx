@@ -67,6 +67,11 @@ export function StoryPreviewDialog({
             artist={track.artist}
             mood={track.moods?.[0]}
             palette={track.palette}
+            platformName={
+              track.provider && track.provider !== "external" && !track.hasLocalAudio
+                ? labelFor(track.provider)
+                : undefined
+            }
           />
         </div>
 
