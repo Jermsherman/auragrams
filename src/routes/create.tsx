@@ -230,21 +230,30 @@ function CreatePage() {
       <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20 pb-32 sm:pb-20">
         <div className="text-center animate-fade-up">
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
-            Create an <span className="text-aura-gradient">Aura.</span>
+            {mode === "auracle" ? (
+              <>Create an <span className="text-aura-gradient">Auracle.</span></>
+            ) : (
+              <>Create an <span className="text-aura-gradient">Aura.</span></>
+            )}
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.
+            {mode === "auracle"
+              ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
+              : "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share."}
           </p>
         </div>
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-2 text-sm">
+          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" /> Upload File
+              <UploadCloud className="h-4 w-4" /> <span className="hidden sm:inline">Upload</span> File
             </ModeTab>
             <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" /> Paste Music Link
+              <LinkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Paste</span> Link
+            </ModeTab>
+            <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
+              <Layers className="h-4 w-4" /> Auracle
             </ModeTab>
           </div>
 
