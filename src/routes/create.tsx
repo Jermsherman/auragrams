@@ -373,7 +373,7 @@ function CreatePage() {
           <p className="mt-4 text-muted-foreground">
             {mode === "auracle"
               ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
-              : "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share."}
+              : "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share."}
           </p>
         </div>
 
