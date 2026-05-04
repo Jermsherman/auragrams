@@ -578,7 +578,7 @@ export function OrbVisual({
       />
 
       {/* oscilloscope waveform ring (uploads only) */}
-      {(metricsRef || analyser) && (
+      {(metricsRef || analyser || hero) && (
         <canvas
           ref={ringCanvasRef}
           className="pointer-events-none absolute inset-0 w-full h-full"
@@ -587,7 +587,7 @@ export function OrbVisual({
       )}
 
       {/* transient burst flash */}
-      {(metricsRef || analyser) && (
+      {(metricsRef || analyser || hero) && (
         <div
           className="pointer-events-none absolute inset-0 blur-2xl"
           style={{
