@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
 import {
   getArtist,
   listTracksByHandle,
@@ -133,7 +134,13 @@ function ArtistPage() {
         {/* Featured */}
         <section className="mt-14 grid sm:grid-cols-[280px_1fr] gap-8 sm:gap-10 items-center animate-fade-up">
           <div className="grid place-items-center">
-            <OrbVisual size="min(64vw, 280px)" palette={featured.palette} />
+            <Aurascope
+              aura={aurascopeAuraFromTrack(featured)}
+              size="large"
+              mode="minimal"
+              showLabel={false}
+              style={{ width: "min(64vw, 280px)" }}
+            />
           </div>
           <div className="text-center sm:text-left">
             <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
@@ -193,7 +200,7 @@ function TrackCard({ track }: { track: Track }) {
         backgroundImage: `radial-gradient(ellipse 80% 60% at 0% 0%, ${p.stops[0]}22, transparent 60%)`,
       }}
     >
-      <OrbVisual size={84} palette={track.palette} particles={false} />
+      <Aurascope aura={aurascopeAuraFromTrack(track)} size="small" mode="minimal" showLabel={false} style={{ width: 84, height: 84 }} />
       <div className="flex-1 min-w-0">
         <div className="font-display text-base truncate">{track.title}</div>
         <div className="text-[11px] text-muted-foreground truncate">
