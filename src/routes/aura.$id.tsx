@@ -8,7 +8,8 @@ import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { getTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
-import { PALETTES } from "@/lib/aura";
+import { getPersonality } from "@/lib/aura";
+import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft } from "lucide-react";
 
 function labelFor(p?: string) {
@@ -82,18 +83,11 @@ function AuraPage() {
   if (track === null) throw notFound();
 
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const p = PALETTES[track.palette];
+  const p = getPersonality(track.palette);
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* page tint from palette */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-40"
-        style={{
-          background: `radial-gradient(ellipse 70% 40% at 50% -10%, ${p.stops[0]}, transparent 60%), radial-gradient(ellipse 60% 40% at 50% 110%, ${p.stops[2]}, transparent 60%)`,
-        }}
-      />
+      <AuraAtmosphere personality={p} />
 
       <header className="px-5 sm:px-8 pt-5 sm:pt-7 flex items-center justify-between">
         <Link to="/" className="hover:opacity-80 transition-opacity">

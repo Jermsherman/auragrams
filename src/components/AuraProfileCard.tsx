@@ -1,4 +1,4 @@
-import { PALETTES, type PaletteKey } from "@/lib/aura";
+import { getPersonality, type PaletteKey } from "@/lib/aura";
 
 export function AuraProfileCard({
   name,
@@ -13,7 +13,7 @@ export function AuraProfileCard({
   description: string;
   palette: PaletteKey;
 }) {
-  const p = PALETTES[palette];
+  const p = getPersonality(palette);
   return (
     <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
       <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
@@ -53,6 +53,9 @@ export function AuraProfileCard({
       </div>
 
       <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <div className="mt-3 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80">
+        {p.motion} · {p.texture} · {p.particle}
+      </div>
 
       <div className="mt-5 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mr-1">

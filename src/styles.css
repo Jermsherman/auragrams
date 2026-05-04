@@ -203,7 +203,61 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Aura motion variants */
+@keyframes aura-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes aura-breathe {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.15); }
+}
+@keyframes aura-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1) saturate(1); }
+  20% { transform: scale(1.08); filter: brightness(1.25) saturate(1.15); }
+  50% { transform: scale(0.98); filter: brightness(0.95); }
+}
+@keyframes aura-tide {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2%, -2%); }
+}
+@keyframes aura-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-3%, 2%); }
+}
+@keyframes aura-smoke {
+  0%, 100% { filter: blur(2px) hue-rotate(var(--hue)); }
+  50% { filter: blur(6px) hue-rotate(calc(var(--hue) + 8deg)); }
+}
+@keyframes aura-float {
+  0%, 100% { transform: translate(0, 0); opacity: var(--p-op, 0.35); }
+  50% { transform: translate(-4px, -10px); opacity: 0.6; }
+}
+@keyframes aura-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+@keyframes aura-rise {
+  0% { transform: translate(0, 6px); opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { transform: translate(2px, -14px); opacity: 0; }
+}
+@keyframes aura-tide-streak {
+  0%, 100% { transform: translateX(-6px); opacity: 0.3; }
+  50% { transform: translateX(6px); opacity: 0.8; }
+}
+@keyframes atmosphere-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, -3%) scale(1.05); }
+}
+
 .animate-breathe { animation: breathe 6s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 24s linear infinite; }
 .animate-float-y { animation: float-y 7s ease-in-out infinite; }
 .animate-fade-up { animation: fade-up 0.8s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe,
+  .animate-spin-slow,
+  .animate-float-y { animation: none !important; }
+}
