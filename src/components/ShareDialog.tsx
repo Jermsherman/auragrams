@@ -98,10 +98,10 @@ export function ShareDialog({
             </button>
           </DialogTrigger>
         )}
-        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Share AuraLink</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 max-w-[calc(100vw-1.5rem)] sm:max-w-sm overflow-hidden">
+          <DialogHeader className="min-w-0">
+            <DialogTitle className="font-display text-xl sm:text-2xl truncate">Share AuraLink</DialogTitle>
+            <DialogDescription className="truncate">
               {track.hasLocalAudio
                 ? "Uploaded Audio"
                 : track.provider
@@ -110,15 +110,16 @@ export function ShareDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2.5 pt-2">
-            <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/40 p-2 pl-4">
-              <span className="flex-1 truncate text-sm text-muted-foreground">{url}</span>
+          <div className="space-y-2.5 pt-2 min-w-0">
+            <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/40 p-2 pl-3 min-w-0">
+              <span className="flex-1 min-w-0 truncate text-xs sm:text-sm text-muted-foreground">{url}</span>
               <button
                 onClick={copy}
-                className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient px-3.5 h-9 text-xs font-medium text-primary-foreground"
+                aria-label="Copy AuraLink"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-aura-gradient px-3 h-9 text-xs font-medium text-primary-foreground"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy AuraLink"}
+                <span className="hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
               </button>
             </div>
 
