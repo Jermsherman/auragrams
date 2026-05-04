@@ -236,8 +236,9 @@ function CreatePage() {
         energyOverride: features?.energy ?? null,
         keyConfidence: keyDetection?.confidence ?? null,
         sourceType,
+        userColorInfluence: colorInfluence,
       }),
-    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
+    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode, colorInfluence],
   );
 
   const canDetect = !!audio;
