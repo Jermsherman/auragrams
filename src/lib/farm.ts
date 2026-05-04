@@ -2,7 +2,7 @@
 // We never store full audio file blobs here — only metadata.
 
 import type { Track, Provider } from "./tracks";
-import type { PaletteKey, AuraPalette, PitchCenter } from "./aura";
+import type { PaletteKey, AuraPalette, PitchCenter, UserColorInfluence } from "./aura";
 
 export type SourceType = "upload" | "platform_link" | "external_link" | "raw_recording";
 
