@@ -527,51 +527,101 @@ export function slugify(s: string): string {
 }
 
 // ----------------- top-level generator -----------------
+export type SourceType = "upload" | "platform_link" | "raw_recording";
+export type PitchCenter = { note: string; hz: number };
+
 export type AuraProfile = {
   palette: MoodKey;
   auraName: string;
   paletteName: string;
   energy: number;
-  description: string;       // short
+  description: string;
   vibeDescription: string;
   motionKeywords: string[];
   musicalKey: string;
   tonic?: string;
   mode?: "major" | "minor";
   keyDetected?: boolean;
+  keyConfidence?: number;
+  pitchCenter?: PitchCenter;
+  sourceType?: SourceType;
   tempoBand: TempoBand;
   density: Density;
   colors: AuraPalette;
 };
 
+const RAW_NAME_BANK = [
+  "Raw Velvet","Voice Ember","Midnight Sketch","Hook Ghost",
+  "Soft Signal","First Take Bloom","Dry Echo","Bedroom Static",
+  "Whisper Static","Demo Halo","Tape Bloom","Late Hum",
+];
+
+const RAW_TEMPLATES = [
+  "A raw vocal idea with {tone} shadow, soft pitch movement, and a late-night sketchbook feeling.",
+  "An unfinished but emotional signal — {colorPhrase}, glowing around the edges like a melody before it becomes a song.",
+  "A raw sketch of {tone} air, half-formed and honest, holding an idea before it's fully shaped.",
+];
+
 export function generateAura(input: {
   id: string; title: string; artist: string;
   moods: string[]; detectedKey?: string | null;
+  pitchCenter?: PitchCenter | null;
+  energyOverride?: number | null;
+  keyConfidence?: number | null;
+  sourceType?: SourceType;
 }): AuraProfile {
   const baseKey = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
   const seed = hash(seedKey);
-  const energy = energyFor(seedKey, input.moods);
+  const energy = input.energyOverride != null
+    ? Math.max(15, Math.min(99, Math.round(input.energyOverride)))
+    : energyFor(seedKey, input.moods);
 
-  const detected = resolveKeyProfile(input.detectedKey);
-  const musicalKey = detected ? `${detected.tonic} ${detected.mode}` : keyFor(seedKey, baseKey);
-  const kp = detected ?? resolveKeyProfile(musicalKey);
+  const conf = input.keyConfidence ?? null;
+  const keyUncertain = conf != null && conf < 0.15;
+  const detected = !keyUncertain ? resolveKeyProfile(input.detectedKey) : null;
+  const fallbackKey = keyFor(seedKey, baseKey);
+  const musicalKey = detected
+    ? `${detected.tonic} ${detected.mode}`
+    : keyUncertain
+      ? "Unknown"
+      : fallbackKey;
+  const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
 
   const colors = buildPalette(input.moods, kp, seed);
   const desc = generateDescriptions({ seedKey, moods: input.moods, kp, baseKey });
 
+  const isRaw = input.sourceType === "raw_recording";
+  const h = hash(`raw|${seedKey}|${input.moods.join(",")}`);
+  const auraName = isRaw && (h % 10) < 7
+    ? pick(RAW_NAME_BANK, h)
+    : auraNameFor(seedKey, input.moods, kp);
+
+  let description = desc.short;
+  if (isRaw) {
+    const tmpl = pick(RAW_TEMPLATES, h >>> 5);
+    const personality = PERSONALITIES[baseKey];
+    description = fillTemplate(tmpl, {
+      tone: pick(personality.phrases.tone, h),
+      colorPhrase: pick(personality.phrases.color, h >>> 3),
+    });
+  }
+
   return {
     palette: baseKey,
-    auraName: auraNameFor(seedKey, input.moods, kp),
+    auraName,
     paletteName: paletteName(seed, input.moods, kp),
     energy,
-    description: desc.short,
+    description,
     vibeDescription: desc.vibe,
     motionKeywords: desc.motionKeywords,
     musicalKey,
     tonic: kp?.tonic,
     mode: kp?.mode,
     keyDetected: !!detected,
+    keyConfidence: conf ?? undefined,
+    pitchCenter: input.pitchCenter ?? undefined,
+    sourceType: input.sourceType,
     tempoBand: tempoBandFor(energy),
     density: densityFor(seedKey, baseKey),
     colors,
