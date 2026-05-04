@@ -65,6 +65,8 @@ export function OrbVisual({
   particles = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
