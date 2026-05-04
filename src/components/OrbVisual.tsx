@@ -280,6 +280,178 @@ export function OrbVisual({
     return () => cancelAnimationFrame(raf);
   }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow]);
 
+  // Hero mode: synthetic self-animation when no real audio is connected.
+  useEffect(() => {
+    if (!hero) return;
+    if (metricsRef?.current?.ready) return;
+    if (analyser?.current) return;
+    const el = ref.current;
+    if (!el) return;
+
+    let raf = 0;
+    const start = performance.now();
+    const N = 256;
+    const wave = new Uint8Array(N);
+    let scale = 1, glow = 0.6, bassHalo = 1, shimmer = 0.5, deform = 8, burst = 0;
+
+    const tick = (now: number) => {
+      const t = (now - start) / 1000;
+
+      // Synthetic envelopes (slow breathing + occasional swells)
+      const breath = 0.5 + 0.5 * Math.sin(t * 0.9);
+      const swell = 0.5 + 0.5 * Math.sin(t * 0.31 + 1.3);
+      const sparkle = 0.5 + 0.5 * Math.sin(t * 1.7 + 0.4);
+      const beat = Math.max(0, Math.sin(t * 2.1)) ** 6;
+
+      const tScale = 1 + 0.06 * breath + 0.04 * swell + 0.05 * beat;
+      const tGlow = 0.7 + 0.5 * breath + 0.25 * swell;
+      const tBass = 1 + 0.12 * swell + 0.16 * beat;
+      const tShim = 0.7 + 1.1 * sparkle;
+      const tDef = 6 + 8 * breath + 6 * beat;
+      const tBurst = beat * 0.7;
+
+      scale += (tScale - scale) * 0.12;
+      glow += (tGlow - glow) * 0.12;
+      bassHalo += (tBass - bassHalo) * 0.16;
+      shimmer += (tShim - shimmer) * 0.14;
+      deform += (tDef - deform) * 0.18;
+      burst = Math.max(burst * 0.9, tBurst);
+
+      el.style.setProperty("--orb-scale", scale.toFixed(3));
+      el.style.setProperty("--orb-glow", glow.toFixed(3));
+      el.style.setProperty("--orb-bass", bassHalo.toFixed(3));
+      el.style.setProperty("--orb-shimmer", shimmer.toFixed(3));
+      el.style.setProperty("--orb-deform", deform.toFixed(2));
+      el.style.setProperty("--orb-burst", burst.toFixed(3));
+
+      // Synthetic waveform: sum of sines with slow drift, used by canvas + clip-path.
+      for (let i = 0; i < N; i++) {
+        const x = i / N;
+        const v =
+          Math.sin(x * Math.PI * 18 + t * 3.2) * 0.55 +
+          Math.sin(x * Math.PI * 6 + t * 1.1) * 0.3 +
+          Math.sin(x * Math.PI * 42 + t * 5.7) * 0.18;
+        // Equator emphasis: amplify around the middle (creates the bright streak).
+        const env = Math.exp(-Math.pow((x - 0.5) * 3.4, 2));
+        const sample = v * (0.55 + env * 0.7);
+        wave[i] = Math.max(0, Math.min(255, Math.round(128 + sample * 90)));
+      }
+
+      // Edge clip-path deformation
+      if (shellRef.current || textureRef.current) {
+        const M = 36;
+        const step = N / M;
+        const amp = 0.05 + 0.06 * breath + 0.05 * beat;
+        let pts = "";
+        for (let i = 0; i < M; i++) {
+          const v = (wave[Math.floor(i * step)] - 128) / 128;
+          const angle = (i / M) * Math.PI * 2 - Math.PI / 2;
+          const r = 0.5 + v * amp;
+          const x = (50 + Math.cos(angle) * r * 100).toFixed(2);
+          const y = (50 + Math.sin(angle) * r * 100).toFixed(2);
+          pts += `${x}% ${y}%${i < M - 1 ? "," : ""}`;
+        }
+        const clip = `polygon(${pts})`;
+        if (shellRef.current) shellRef.current.style.clipPath = clip;
+        if (textureRef.current) textureRef.current.style.clipPath = clip;
+      }
+
+      // Canvas: orbit oscilloscope + horizontal equator streak + expanding rings.
+      const canvas = ringCanvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const rect = canvas.getBoundingClientRect();
+          if (
+            canvas.width !== Math.floor(rect.width * dpr) ||
+            canvas.height !== Math.floor(rect.height * dpr)
+          ) {
+            canvas.width = Math.floor(rect.width * dpr);
+            canvas.height = Math.floor(rect.height * dpr);
+          }
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx.clearRect(0, 0, w, h);
+          const cx = w / 2;
+          const cy = h / 2;
+          const baseR = Math.min(w, h) * 0.42;
+
+          // Orbit oscilloscope
+          const samples = 220;
+          ctx.lineWidth = 2 * dpr;
+          ctx.strokeStyle = p.stops[3];
+          ctx.shadowBlur = 14 * dpr;
+          ctx.shadowColor = p.glow;
+          ctx.globalAlpha = 0.5 + 0.25 * breath;
+          ctx.beginPath();
+          for (let i = 0; i <= samples; i++) {
+            const idx = Math.floor((i % samples) * (N / samples));
+            const v = (wave[idx] - 128) / 128;
+            const angle = (i / samples) * Math.PI * 2;
+            const r = baseR + v * (baseR * 0.32);
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+
+          // Expanding rings (radar-style)
+          const ringCount = 3;
+          for (let k = 0; k < ringCount; k++) {
+            const phase = (t * 0.35 + k / ringCount) % 1;
+            const rr = baseR * (0.7 + phase * 0.7);
+            const alpha = (1 - phase) * 0.35;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 1.2 * dpr;
+            ctx.strokeStyle = p.stops[1];
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rr, rr * 0.92, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Horizontal equator waveform streak (the bright pink line)
+          const streakW = baseR * 2.6;
+          const streakX0 = cx - streakW / 2;
+          const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+          grad.addColorStop(0, "transparent");
+          grad.addColorStop(0.2, p.stops[2]);
+          grad.addColorStop(0.5, p.glow);
+          grad.addColorStop(0.8, p.stops[3]);
+          grad.addColorStop(1, "transparent");
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 2.2 * dpr;
+          ctx.shadowBlur = 22 * dpr;
+          ctx.shadowColor = p.glow;
+          ctx.globalAlpha = 0.95;
+          ctx.beginPath();
+          const segs = 240;
+          for (let i = 0; i <= segs; i++) {
+            const u = i / segs;
+            const idx = Math.floor(u * (N - 1));
+            const v = (wave[idx] - 128) / 128;
+            const x = streakX0 + u * streakW;
+            const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+            const y = cy + v * baseR * 0.55 * env;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [hero, analyser, metricsRef, p.stops, p.glow]);
+
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
 
