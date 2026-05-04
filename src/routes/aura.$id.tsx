@@ -13,7 +13,7 @@ import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2 } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
 import { updateAuraVibe } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
@@ -238,13 +238,22 @@ function AuraPage() {
           </button>
         </div>
 
-        {/* Secondary action: Add to Auracle */}
-        <button
-          onClick={() => setAuracleOpen(true)}
-          className="mt-3 inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <Layers className="h-3.5 w-3.5" /> Add to Auracle
-        </button>
+        {/* Secondary actions */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <Link
+            to="/aura/$id/influence"
+            params={{ id: track.id }}
+            className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <Wand2 className="h-3.5 w-3.5" /> Influence Aura
+          </Link>
+          <button
+            onClick={() => setAuracleOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <Layers className="h-3.5 w-3.5" /> Add to Auracle
+          </button>
+        </div>
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
         <AddToAuracleDialog

@@ -70,6 +70,16 @@ export type Track = {
   // Phase 5 — Color Influence
   userColorInfluence?: UserColorInfluence;
   colorGuided?: boolean;
+
+  // Phase 6 — Influence Aura
+  visibilityMode?: "artist" | "username" | "anonymous";
+  influenceSettings?: {
+    moodTags: string[];
+    userColorInfluence: UserColorInfluence;
+    vibeNote: string;
+    visibilityMode: "artist" | "username" | "anonymous";
+    updatedAt: string;
+  };
 };
 
 export type ArtistProfile = {
@@ -156,6 +166,8 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     detectedEnergy: t.detectedEnergy,
     userColorInfluence: t.userColorInfluence,
     colorGuided: t.colorGuided ?? gen.colorGuided,
+    visibilityMode: t.visibilityMode,
+    influenceSettings: t.influenceSettings,
   };
 }
 

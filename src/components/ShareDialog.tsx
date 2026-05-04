@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Share2,
   Copy,
@@ -9,6 +10,7 @@ import {
   Bookmark,
   BookmarkCheck,
   ExternalLink,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -226,6 +228,14 @@ export function ShareDialog({
                 </button>
               </div>
             )}
+            <Link
+              to="/aura/$id/influence"
+              params={{ id: track.id }}
+              onClick={() => setOpen(false)}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border/60 h-11 text-xs uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+            >
+              <Wand2 className="h-3.5 w-3.5" /> Influence Aura
+            </Link>
           </div>
         </DialogContent>
       </Dialog>

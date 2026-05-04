@@ -1,131 +1,90 @@
-# Color Influence — Create Aura patch
 
-Add an optional, collapsed-by-default "Color Influence" section to `/create`, with four modes (Surprise Me, Pick One Color, Build Palette, Describe a Color Vibe). User hints are blended into the Aura Engine palette — never replace it. Final palette + the user's choice persist with the Aura, and Aurascope renders the blended palette.
+## Influence Aura
 
----
+A new route at `/aura/$id/influence` lets users guide an existing Aura's mood, color direction, vibe note, and public identity. Auragram's engine still drives the final visuals — the user only "influences" them. No editor language anywhere in the UI.
 
-## 1. Data model
+### 1. New route: `src/routes/aura.$id.influence.tsx`
 
-### `src/lib/aura.ts`
-- New types:
-  ```ts
-  export type ColorInfluenceMode = "surprise" | "single" | "palette" | "description";
-  export type UserColorInfluence = {
-    mode: ColorInfluenceMode;
-    colors: string[];      // hex strings, [] for surprise/description
-    description: string;   // free text for "description" mode, "" otherwise
-  };
-  ```
-- `generateAura(input)` gains an optional `userColorInfluence?: UserColorInfluence`.
-- New helper `colorWordsToHex(text: string): string[]` — maps the canonical keywords from the spec (sunset, ocean, winter, neon, gold, dark, rose/pink, green, red, purple, plus extras: teal, blue, black, white) to 2–3 seed hexes. Implemented as a small lowercased keyword scan, deduped, capped at 5.
-- Update `buildPalette(moods, kp, seed, influence?)`:
-  - Compute the engine palette (current logic) → call it `enginePalette`.
-  - Resolve `userSeeds: string[]`:
-    - `surprise` / no influence → `[]`.
-    - `single` → `colors.slice(0,1)`.
-    - `palette` → `colors.slice(0,5)`.
-    - `description` → `colorWordsToHex(description)`.
-  - If `userSeeds.length === 0` → return engine palette unchanged.
-  - Else blend per spec: roughly **50% engine / 35% user / 15% energy variation**.
-    - `primary = mix(enginePalette.primary, userSeeds[0], 0.42)`
-    - `secondary = userSeeds.length >= 2 ? mix(enginePalette.secondary, userSeeds[1], 0.45) : shiftHue(enginePalette.secondary, +/-10 from seed)`
-    - `accent = userSeeds[userSeeds.length-1]` (preserved verbatim — guarantees ≥1 user color survives; for palette mode also force-include `userSeeds[0]` into swatches so ≥2 are preserved).
-    - `glow = lighten(shiftHue(accent, ±15 by seed), 0.18)` — keeps the 15% energy/brightness variation.
-    - `shadow = darken(primary, 0.55)`; `particle = lighten(shiftHue(accent, 30), 0.25)`.
-    - `swatches`: dedup `[primary, secondary, accent, ...userSeeds, lighten(primary,0.18), glow]` capped at 6.
-- `AuraProfile` adds:
-  - `userColorInfluence?: UserColorInfluence`
-  - `colorGuided: boolean` (true when influence mode !== "surprise" AND seeds resolved to ≥1 color).
-- `paletteName(...)` stays the same; engine still picks a name (e.g. "Sunset Voltage"). When `colorGuided`, the name is unchanged but the profile carries the flag for the UI badge.
+- Title: "Influence Aura"
+- Subtitle: "Guide the mood, color, and public identity of this Aura."
+- Loads the `Track` (and matching `SavedAura` if saved) by id; throws `notFound()` if missing.
+- Local draft state seeded from current Aura:
+  - `moods: string[]` (existing track moods, max 4)
+  - `userColorInfluence: UserColorInfluence` (existing or `{ mode: "surprise", colors: [], description: "" }`)
+  - `vibeNote: string` (existing `vibeDescription`)
+  - `visibilityMode: "artist" | "username" | "anonymous"` (from saved Aura visibility, fallback "artist")
+- Sections, in order:
+  1. **Mood Blend** — reuse `<MoodPicker>` (max 4).
+  2. **Color Influence** — reuse `<ColorInfluence>`.
+  3. **Vibe Note** — `<Textarea>` labeled "Vibe Note", placeholder "Describe what this track feels like…", 240 chars.
+  4. **Public Identity** — reuse `<IdentitySelector>` (artist / username / anonymous).
+- **Updated Aura Preview** panel (sticky on desktop, below sections on mobile):
+  - `<Aurascope>` rendered from a derived preview track
+  - aura name, mood chips, palette swatches, short description, vibe description
+  - Recomputed live via `generateAura({...track, moods, userColorInfluence})` whenever draft changes (memoized).
+- Footer actions: "Save Influence" (primary, aura-gradient) and "Cancel" (ghost, navigates back to `/aura/$id`).
+- Copy uses "Guide the mood", "Guide the glow", "Shape the vibe". No "edit/customize/settings/advanced".
 
-### `src/lib/tracks.ts`
-- `Track` adds: `userColorInfluence?: UserColorInfluence; colorGuided?: boolean;`
-- `hydrate()` carries them through.
+### 2. Entry points (button label "Influence Aura" / "Influence")
 
-### `src/lib/farm.ts`
-- `SavedAura` adds the same two fields. `saveAuraFromTrack` copies them through.
+- **`src/routes/aura.$id.tsx`**: add a glass button `<Sparkles/> Influence Aura` in the action grid (between Share and Story Preview on the secondary row) that navigates to the influence route.
+- **`src/components/AuraFarmCard.tsx`**: add a small "Influence" pill button next to "Open AuraLink" linking to `/aura/$id/influence`. If `aura.colorGuided`, show a "Color-guided" chip near the source badge. The existing anonymous flag (when `visibility_mode === "anonymous"`) shows an "Anonymous" badge alongside the source badge.
+- **`src/components/ShareDialog.tsx`**: add a subtle "Influence Aura" link at the bottom of the dialog content.
 
-### `src/lib/cloudAura.ts`
-- Persist into the existing `extra: jsonb` column on `auras`:
-  ```ts
-  extra: { ...existing, userColorInfluence, colorGuided }
-  ```
-  No schema migration — `extra` is already `jsonb`.
-- `color_palette` column already stores the final palette (`saved.colors`), and `palette_name` already stores the name. Nothing else to change.
+### 3. Save behavior
 
----
+On "Save Influence":
 
-## 2. UI: Create page
+1. Run `generateAura({ id: track.id + "-inf-" + Date.now(), title, artist, moods: draftMoods, detectedKey, pitchCenter, energyOverride: track.energy, sourceType, userColorInfluence: draftInfluence })` to produce new: `auraName`, `paletteName`, `colors`, `palette`, `description`, `vibeDescription`, `motionKeywords`, `density`, `tempoBand`, `colorGuided`.
+2. If user typed a `vibeNote`, override `vibeDescription` with it (trimmed). Otherwise use generated.
+3. `updateTrack(id, { moods, userColorInfluence, colorGuided, auraName, paletteName, colors, palette, description, vibeDescription, motionKeywords, density, tempoBand })` — preserves source/audio/title/artist/createdAt/streamUrl/embedUrl.
+4. If the Aura is saved to the Farm or exists in cloud:
+   - Re-run `saveAuraFromTrack(updatedTrack)` to refresh local Farm row.
+   - Call `saveAuraToCloud(...)` with the new `visibilityMode`, artist profile id derived from current identity selection, and updated `SavedAura`. Reuse the existing aura `id` so the public AuraLink URL is unchanged.
+5. Toast: `"Aura influence saved."`. Navigate back to `/aura/$id`.
 
-### `src/routes/create.tsx`
-- New state: `colorInfluence: UserColorInfluence` (default `{ mode: "surprise", colors: [], description: "" }`) and `colorOpen: boolean` (default `false`).
-- Insert a new section **after MoodPicker, before the Aurascope preview** inside the existing `glass-strong` block (or as its own glass card directly above it).
-- Pass `userColorInfluence: colorInfluence` into `generateAura(...)` for the live preview and into the final submit `generateAura` call.
-- Pass `colorInfluence` to `saveTrack` (via the `base` object) and into `saveAuraFromTrack` so it flows to Farm + cloud.
+If save fails on cloud, swallow with `"Influence saved locally"` toast (mirrors existing vibe-save fallback).
 
-### New component `src/components/ColorInfluence.tsx`
-- Collapsible card (chevron). Header reads **"Color Influence · optional"** with subtitle **"Suggest a color direction, or let Auragram find one from the sound."**
-- Mode tabs (pill row): Surprise Me · Pick One · Build Palette · Describe.
-- Body per mode:
-  - **Surprise Me**: short copy "Auragram will blend a palette from your sound."
-  - **Pick One Color**: a single `<input type="color">` + hex text input + label "Main glow color" + 24px swatch preview.
-  - **Build Palette**: list of 2–5 color slots, each with a color picker, hex display, and remove button. "Add color" button (disabled at 5). Label "Blend these into the Aura". Reorder via simple up/down arrows (keep mobile-simple — no drag).
-  - **Describe**: `<input>` with rotating placeholder cycling through the spec examples. Stores into `description`.
-- Emits `onChange(UserColorInfluence)` whenever any sub-field updates; never blocks generation.
-- Compact mobile sizing; uses semantic tokens only (`bg-background/40`, `border-border/60`, `text-muted-foreground`, `bg-aura-gradient` for active tabs). No raw colors except the user's chosen swatch backgrounds.
+### 4. Data model updates
 
-### Microcopy
-- Section title: "Color Influence" (use "Guide the glow" as small helper line under it).
-- CTA pills exactly as spec: Surprise Me · Pick One Color · Build Palette · Describe a Color Vibe.
+**`src/lib/aura.ts`** — extend the engine input to accept `vibeNoteOverride?: string` (no behavior change here; override is applied at the call site).
 
----
+**`src/lib/tracks.ts`** — add to `Track`:
+```ts
+influenceSettings?: {
+  moodTags: string[];
+  userColorInfluence: UserColorInfluence;
+  vibeNote: string;
+  visibilityMode: "artist" | "username" | "anonymous";
+  updatedAt: string;
+};
+```
+Hydrate passes it through unchanged.
 
-## 3. Aura Profile updates
+**`src/lib/farm.ts`** — add same `influenceSettings?` and `visibilityMode?` to `SavedAura`. Persist in `saveAuraFromTrack`.
 
-### `src/components/AuraProfileCard.tsx`
-- Already shows `paletteName` and swatches. Add a small badge under the palette title when `colorGuided` is true:
-  - Pill: **"Color-guided"** with sub-line **"Guided by your color suggestion"**, styled like the existing source-type badge but with `bg-aura-gradient/40`.
-- New prop `colorGuided?: boolean`. Wire it from `aura.$id.tsx` and the live preview in `create.tsx`.
+**`src/lib/cloudAura.ts`** — extend `saveAuraToCloud` to write `visibility_mode` from the new value (already in row) and add `influenceSettings` into the existing `extra` jsonb. No DB migration needed — `extra` is already a free-form `jsonb` column and `visibility_mode` already exists on `auras`.
 
----
+### 5. Public AuraLink
 
-## 4. Aurascope visual
+Because the same aura `id` is reused, `/aura/$id` and `getPublicAura(id)` automatically reflect the new palette, name, vibe, and visibility on next render. No new URL is created.
 
-### `src/components/Aurascope.tsx`
-- Already accepts `aura.colors` and uses them. Confirm and (if missing) ensure these are all derived from `colors`:
-  - orb gradient (`primary → accent → glow`)
-  - waveform ring stroke (use `accent`)
-  - glass rim (use `glow` at low alpha)
-  - halo (use `glow`)
-  - particles (use `particle`)
-  - progress accent in `AudioPlayer` (uses `colors.accent`)
-- No engine changes needed beyond passing the blended palette — already in place. Audit pass only.
+### 6. Acceptance checklist mapping
 
----
+1. UI uses "Influence Aura" everywhere — verified via the new route, the Aura page button, the Farm card pill, and the Share dialog link.
+2. Mood/color/visibility/vibe-note all editable in draft.
+3. Preview re-renders on every draft change via memoized `generateAura`.
+4. Source data (audio session, embed, title, artist, createdAt) untouched in `updateTrack`.
+5. Farm cards expose Influence and the "Color-guided" / "Anonymous" badges.
+6. Cloud row updated in place — public AuraLink reflects changes immediately.
+7. No "edit / customize / settings / advanced" copy anywhere in the new surfaces.
 
-## 5. Aura page
+### Files touched
 
-### `src/routes/aura.$id.tsx`
-- When regenerating vibe or recomputing, include the stored `userColorInfluence` so the regenerated aura preserves the user's color hint.
-- Pass `colorGuided` to `<AuraProfileCard />`.
-
----
-
-## 6. Acceptance mapping
-
-1. Four modes exposed with default Surprise Me. ✓
-2. `buildPalette` blend keeps engine weight ≥50%. ✓
-3. mood/key/mode/energy still feed `enginePalette` and `paletteName`. ✓
-4. `AuraProfileCard` already renders palette + swatches; adds Color-guided badge. ✓
-5. `Track`, `SavedAura`, and `auras.extra` all persist `userColorInfluence` + `colorGuided`. ✓
-6. Aurascope reads `colors` (final blended palette) — already wired. ✓
-7. Section is collapsed by default, optional, mobile-compact. ✓
-
----
-
-## Technical notes
-
-- No DB migration: reuse `auras.extra jsonb` for `userColorInfluence` and `colorGuided`. `color_palette` already stores final palette.
-- Color word map lives in `src/lib/aura.ts` next to `buildPalette`. Keywords match the spec table; add a small fallback that scans for raw hex (`#aabbcc`) inside the description and treats those as direct seeds too.
-- All blending uses existing `mixHex / lighten / darken / shiftHue` helpers.
-- Live preview already reruns `generateAura` on every state change in `create.tsx`; adding `colorInfluence` to its dep array is sufficient for a real-time Aurascope update.
+- new: `src/routes/aura.$id.influence.tsx`
+- edit: `src/routes/aura.$id.tsx` (Influence button)
+- edit: `src/components/AuraFarmCard.tsx` (Influence pill, Color-guided / Anonymous chips)
+- edit: `src/components/ShareDialog.tsx` (Influence link)
+- edit: `src/lib/tracks.ts` (Track.influenceSettings)
+- edit: `src/lib/farm.ts` (SavedAura.influenceSettings, visibilityMode)
+- edit: `src/lib/cloudAura.ts` (persist influenceSettings into extra)

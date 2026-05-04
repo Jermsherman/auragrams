@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Trash2, ArrowUpRight } from "lucide-react";
+import { Trash2, ArrowUpRight, Wand2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Aurascope } from "./Aurascope";
 import { deleteAura, type SavedAura } from "@/lib/farm";
@@ -48,7 +48,7 @@ export function AuraFarmCard({
         backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
       }}
     >
-      <div className="absolute inset-x-5 top-3 flex items-center justify-between">
+      <div className="absolute inset-x-5 top-3 flex items-center justify-between gap-2">
         <span
           className={
             isRaw
@@ -58,6 +58,18 @@ export function AuraFarmCard({
         >
           {sourceBadge}
         </span>
+        <div className="flex items-center gap-1">
+          {aura.colorGuided && (
+            <span className="rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-foreground/80">
+              <Sparkles className="h-2.5 w-2.5" /> Color-guided
+            </span>
+          )}
+          {aura.visibilityMode === "anonymous" && (
+            <span className="rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center text-[9px] uppercase tracking-[0.2em] text-foreground/80">
+              Anonymous
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-6 mb-1">
@@ -104,6 +116,16 @@ export function AuraFarmCard({
           className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-10 px-4 text-xs font-medium shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.9)]"
         >
           Open AuraLink <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+
+        <Link
+          to="/aura/$id/influence"
+          params={{ id: aura.id }}
+          aria-label="Influence Aura"
+          title="Influence Aura"
+          className="rounded-full h-10 w-10 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Wand2 className="h-4 w-4" />
         </Link>
 
         <AlertDialog open={open} onOpenChange={setOpen}>
