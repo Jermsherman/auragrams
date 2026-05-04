@@ -11,13 +11,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Turn any song into a living Aura, save it to your Farm, and share it anywhere with an AuraLink.",
+          "Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.",
       },
       { property: "og:title", content: "Auragram — See your sound" },
       {
         property: "og:description",
         content:
-          "Turn songs into Auras, save them to your Farm, and share them with an AuraLink.",
+          "Turn songs into Auras, save them to your Farm, group them into Auracles, and share them with AuraLinks.",
       },
     ],
   }),
@@ -42,7 +42,7 @@ function Index() {
                 <span className="text-aura-gradient">more than a link.</span>
               </h1>
               <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md mx-auto md:mx-0">
-                Turn any song into a living Aura, save it to your Farm, and share it anywhere with an AuraLink.
+                Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.
               </p>
               <div className="mt-8 flex items-center justify-center md:justify-start gap-4">
                 <Link
@@ -53,7 +53,7 @@ function Index() {
                 </Link>
               </div>
               <p className="mt-4 text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                Create Aura → Save to Farm → Share AuraLink
+                Create Aura → Save to Farm → Build Auracle → Share AuraLink
               </p>
             </div>
 
@@ -71,11 +71,12 @@ function Index() {
           <h2 className="font-display text-3xl sm:text-4xl tracking-tight text-center">
             How it works
           </h2>
-          <div className="mt-12 grid sm:grid-cols-3 gap-5">
+          <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               { n: "01", t: "Create Aura", d: "Upload a sound or paste a music link." },
-              { n: "02", t: "Save to Farm", d: "Keep your visual music identities in one growing collection." },
-              { n: "03", t: "Share AuraLink", d: "Give every track a living link built for bios, stories, DMs, and posts." },
+              { n: "02", t: "Grow Your Farm", d: "Save your visual music identities in one place." },
+              { n: "03", t: "Build Auracles", d: "Group Auras into living albums, EPs, playlists, or rollouts." },
+              { n: "04", t: "Share AuraLinks", d: "Give every track or project a living link built for bios, stories, DMs, and posts." },
             ].map((s) => (
               <div
                 key={s.n}

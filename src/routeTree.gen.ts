@@ -13,6 +13,8 @@ import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuracleCreateRouteImport } from './routes/auracle.create'
+import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
 import { Route as ArtistHandleRouteImport } from './routes/artist.$handle'
 
@@ -36,6 +38,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuracleCreateRoute = AuracleCreateRouteImport.update({
+  id: '/auracle/create',
+  path: '/auracle/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuracleIdRoute = AuracleIdRouteImport.update({
+  id: '/auracle/$id',
+  path: '/auracle/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuraIdRoute = AuraIdRouteImport.update({
   id: '/aura/$id',
   path: '/aura/$id',
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
+  '/auracle/$id': typeof AuracleIdRoute
+  '/auracle/create': typeof AuracleCreateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
+  '/auracle/$id': typeof AuracleIdRoute
+  '/auracle/create': typeof AuracleCreateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +87,8 @@ export interface FileRoutesById {
   '/generating': typeof GeneratingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
+  '/auracle/$id': typeof AuracleIdRoute
+  '/auracle/create': typeof AuracleCreateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +99,8 @@ export interface FileRouteTypes {
     | '/generating'
     | '/artist/$handle'
     | '/aura/$id'
+    | '/auracle/$id'
+    | '/auracle/create'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +109,8 @@ export interface FileRouteTypes {
     | '/generating'
     | '/artist/$handle'
     | '/aura/$id'
+    | '/auracle/$id'
+    | '/auracle/create'
   id:
     | '__root__'
     | '/'
@@ -97,6 +119,8 @@ export interface FileRouteTypes {
     | '/generating'
     | '/artist/$handle'
     | '/aura/$id'
+    | '/auracle/$id'
+    | '/auracle/create'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +130,8 @@ export interface RootRouteChildren {
   GeneratingRoute: typeof GeneratingRoute
   ArtistHandleRoute: typeof ArtistHandleRoute
   AuraIdRoute: typeof AuraIdRoute
+  AuracleIdRoute: typeof AuracleIdRoute
+  AuracleCreateRoute: typeof AuracleCreateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -138,6 +164,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auracle/create': {
+      id: '/auracle/create'
+      path: '/auracle/create'
+      fullPath: '/auracle/create'
+      preLoaderRoute: typeof AuracleCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auracle/$id': {
+      id: '/auracle/$id'
+      path: '/auracle/$id'
+      fullPath: '/auracle/$id'
+      preLoaderRoute: typeof AuracleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aura/$id': {
       id: '/aura/$id'
       path: '/aura/$id'
@@ -162,6 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   GeneratingRoute: GeneratingRoute,
   ArtistHandleRoute: ArtistHandleRoute,
   AuraIdRoute: AuraIdRoute,
+  AuracleIdRoute: AuracleIdRoute,
+  AuracleCreateRoute: AuracleCreateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
