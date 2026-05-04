@@ -177,6 +177,13 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     colorGuided: t.colorGuided ?? gen.colorGuided,
     visibilityMode: t.visibilityMode,
     influenceSettings: t.influenceSettings,
+    audioStoragePath: t.audioStoragePath,
+    audioPublicUrl: t.audioPublicUrl,
+    audioFileName: t.audioFileName,
+    audioMimeType: t.audioMimeType,
+    audioSizeBytes: t.audioSizeBytes,
+    audioDurationSeconds: t.audioDurationSeconds,
+    uploadStatus: t.uploadStatus,
   };
 }
 
