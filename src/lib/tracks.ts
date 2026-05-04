@@ -1,4 +1,4 @@
-import { generateAura, paletteFromMoods, slugify, type PaletteKey } from "./aura";
+import { generateAura, slugify, type PaletteKey } from "./aura";
 
 export type Provider =
   | "spotify"
@@ -23,17 +23,16 @@ export type StreamingLinks = {
   soundcloud?: string;
 };
 
+import type { AuraPalette } from "./aura";
+
 export type Track = {
   id: string;
   title: string;
   artist: string;
   artistHandle: string;
-  // File-based source: audio is held in-memory via session store (object URL),
-  // not persisted. This flag indicates the track was created from a local file.
   hasLocalAudio?: boolean;
   /** @deprecated legacy data URLs from older sessions; no longer written. */
   audioDataUrl?: string;
-  // Streaming-link source
   streamUrl?: string;
   provider?: Provider;
   embedUrl?: string;
@@ -51,6 +50,16 @@ export type Track = {
   musicalKey?: string;
   tempoBand?: string;
   density?: string;
+
+  // Phase 3 — Aura Engine v3
+  paletteName?: string;
+  vibeDescription?: string;
+  motionKeywords?: string[];
+  tonic?: string;
+  mode?: "major" | "minor";
+  keyDetected?: boolean;
+  detectedKey?: string;
+  colors?: AuraPalette;
 };
 
 export type ArtistProfile = {
@@ -93,14 +102,14 @@ function readAll(): Record<string, Track> {
   }
 }
 
-/** Backfill Phase-2 fields for tracks created in Phase 1. */
+/** Backfill engine fields for older tracks. */
 function hydrate(t: Partial<Track> & { id: string; title: string; artist: string }): Track {
   const moods = t.moods ?? [];
-  const palette = (t.palette as PaletteKey) ?? paletteFromMoods(moods);
-  const gen =
-    t.auraName && t.description
-      ? null
-      : generateAura({ id: t.id, title: t.title, artist: t.artist, moods });
+  // Always run the engine so v3 fields (colors, vibe, etc) are present.
+  const gen = generateAura({
+    id: t.id, title: t.title, artist: t.artist, moods,
+    detectedKey: t.detectedKey ?? null,
+  });
   return {
     id: t.id,
     title: t.title,
@@ -115,11 +124,22 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     seed: t.seed ?? seedFromId(t.id),
     createdAt: t.createdAt ?? Date.now(),
     moods,
-    palette,
-    auraName: t.auraName ?? gen!.auraName,
-    energy: t.energy ?? gen!.energy,
-    description: t.description ?? gen!.description,
+    palette: (t.palette as PaletteKey) ?? gen.palette,
+    auraName: t.auraName ?? gen.auraName,
+    energy: t.energy ?? gen.energy,
+    description: t.description ?? gen.description,
     streaming: t.streaming,
+    musicalKey: t.musicalKey ?? gen.musicalKey,
+    tempoBand: t.tempoBand ?? gen.tempoBand,
+    density: t.density ?? gen.density,
+    paletteName: t.paletteName ?? gen.paletteName,
+    vibeDescription: t.vibeDescription ?? gen.vibeDescription,
+    motionKeywords: t.motionKeywords ?? gen.motionKeywords,
+    tonic: t.tonic ?? gen.tonic,
+    mode: t.mode ?? gen.mode,
+    keyDetected: t.keyDetected ?? gen.keyDetected,
+    detectedKey: t.detectedKey,
+    colors: t.colors ?? gen.colors,
   };
 }
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
 import { generateAura, slugify } from "@/lib/aura";
+import { detectKey } from "@/lib/keyDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ function CreatePage() {
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [detectedKey, setDetectedKey] = useState<string | null>(null);
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
@@ -65,9 +67,15 @@ function CreatePage() {
       toast.error("Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg)");
       return;
     }
-    console.log("Selected file:", f);
-    console.log("File type:", f.type);
     setAudio(f);
+    setDetectedKey(null);
+    // Background key detection (non-blocking)
+    detectKey(f).then((res) => {
+      if (res) {
+        setDetectedKey(res.key);
+        toast.success(`Key detected: ${res.key}`);
+      }
+    }).catch(() => {});
   };
 
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
@@ -84,8 +92,9 @@ function CreatePage() {
         title: title || "Untitled",
         artist: artist || "Unknown",
         moods,
+        detectedKey,
       }),
-    [title, artist, moods],
+    [title, artist, moods, detectedKey],
   );
 
   const submit = async () => {
@@ -94,7 +103,7 @@ function CreatePage() {
     try {
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
-      const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods });
+      const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods, detectedKey });
       const base = {
         id,
         title: title.trim(),
@@ -104,6 +113,7 @@ function CreatePage() {
         seed: seedFromId(id),
         createdAt: Date.now(),
         moods,
+        detectedKey: detectedKey ?? undefined,
         ...aura,
       };
       if (mode === "file") {
@@ -270,10 +280,10 @@ function CreatePage() {
 
           {/* Mood picker + live preview */}
           <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
-            <MoodPicker value={moods} onChange={setMoods} />
+            <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
 
             <div className="flex items-center gap-4 pt-1">
-              <OrbVisual size={72} palette={preview.palette} particles={false} />
+              <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                   Your aura

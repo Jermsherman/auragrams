@@ -1,4 +1,7 @@
-import { getPersonality, type PaletteKey } from "@/lib/aura";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { getPersonality, type PaletteKey, type AuraPalette } from "@/lib/aura";
+import { cn } from "@/lib/utils";
 
 export function AuraProfileCard({
   name,
@@ -9,6 +12,11 @@ export function AuraProfileCard({
   musicalKey,
   tempoBand,
   density,
+  paletteName,
+  vibeDescription,
+  motionKeywords,
+  colors,
+  keyDetected,
 }: {
   name: string;
   moods: string[];
@@ -18,13 +26,17 @@ export function AuraProfileCard({
   musicalKey?: string;
   tempoBand?: string;
   density?: string;
+  paletteName?: string;
+  vibeDescription?: string;
+  motionKeywords?: string[];
+  colors?: AuraPalette;
+  keyDetected?: boolean;
 }) {
   const p = getPersonality(palette);
-  const traits: { label: string; value: string }[] = [];
-  if (musicalKey) traits.push({ label: "Key", value: musicalKey });
-  if (tempoBand) traits.push({ label: "Tempo", value: tempoBand });
-  if (density) traits.push({ label: "Density", value: density });
-  traits.push({ label: "Motion", value: p.motion });
+  const swatches = colors?.swatches ?? p.swatches;
+  const grad = colors
+    ? `linear-gradient(90deg, ${colors.primary}, ${colors.accent} 50%, ${colors.glow})`
+    : `linear-gradient(90deg, ${p.stops[0]}, ${p.stops[1]} 50%, ${p.stops[2]})`;
 
   return (
     <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
@@ -48,50 +60,93 @@ export function AuraProfileCard({
         </div>
       )}
 
-      <div className="mt-5">
+      {/* Profile section — always open */}
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <Trait label="Key" value={musicalKey ?? "Unknown"} hint={keyDetected ? "detected" : undefined} />
+        <Trait label="Energy" value={`${energy}%`} />
+        {tempoBand && <Trait label="Tempo" value={tempoBand} />}
+        {density && <Trait label="Density" value={density} />}
+      </div>
+      <div className="mt-4">
         <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
           <span>Energy</span>
           <span className="tabular-nums text-foreground/85">{energy}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${energy}%`,
-              background: `linear-gradient(90deg, ${p.stops[0]}, ${p.stops[1]} 50%, ${p.stops[2]})`,
-            }}
-          />
+          <div className="h-full rounded-full" style={{ width: `${energy}%`, background: grad }} />
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-2">
-        {traits.map((t) => (
-          <div
-            key={t.label}
-            className="rounded-2xl border border-border/60 bg-background/30 px-3 py-2.5"
-          >
-            <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
-              {t.label}
-            </div>
-            <div className="mt-0.5 text-sm font-medium capitalize">{t.value}</div>
+      <Section title="Vibe" defaultOpen>
+        <p className="text-sm leading-relaxed text-foreground/85">{description}</p>
+        {vibeDescription && (
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground italic">
+            “{vibeDescription}”
+          </p>
+        )}
+        {motionKeywords && motionKeywords.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {motionKeywords.map((m) => (
+              <span
+                key={m}
+                className="rounded-full bg-foreground/5 border border-border/50 px-2 h-5 inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+              >
+                {m}
+              </span>
+            ))}
           </div>
-        ))}
-      </div>
+        )}
+      </Section>
 
-      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <Section title={paletteName ? `Palette · ${paletteName}` : "Palette"}>
+        <div className="flex items-center gap-2 flex-wrap">
+          {swatches.map((c, i) => (
+            <span
+              key={i}
+              className="h-6 w-6 rounded-full ring-1 ring-foreground/15"
+              style={{ background: c }}
+              title={c}
+            />
+          ))}
+        </div>
+      </Section>
+    </div>
+  );
+}
 
-      <div className="mt-5 flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mr-1">
-          Palette
-        </span>
-        {p.swatches.map((c, i) => (
-          <span
-            key={i}
-            className="h-4 w-4 rounded-full ring-1 ring-foreground/10"
-            style={{ background: c }}
-          />
-        ))}
+function Trait({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/30 px-3 py-2.5">
+      <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground flex items-center justify-between">
+        <span>{label}</span>
+        {hint && <span className="text-[8px] text-foreground/60">{hint}</span>}
       </div>
+      <div className="mt-0.5 text-sm font-medium capitalize">{value}</div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mt-5 border-t border-border/40 pt-4">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span>{title}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && <div className="mt-3">{children}</div>}
     </div>
   );
 }

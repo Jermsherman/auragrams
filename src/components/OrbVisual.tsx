@@ -1,6 +1,6 @@
-import { useEffect, useRef, useId } from "react";
+import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { getPersonality, type AuraPersonality, type MoodKey } from "@/lib/aura";
+import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
   /** Either a new MoodKey or a legacy palette key. */
   palette?: string;
   personality?: AuraPersonality | MoodKey;
+  /** Full AuraProfile — when provided, palette colors come from profile.colors. */
+  profile?: AuraProfile;
   particles?: boolean;
 };
 
@@ -62,6 +64,7 @@ export function OrbVisual({
   isPlaying = false,
   palette,
   personality,
+  profile,
   particles = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -70,12 +73,23 @@ export function OrbVisual({
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
-  const p: AuraPersonality =
-    typeof personality === "object"
-      ? personality!
-      : getPersonality(
-          (typeof personality === "string" ? personality : undefined) ?? palette,
-        );
+  const p: AuraPersonality = useMemo(() => {
+    const base =
+      typeof personality === "object"
+        ? personality!
+        : getPersonality(
+            (typeof personality === "string" ? personality : undefined) ?? palette ?? profile?.palette,
+          );
+    if (!profile) return base;
+    const c = profile.colors;
+    return {
+      ...base,
+      stops: [c.primary, c.secondary, c.accent, c.glow, c.primary] as AuraPersonality["stops"],
+      swatches: c.swatches,
+      glow: c.glow,
+      atmosphere: c.shadow,
+    };
+  }, [personality, palette, profile]);
 
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
