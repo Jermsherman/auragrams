@@ -319,6 +319,7 @@ function CreatePage() {
         energyOverride: features?.energy ?? null,
         keyConfidence: keyDetection?.confidence ?? null,
         sourceType,
+        userColorInfluence: colorInfluence,
       });
       const base = {
         id,
