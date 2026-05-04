@@ -589,31 +589,8 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
-              ) : mode === "raw" ? (
-                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               ) : (
-                <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
-                  <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
-                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <input
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      placeholder="Paste a Spotify, Apple Music, YouTube, or SoundCloud link"
-                      className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <p className="text-[11px] tracking-wide text-muted-foreground px-1">
-                    {linkInfo
-                      ? linkInfo.embedUrl
-                        ? `Detected: ${labelFor(linkInfo.provider)} · we'll embed the player.`
-                        : `We'll link out to ${labelFor(linkInfo.provider)}.`
-                      : link
-                        ? "Doesn't look like a valid URL yet."
-                        : "Spotify · Apple Music · YouTube · SoundCloud"}
-                  </p>
-                </div>
+                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               )}
 
               {/* Fields */}
