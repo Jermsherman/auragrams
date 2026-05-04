@@ -284,8 +284,8 @@ function AuraPage() {
               <div className="glass-strong rounded-2xl px-5 py-6">
                 <p className="text-sm text-foreground/90">
                   {track.sourceType === "raw_recording"
-                    ? "This Raw Aura recording session expired. Record again to replay."
-                    : "This Uploaded Audio session expired. Upload again to replay."}
+                    ? "This Raw Aura recording is no longer available. Record again to restore playback."
+                    : "This uploaded audio is no longer available. Reupload to restore playback."}
                 </p>
                 <Link
                   to="/create"
