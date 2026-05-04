@@ -12,8 +12,9 @@ import { getTrack, providerLabel, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
+import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { toast } from "sonner";
 import {
   AlertDialog,
