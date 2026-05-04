@@ -329,29 +329,19 @@ function CreatePage() {
         detectedEnergy: features?.energy,
         ...aura,
       };
-      if (mode === "file" || mode === "raw") {
-        if (!audio) return;
-        const audioUrl = URL.createObjectURL(audio);
-        const probe = document.createElement("audio");
-        if (audio.type && probe.canPlayType(audio.type) === "") {
-          toast.error(
-            "This audio format may not be supported by your browser. Try MP3 or WAV.",
-          );
-        }
-        setSessionAudio(id, audio, audioUrl);
-        saveTrack({ ...base, hasLocalAudio: true });
-      } else {
-        if (!linkInfo) return;
-        saveTrack({
-          ...base,
-          streamUrl: link.trim(),
-          provider: linkInfo.provider,
-          embedUrl: linkInfo.embedUrl,
-        });
+      if (!audio) return;
+      const audioUrl = URL.createObjectURL(audio);
+      const probe = document.createElement("audio");
+      if (audio.type && probe.canPlayType(audio.type) === "") {
+        toast.error(
+          "This audio format may not be supported by your browser. Try MP3 or WAV.",
+        );
       }
+      setSessionAudio(id, audio, audioUrl);
+      saveTrack({ ...base, hasLocalAudio: true });
       // Persist to cloud (owner-only). Single-aura flow.
       if (profile) {
-        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: mode !== "link", streamUrl: mode === "link" ? link.trim() : undefined, provider: mode === "link" ? linkInfo?.provider : undefined, embedUrl: mode === "link" ? linkInfo?.embedUrl : undefined } as Parameters<typeof saveAuraFromTrack>[0]);
+        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: true } as Parameters<typeof saveAuraFromTrack>[0]);
         await saveAuraToCloud({
           saved, userId: profile.id,
           visibilityMode: identity.mode,
