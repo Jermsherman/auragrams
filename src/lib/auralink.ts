@@ -80,6 +80,11 @@ export function getAuraLinkBySlug(slug: string): AuraLinkPage | null {
 }
 
 export function saveAuraLink(page: AuraLinkPage) {
+  if (page.profileImageUrl && page.profileImageUrl.startsWith("data:")) {
+    throw new Error(
+      "Cover image must be uploaded — data URLs are not supported.",
+    );
+  }
   const all = read();
   all[page.id] = { ...page, updatedAt: Date.now() };
   write(all);
