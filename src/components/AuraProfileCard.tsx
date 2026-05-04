@@ -6,14 +6,26 @@ export function AuraProfileCard({
   energy,
   description,
   palette,
+  musicalKey,
+  tempoBand,
+  density,
 }: {
   name: string;
   moods: string[];
   energy: number;
   description: string;
   palette: PaletteKey;
+  musicalKey?: string;
+  tempoBand?: string;
+  density?: string;
 }) {
   const p = getPersonality(palette);
+  const traits: { label: string; value: string }[] = [];
+  if (musicalKey) traits.push({ label: "Key", value: musicalKey });
+  if (tempoBand) traits.push({ label: "Tempo", value: tempoBand });
+  if (density) traits.push({ label: "Density", value: density });
+  traits.push({ label: "Motion", value: p.motion });
+
   return (
     <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
       <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
@@ -52,10 +64,21 @@ export function AuraProfileCard({
         </div>
       </div>
 
-      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
-      <div className="mt-3 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80">
-        {p.motion} · {p.texture} · {p.particle}
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        {traits.map((t) => (
+          <div
+            key={t.label}
+            className="rounded-2xl border border-border/60 bg-background/30 px-3 py-2.5"
+          >
+            <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
+              {t.label}
+            </div>
+            <div className="mt-0.5 text-sm font-medium capitalize">{t.value}</div>
+          </div>
+        ))}
       </div>
+
+      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
 
       <div className="mt-5 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mr-1">

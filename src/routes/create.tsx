@@ -147,7 +147,7 @@ function CreatePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav showCta={false} />
-      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20">
+      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20 pb-32 sm:pb-20">
         <div className="text-center animate-fade-up">
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
             Create an <span className="text-aura-gradient">Aura.</span>
@@ -312,12 +312,28 @@ function CreatePage() {
           <button
             disabled={!ready || busy}
             onClick={submit}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full h-13 py-4 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] transition-shadow"
+            className="hidden sm:inline-flex w-full items-center justify-center gap-2 rounded-full h-13 py-4 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] transition-shadow"
           >
             {busy ? "Preparing…" : "Generate Aura"} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </main>
+
+      {/* Sticky mobile CTA */}
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 backdrop-blur-xl bg-background/80 border-t border-border/40 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+        <button
+          disabled={!ready || busy}
+          onClick={submit}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]"
+        >
+          {busy ? "Preparing…" : "Generate Aura"} <ArrowRight className="h-4 w-4" />
+        </button>
+        {!ready && (
+          <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            Add a track and the song details
+          </p>
+        )}
+      </div>
       <Footer />
     </div>
   );

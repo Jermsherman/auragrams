@@ -65,6 +65,8 @@ export function OrbVisual({
   particles = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
@@ -141,18 +143,18 @@ export function OrbVisual({
       }
 
       // Targets
-      const tScale = 1 + Math.min(0.18, vol * 0.5 + peak * 0.08);
-      const tGlow = 0.55 + (vol * 0.7 + mid * 0.55);
-      const tBass = 1 + Math.min(0.3, bass * 0.45);
-      const tShim = 0.4 + treble * 1.6;
-      const tDeform = Math.min(14, peak * 14);
+      const tScale = 1 + Math.min(0.22, vol * 0.55 + peak * 0.1);
+      const tGlow = 0.55 + (vol * 0.8 + mid * 0.6);
+      const tBass = 1 + Math.min(0.36, bass * 0.55);
+      const tShim = 0.4 + treble * 1.8;
+      const tDeform = Math.min(22, peak * 22);
 
-      // Lerp envelopes (slow attack/release for premium feel)
+      // Lerp envelopes
       scale += (tScale - scale) * 0.18;
       glow += (tGlow - glow) * 0.18;
       bassHalo += (tBass - bassHalo) * 0.22;
       shimmer += (tShim - shimmer) * 0.2;
-      deform += (tDeform - deform) * 0.25;
+      deform += (tDeform - deform) * 0.28;
       burst = Math.max(burst * 0.86, trans);
 
       el.style.setProperty("--orb-scale", scale.toFixed(3));
@@ -162,11 +164,32 @@ export function OrbVisual({
       el.style.setProperty("--orb-deform", deform.toFixed(2));
       el.style.setProperty("--orb-burst", burst.toFixed(3));
 
-      // Draw waveform ring (oscilloscope) when we have time-domain data
-      const canvas = ringCanvasRef.current;
+      // Pull waveform once
       const waveData =
         metricsRef?.current?.waveform ??
-        (a && wave ? wave : null);
+        (a && wave ? (a.getByteTimeDomainData(wave!), wave) : null);
+
+      // Edge clip-path deformation on the shell + texture (oscilloscope silhouette)
+      if (waveData && waveData.length > 0 && (shellRef.current || textureRef.current)) {
+        const N = 36;
+        const step = waveData.length / N;
+        const amp = 0.05 + Math.min(0.18, vol * 0.45 + peak * 0.18);
+        let pts = "";
+        for (let i = 0; i < N; i++) {
+          const v = (waveData[Math.floor(i * step)] - 128) / 128;
+          const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+          const r = 0.5 + v * amp;
+          const x = (50 + Math.cos(angle) * r * 100).toFixed(2);
+          const y = (50 + Math.sin(angle) * r * 100).toFixed(2);
+          pts += `${x}% ${y}%${i < N - 1 ? "," : ""}`;
+        }
+        const clip = `polygon(${pts})`;
+        if (shellRef.current) shellRef.current.style.clipPath = clip;
+        if (textureRef.current) textureRef.current.style.clipPath = clip;
+      }
+
+      // Draw oscilloscope rings
+      const canvas = ringCanvasRef.current;
       if (canvas && waveData && waveData.length > 0) {
         const ctx = canvas.getContext("2d");
         if (ctx) {
@@ -185,18 +208,20 @@ export function OrbVisual({
           const cx = w / 2;
           const cy = h / 2;
           const baseR = Math.min(w, h) * 0.42;
-          const deformGain = baseR * 0.18 + deform * 0.6;
-          const samples = 180;
-          const step = waveData.length / samples;
+          const deformGain = baseR * 0.32 + deform * 1.1;
+          const samples = 220;
+          const step2 = waveData.length / samples;
 
-          ctx.lineWidth = 1.6 * dpr;
+          // Ring 1: primary oscilloscope
+          ctx.lineWidth = 2.2 * dpr;
           ctx.strokeStyle = `${p.stops[3]}`;
-          ctx.globalAlpha = 0.35 + Math.min(0.55, vol * 1.8);
-
+          ctx.shadowBlur = 14 * dpr;
+          ctx.shadowColor = p.glow;
+          ctx.globalAlpha = 0.4 + Math.min(0.55, vol * 1.8);
           ctx.beginPath();
           for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * step);
-            const v = (waveData[idx] - 128) / 128; // -1..1
+            const idx = Math.floor((i % samples) * step2);
+            const v = (waveData[idx] - 128) / 128;
             const angle = (i / samples) * Math.PI * 2;
             const r = baseR + v * deformGain;
             const x = cx + Math.cos(angle) * r;
@@ -206,7 +231,29 @@ export function OrbVisual({
           }
           ctx.closePath();
           ctx.stroke();
+
+          // Ring 2: bass-driven outer halo ring
+          ctx.lineWidth = 1.2 * dpr;
+          ctx.strokeStyle = p.stops[1];
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 0.18 + Math.min(0.4, bass * 1.4);
+          const baseR2 = baseR * (1.06 + bass * 0.12);
+          ctx.beginPath();
+          for (let i = 0; i <= samples; i++) {
+            const idx = Math.floor((i % samples) * step2);
+            const v = (waveData[idx] - 128) / 128;
+            const angle = (i / samples) * Math.PI * 2 + 0.12;
+            const r = baseR2 + v * deformGain * 0.6;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+
           ctx.globalAlpha = 1;
+          ctx.shadowBlur = 0;
         }
       }
 
@@ -214,7 +261,7 @@ export function OrbVisual({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [analyser, metricsRef, isPlaying, p.motion, p.stops]);
+  }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow]);
 
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
@@ -284,6 +331,7 @@ export function OrbVisual({
 
       {/* outer shell (conic) */}
       <div
+        ref={shellRef}
         className="absolute inset-[7%]"
         style={{
           ...shape,
@@ -296,6 +344,7 @@ export function OrbVisual({
       {/* texture overlay */}
       {p.texture !== "smooth" && (
         <div
+          ref={textureRef}
           className="absolute inset-[8%] pointer-events-none"
           style={{
             ...shape,

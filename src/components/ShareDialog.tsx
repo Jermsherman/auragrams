@@ -27,13 +27,24 @@ export function ShareDialog({
   url,
   saved = false,
   onSave,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   track: Track;
   url: string;
   saved?: boolean;
   onSave?: () => void;
+  open?: boolean;
+  onOpenChange?: (b: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (b: boolean) => {
+    setOpenState(b);
+    onOpenChange?.(b);
+  };
   const [storyOpen, setStoryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
@@ -70,16 +81,18 @@ export function ShareDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <button
-            aria-label="Share AuraLink"
-            className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-sm hover:bg-foreground/10 transition-colors"
-          >
-            <Share2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Share AuraLink</span>
-            <span className="sm:hidden">Share</span>
-          </button>
-        </DialogTrigger>
+        {!hideTrigger && (
+          <DialogTrigger asChild>
+            <button
+              aria-label="Share AuraLink"
+              className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-sm hover:bg-foreground/10 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Share AuraLink</span>
+              <span className="sm:hidden">Share</span>
+            </button>
+          </DialogTrigger>
+        )}
         <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Share AuraLink</DialogTitle>

@@ -48,6 +48,9 @@ export type Track = {
   energy: number;
   description: string;
   streaming?: StreamingLinks;
+  musicalKey?: string;
+  tempoBand?: string;
+  density?: string;
 };
 
 export type ArtistProfile = {
