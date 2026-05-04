@@ -1,90 +1,113 @@
 
-## Influence Aura
+## AuraLink as a first-class product
 
-A new route at `/aura/$id/influence` lets users guide an existing Aura's mood, color direction, vibe note, and public identity. Auragram's engine still drives the final visuals — the user only "influences" them. No editor language anywhere in the UI.
+Auragram already calls each Aura page an "AuraLink." This patch introduces the **AuraLink page builder** — a separate Linktree-style music-first page that bundles streaming links and saved Auras into a single shareable URL. To avoid confusion with the existing `/aura/$id` page (also called "AuraLink"), we treat per-track AuraLinks and the new multi-link AuraLink pages as two flavours of the same idea — the new builder is for "AuraLink pages."
 
-### 1. New route: `src/routes/aura.$id.influence.tsx`
+### 1. Data model — `src/lib/auralink.ts` (new)
 
-- Title: "Influence Aura"
-- Subtitle: "Guide the mood, color, and public identity of this Aura."
-- Loads the `Track` (and matching `SavedAura` if saved) by id; throws `notFound()` if missing.
-- Local draft state seeded from current Aura:
-  - `moods: string[]` (existing track moods, max 4)
-  - `userColorInfluence: UserColorInfluence` (existing or `{ mode: "surprise", colors: [], description: "" }`)
-  - `vibeNote: string` (existing `vibeDescription`)
-  - `visibilityMode: "artist" | "username" | "anonymous"` (from saved Aura visibility, fallback "artist")
-- Sections, in order:
-  1. **Mood Blend** — reuse `<MoodPicker>` (max 4).
-  2. **Color Influence** — reuse `<ColorInfluence>`.
-  3. **Vibe Note** — `<Textarea>` labeled "Vibe Note", placeholder "Describe what this track feels like…", 240 chars.
-  4. **Public Identity** — reuse `<IdentitySelector>` (artist / username / anonymous).
-- **Updated Aura Preview** panel (sticky on desktop, below sections on mobile):
-  - `<Aurascope>` rendered from a derived preview track
-  - aura name, mood chips, palette swatches, short description, vibe description
-  - Recomputed live via `generateAura({...track, moods, userColorInfluence})` whenever draft changes (memoized).
-- Footer actions: "Save Influence" (primary, aura-gradient) and "Cancel" (ghost, navigates back to `/aura/$id`).
-- Copy uses "Guide the mood", "Guide the glow", "Shape the vibe". No "edit/customize/settings/advanced".
-
-### 2. Entry points (button label "Influence Aura" / "Influence")
-
-- **`src/routes/aura.$id.tsx`**: add a glass button `<Sparkles/> Influence Aura` in the action grid (between Share and Story Preview on the secondary row) that navigates to the influence route.
-- **`src/components/AuraFarmCard.tsx`**: add a small "Influence" pill button next to "Open AuraLink" linking to `/aura/$id/influence`. If `aura.colorGuided`, show a "Color-guided" chip near the source badge. The existing anonymous flag (when `visibility_mode === "anonymous"`) shows an "Anonymous" badge alongside the source badge.
-- **`src/components/ShareDialog.tsx`**: add a subtle "Influence Aura" link at the bottom of the dialog content.
-
-### 3. Save behavior
-
-On "Save Influence":
-
-1. Run `generateAura({ id: track.id + "-inf-" + Date.now(), title, artist, moods: draftMoods, detectedKey, pitchCenter, energyOverride: track.energy, sourceType, userColorInfluence: draftInfluence })` to produce new: `auraName`, `paletteName`, `colors`, `palette`, `description`, `vibeDescription`, `motionKeywords`, `density`, `tempoBand`, `colorGuided`.
-2. If user typed a `vibeNote`, override `vibeDescription` with it (trimmed). Otherwise use generated.
-3. `updateTrack(id, { moods, userColorInfluence, colorGuided, auraName, paletteName, colors, palette, description, vibeDescription, motionKeywords, density, tempoBand })` — preserves source/audio/title/artist/createdAt/streamUrl/embedUrl.
-4. If the Aura is saved to the Farm or exists in cloud:
-   - Re-run `saveAuraFromTrack(updatedTrack)` to refresh local Farm row.
-   - Call `saveAuraToCloud(...)` with the new `visibilityMode`, artist profile id derived from current identity selection, and updated `SavedAura`. Reuse the existing aura `id` so the public AuraLink URL is unchanged.
-5. Toast: `"Aura influence saved."`. Navigate back to `/aura/$id`.
-
-If save fails on cloud, swallow with `"Influence saved locally"` toast (mirrors existing vibe-save fallback).
-
-### 4. Data model updates
-
-**`src/lib/aura.ts`** — extend the engine input to accept `vibeNoteOverride?: string` (no behavior change here; override is applied at the call site).
-
-**`src/lib/tracks.ts`** — add to `Track`:
 ```ts
-influenceSettings?: {
-  moodTags: string[];
-  userColorInfluence: UserColorInfluence;
-  vibeNote: string;
-  visibilityMode: "artist" | "username" | "anonymous";
-  updatedAt: string;
+export type AuraLinkMode = "streaming_links" | "auras" | "mixed";
+export type AuraLinkTheme = "midnight" | "sunset" | "ocean" | "velvet" | "minimal";
+export type AuraLinkLink = {
+  id: string;
+  type: "streaming" | "custom" | "aura";
+  platformName?: string;   // spotify, apple, youtube, ...
+  label: string;
+  url?: string;
+  auraId?: string;
+  order: number;
+  icon?: string;
+  isFeatured?: boolean;
+};
+export type AuraLinkPage = {
+  id: string;
+  userId?: string;
+  createdAt: number;
+  updatedAt: number;
+  title: string;
+  artistName: string;
+  handleSlug: string;       // unique slug for /l/:slug
+  description?: string;
+  profileImageUrl?: string;
+  mode: AuraLinkMode;
+  selectedAuraIds: string[];
+  links: AuraLinkLink[];
+  theme: AuraLinkTheme;
+  visibility: "public" | "unlisted";
+  publicUrl?: string;
 };
 ```
-Hydrate passes it through unchanged.
 
-**`src/lib/farm.ts`** — add same `influenceSettings?` and `visibilityMode?` to `SavedAura`. Persist in `saveAuraFromTrack`.
+CRUD via localStorage (key `auragram_auralinks`): `getAuraLinks`, `saveAuraLink`, `updateAuraLink`, `deleteAuraLink`, `getAuraLinkBySlug`, `slugify`, `ensureUniqueSlug`. Code structured so a Supabase migration is a drop-in later.
 
-**`src/lib/cloudAura.ts`** — extend `saveAuraToCloud` to write `visibility_mode` from the new value (already in row) and add `influenceSettings` into the existing `extra` jsonb. No DB migration needed — `extra` is already a free-form `jsonb` column and `visibility_mode` already exists on `auras`.
+### 2. Builder route — `src/routes/auralink.create.tsx` (new)
 
-### 5. Public AuraLink
+Sections, top to bottom:
 
-Because the same aura `id` is reused, `/aura/$id` and `getPublicAura(id)` automatically reflect the new palette, name, vibe, and visibility on next render. No new URL is created.
+- Header: "Build AuraLink" / "Create a music-first link page with streaming links, Auras, or both."
+- **Mode selector** ("What do you want to share?"): Streaming Links · Auras · Mixed Page (3 large pill cards).
+- **Identity block**: AuraLink title, artist name, slug (`/l/{slug}` preview), description, optional cover image (data URL upload).
+- **Links block** (visible in Streaming + Mixed):
+  - "Add Streaming Link" — opens a small platform picker (Spotify, Apple Music, SoundCloud, YouTube, YouTube Music, Bandcamp, Audiomack, Tidal, Deezer, Amazon Music, Pandora, Boomplay, Audius, Website, Merch, Tickets, Presave, Other) with URL + display label.
+  - "Add Custom Link" — label + URL.
+  - List with reorder (Move Up / Down) + remove.
+- **Auras block** (visible in Auras + Mixed): grid of saved Auras from Farm with checkmark selection, ordered list of selected ones. Empty-state with "Create Aura" / "Use Streaming Links" CTAs.
+- **Theme picker** ("Choose a vibe"): Midnight Glass · Sunset Pulse · Ocean Glow · Velvet Neon · Minimal Dark — small swatches.
+- **Live mobile preview** (right column on desktop, toggle Edit/Preview on mobile) — renders the same `<AuraLinkView />` used by the public page.
+- Sticky footer: "Preview AuraLink" (open public page in new tab) + "Publish AuraLink" (saves, navigates to `/l/{slug}`).
 
-### 6. Acceptance checklist mapping
+### 3. Public page — `src/routes/l.$slug.tsx` (new)
 
-1. UI uses "Influence Aura" everywhere — verified via the new route, the Aura page button, the Farm card pill, and the Share dialog link.
-2. Mood/color/visibility/vibe-note all editable in draft.
-3. Preview re-renders on every draft change via memoized `generateAura`.
-4. Source data (audio session, embed, title, artist, createdAt) untouched in `updateTrack`.
-5. Farm cards expose Influence and the "Color-guided" / "Anonymous" badges.
-6. Cloud row updated in place — public AuraLink reflects changes immediately.
-7. No "edit / customize / settings / advanced" copy anywhere in the new surfaces.
+Mobile-first layout:
+- Optional Logo top-left.
+- Hero: profile image OR featured Aurascope (uses theme palette and first selected aura when `mode !== "streaming_links"`).
+- Title, artist name, short description.
+- Streaming buttons — large rounded buttons with platform glyph + label + glow accent from theme.
+- Aura items rendered as alive cards: mini Aurascope + track title + aura name + mood tags + "Open Aura" link to `/aura/$id`.
+- Share button (Web Share API, falls back to copy).
+- "Created with Auragram" footer link.
 
-### Files touched
+Theme drives: page gradient, button glow, accent color, featured Aurascope tint. Implemented as a `THEMES` map of `{ bgClass, accent, glow }`.
 
-- new: `src/routes/aura.$id.influence.tsx`
-- edit: `src/routes/aura.$id.tsx` (Influence button)
-- edit: `src/components/AuraFarmCard.tsx` (Influence pill, Color-guided / Anonymous chips)
-- edit: `src/components/ShareDialog.tsx` (Influence link)
-- edit: `src/lib/tracks.ts` (Track.influenceSettings)
-- edit: `src/lib/farm.ts` (SavedAura.influenceSettings, visibilityMode)
-- edit: `src/lib/cloudAura.ts` (persist influenceSettings into extra)
+Reusable component `src/components/AuraLinkView.tsx` shared by builder preview and public page.
+
+### 4. Home page emphasis — `src/routes/index.tsx`
+
+- Hero CTAs become two buttons: primary "Create Aura" → `/create`, secondary "Build AuraLink" → `/auralink/create`. Subheadline rewritten per spec, plus a small flow chip: `Create Aura → Save to Farm → Build AuraLink → Share Anywhere`.
+- New section "AuraLink is your music-first link page." with feature bullets and a "Build AuraLink" CTA. Replaces nothing — sits between How It Works and the existing Features grid.
+
+### 5. Navigation — `src/components/Nav.tsx`
+
+Authenticated users see: `Farm` · `AuraLink` (new link to `/auralink/create`) · `Create` (CTA). On narrow widths the labels stay because they're short.
+
+### 6. Farm + Aura integrations
+
+- **`src/routes/farm.tsx`**: top-right adds "Build AuraLink from Farm" link (to `/auralink/create?mode=auras`). Empty Auras state stays.
+- **`src/components/AuraFarmCard.tsx`**: new "Add to AuraLink" small action that opens a lightweight picker dialog listing the user's existing AuraLink pages (and a "Build new" button). For this iteration the dialog appends the aura into `selectedAuraIds` + a `type: "aura"` link entry on the chosen AuraLink. Dialog component: `src/components/AddToAuraLinkDialog.tsx` (new).
+- **`src/components/ShareDialog.tsx`**: extend the existing dialog with three new rows above the existing Influence Aura link:
+  - "Add Aura to existing AuraLink" → opens the `AddToAuraLinkDialog`.
+  - "Build new AuraLink" → navigates to `/auralink/create?mode=mixed&aura={id}`.
+  - "Copy Aura page link" — already covered by the existing copy button (kept).
+
+### 7. Empty states
+
+- No saved Auras in Auras mode: "You don't have any Auras yet." with **Create Aura** + **Use Streaming Links** buttons (the latter switches the builder mode).
+- No AuraLinks list (used inside `AddToAuraLinkDialog`): "No AuraLinks yet." + Build AuraLink CTA.
+
+### 8. Files
+
+Created
+- `src/lib/auralink.ts`
+- `src/components/AuraLinkView.tsx`
+- `src/components/AddToAuraLinkDialog.tsx`
+- `src/routes/auralink.create.tsx`
+- `src/routes/l.$slug.tsx`
+
+Edited
+- `src/routes/index.tsx` — hero CTAs, AuraLink section.
+- `src/routes/farm.tsx` — "Build AuraLink from Farm" CTA.
+- `src/components/Nav.tsx` — AuraLink nav link.
+- `src/components/AuraFarmCard.tsx` — "Add to AuraLink" action.
+- `src/components/ShareDialog.tsx` — AuraLink share rows.
+
+No DB migration in this pass (localStorage only) — the data shape is structured so a Supabase `auralinks` table can be wired in a follow-up without changing call sites.
