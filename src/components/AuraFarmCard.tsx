@@ -88,7 +88,7 @@ export function AuraFarmCard({
           </AlertDialogTrigger>
           <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this aura from your Farm?</AlertDialogTitle>
+              <AlertDialogTitle>Delete this Aura from your Farm?</AlertDialogTitle>
               <AlertDialogDescription>
                 This only removes it from your local collection.
               </AlertDialogDescription>

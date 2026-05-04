@@ -29,10 +29,10 @@ import {
 export const Route = createFileRoute("/aura/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Aura · ${params.id} — Auragram` },
-      { name: "description", content: "A living visual aura for this track on Auragram." },
+      { title: `AuraLink · ${params.id} — Auragram` },
+      { name: "description", content: "A living link for this track. Listen, watch, and open it on your favorite platform." },
       { property: "og:title", content: "Listen on Auragram" },
-      { property: "og:description", content: "See your sound." },
+      { property: "og:description", content: "A living link for this track." },
     ],
   }),
   component: AuraPage,
@@ -41,13 +41,13 @@ export const Route = createFileRoute("/aura/$id")({
       <div>
         <h1 className="font-display text-3xl">Aura not found</h1>
         <p className="mt-2 text-muted-foreground">
-          This track isn't available on this device.
+          This Aura isn't available on this device.
         </p>
         <Link
           to="/create"
           className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm bg-aura-gradient text-primary-foreground"
         >
-          Create one <ArrowLeft className="h-4 w-4 rotate-180" />
+          Create Aura <ArrowLeft className="h-4 w-4 rotate-180" />
         </Link>
       </div>
     </div>
@@ -126,7 +126,7 @@ function AuraPage() {
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this aura from your Farm?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete this Aura from your Farm?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This only removes it from your local collection.
                   </AlertDialogDescription>
@@ -156,7 +156,12 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <div className="relative animate-fade-up">
+        <div className="animate-fade-up">
+          <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Your Aura is ready
+          </div>
+        </div>
+        <div className="relative mt-6 animate-fade-up">
           <OrbVisual
             size="min(82vw, 460px)"
             hueShift={track.seed}
@@ -178,6 +183,9 @@ function AuraPage() {
           >
             {track.artist}
           </Link>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Save it to your Farm or share it anywhere with an AuraLink.
+          </p>
         </div>
 
         <div className="mt-8 w-full animate-fade-up">
@@ -194,7 +202,7 @@ function AuraPage() {
             <div className="mx-auto w-full max-w-md text-center">
               <div className="glass-strong rounded-2xl px-5 py-6">
                 <p className="text-sm text-foreground/90">
-                  This uploaded audio session expired. Upload again to replay.
+                  This Uploaded Audio session expired. Upload again to replay.
                 </p>
                 <Link
                   to="/create"
@@ -250,7 +258,7 @@ function AuraPage() {
 
         <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80">
           {isUpload
-            ? "Aura reacting to uploaded audio"
+            ? "Aura reacting to Uploaded Audio"
             : "Aura generated from your selected mood and track identity"}
         </p>
 
@@ -271,7 +279,7 @@ function AuraPage() {
         </div>
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
-          Made to be shared
+          A living link for this track
         </p>
       </main>
 

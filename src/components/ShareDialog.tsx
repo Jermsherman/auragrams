@@ -43,7 +43,7 @@ export function ShareDialog({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success("Link copied");
+      toast.success("AuraLink copied.");
       setTimeout(() => setCopied(false), 1800);
     } catch {
       toast.error("Could not copy");
@@ -72,22 +72,23 @@ export function ShareDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <button
-            aria-label="Share"
+            aria-label="Share AuraLink"
             className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-sm hover:bg-foreground/10 transition-colors"
           >
             <Share2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Share</span>
+            <span className="hidden sm:inline">Share AuraLink</span>
+            <span className="sm:hidden">Share</span>
           </button>
         </DialogTrigger>
         <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Share this aura</DialogTitle>
+            <DialogTitle className="font-display text-2xl">Share AuraLink</DialogTitle>
             <DialogDescription>
               {track.hasLocalAudio
                 ? "Uploaded Audio"
                 : track.provider
                   ? providerLabel(track.provider)
-                  : "Made to be shared."}
+                  : "A living link for this track."}
             </DialogDescription>
           </DialogHeader>
 
@@ -99,7 +100,7 @@ export function ShareDialog({
                 className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient px-3.5 h-9 text-xs font-medium text-primary-foreground"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy link"}
+                {copied ? "Copied" : "Copy AuraLink"}
               </button>
             </div>
 
@@ -141,7 +142,7 @@ export function ShareDialog({
                   }}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-background/30 h-11 text-xs hover:bg-foreground/5 transition-colors"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy platform link
+                  <Copy className="h-3.5 w-3.5" /> Copy Platform Link
                 </button>
               </div>
             )}

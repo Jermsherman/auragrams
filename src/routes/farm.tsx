@@ -12,12 +12,12 @@ export const Route = createFileRoute("/farm")({
       { title: "Aura Farm — Auragram" },
       {
         name: "description",
-        content: "Your growing collection of sonic auras.",
+        content: "Your growing collection of sonic identities.",
       },
       { property: "og:title", content: "Aura Farm — Auragram" },
       {
         property: "og:description",
-        content: "Your growing collection of sonic auras.",
+        content: "Your growing collection of sonic identities.",
       },
     ],
   }),
@@ -43,16 +43,16 @@ function FarmPage() {
             <Sparkles className="h-3 w-3" /> Aura Farm
           </div>
           <h1 className="mt-4 font-display text-4xl sm:text-5xl tracking-tight">
-            Your <span className="text-aura-gradient">visual garden.</span>
+            Your <span className="text-aura-gradient">Aura Farm.</span>
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Your growing collection of sonic auras.
+            Your growing collection of sonic identities.
           </p>
           <Link
             to="/create"
             className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
           >
-            <Plus className="h-4 w-4" /> Create New Aura
+            <Plus className="h-4 w-4" /> Create Aura
           </Link>
         </div>
 
@@ -78,7 +78,7 @@ function EmptyState() {
     <div className="mx-auto max-w-md text-center glass-strong rounded-3xl p-10">
       <h2 className="font-display text-2xl">Your Farm is empty.</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Create your first Auragram and start growing your collection.
+        Create your first Aura and start growing your collection.
       </p>
       <Link
         to="/create"

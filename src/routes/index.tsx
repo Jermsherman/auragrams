@@ -11,12 +11,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Auragram turns every track into a living visual aura you can share instantly.",
+          "Turn any song into a living Aura, save it to your Farm, and share it anywhere with an AuraLink.",
       },
       { property: "og:title", content: "Auragram — See your sound" },
       {
         property: "og:description",
-        content: "Upload, generate, and share a living visual aura for your music.",
+        content:
+          "Turn songs into Auras, save them to your Farm, and share them with an AuraLink.",
       },
     ],
   }),
@@ -41,18 +42,18 @@ function Index() {
                 <span className="text-aura-gradient">more than a link.</span>
               </h1>
               <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-                Auragram turns every track into a living visual aura you can share instantly.
+                Turn any song into a living Aura, save it to your Farm, and share it anywhere with an AuraLink.
               </p>
               <div className="mt-8 flex items-center gap-4">
                 <Link
                   to="/create"
                   className="inline-flex items-center gap-2 rounded-full px-6 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_70px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
                 >
-                  Create Your Auragram <ArrowRight className="h-4 w-4" />
+                  Create Aura <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
               <p className="mt-4 text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                Upload → Generate → Share
+                Create Aura → Save to Farm → Share AuraLink
               </p>
             </div>
 
@@ -69,9 +70,9 @@ function Index() {
           </h2>
           <div className="mt-12 grid sm:grid-cols-3 gap-5">
             {[
-              { n: "01", t: "Upload your track", d: "Drop in your .mp3 or .wav. That's it." },
-              { n: "02", t: "Generate the aura", d: "We translate your sound into a living visual." },
-              { n: "03", t: "Share anywhere", d: "One link. Every platform. Pure vibe." },
+              { n: "01", t: "Create Aura", d: "Upload a sound or paste a music link." },
+              { n: "02", t: "Save to Farm", d: "Keep your visual music identities in one growing collection." },
+              { n: "03", t: "Share AuraLink", d: "Give every track a living link built for bios, stories, DMs, and posts." },
             ].map((s) => (
               <div
                 key={s.n}
@@ -93,30 +94,24 @@ function Index() {
             {[
               {
                 I: Sparkles,
-                t: "Living Visuals",
-                d: "Every aura breathes, glows, and reacts to your sound.",
-              },
-              {
-                I: Share2,
-                t: "Instant Sharing",
-                d: "A premium page made for screenshots, stories, and DMs.",
+                t: "Living Auras",
+                d: "Every Aura breathes, glows, and reacts to your sound.",
               },
               {
                 I: Wand2,
-                t: "Story-Ready Direction",
-                d: "Vertical exports & moods.",
-                soon: true,
+                t: "Aura Farm",
+                d: "Your growing collection of sonic identities, in one place.",
               },
-            ].map(({ I, t, d, soon }) => (
+              {
+                I: Share2,
+                t: "AuraLinks",
+                d: "A premium music-first share page for bios, stories, and DMs.",
+              },
+            ].map(({ I, t, d }) => (
               <div key={t} className="glass rounded-2xl p-6 sm:p-7 relative">
                 <I className="h-5 w-5 text-foreground/80" />
                 <h3 className="mt-4 font-display text-xl">{t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-                {soon && (
-                  <span className="absolute top-5 right-5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground border border-border/70 rounded-full px-2 py-0.5">
-                    Coming soon
-                  </span>
-                )}
               </div>
             ))}
           </div>
@@ -135,7 +130,7 @@ function Index() {
               to="/create"
               className="mt-10 inline-flex items-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
             >
-              Create Your Auragram <ArrowRight className="h-4 w-4" />
+              Create Aura <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>
