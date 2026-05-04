@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/auracle/create")({
       },
     ],
   }),
-  component: CreateAuraclePage,
+  component: () => (<RequireAuth><CreateAuraclePage /></RequireAuth>),
 });
 
 const TYPES: AuracleProjectType[] = [

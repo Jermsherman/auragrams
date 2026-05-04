@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import {
@@ -35,6 +35,11 @@ import {
   type AuracleProjectType,
 } from "@/lib/auracle";
 import { toast } from "sonner";
+import { RequireAuth } from "@/components/RequireAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { IdentitySelector } from "@/components/IdentitySelector";
+import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
+import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -53,16 +58,27 @@ export const Route = createFileRoute("/create")({
       },
     ],
   }),
-  component: CreatePage,
+  component: () => (
+    <RequireAuth>
+      <CreatePage />
+    </RequireAuth>
+  ),
 });
 
 type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
+  const { profile } = useAuth();
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [identity, setIdentity] = useState<{ mode: VisibilityMode; artistProfileId: string | null }>(
+    { mode: "artist", artistProfileId: null },
+  );
+  const [resolvedIdentity, setResolvedIdentity] = useState<{ artistProfile: ArtistProfile | null; publicArtistName: string; publicHandle: string }>(
+    { artistProfile: null, publicArtistName: "", publicHandle: "" },
+  );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [link, setLink] = useState("");
@@ -116,13 +132,30 @@ function CreatePage() {
     setPitchCenter(null);
   };
 
+  // Sync artist text from resolved identity (artist profile or username)
+  // When anonymous: keep the artist field as 'Anonymous Artist' for the preview only.
+  useEffect(() => {
+    if (identity.mode === "anonymous") {
+      if (artist !== "Anonymous Artist") setArtist("Anonymous Artist");
+    } else if (resolvedIdentity.publicArtistName && artist !== resolvedIdentity.publicArtistName) {
+      setArtist(resolvedIdentity.publicArtistName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identity.mode, resolvedIdentity.publicArtistName]);
+
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
+  const identityReady =
+    identity.mode === "anonymous" ||
+    (identity.mode === "username" && !!profile?.username) ||
+    (identity.mode === "artist" && !!identity.artistProfileId);
   const ready =
-    mode === "auracle"
-      ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
-      : mode === "raw"
-        ? !!audio && artist.trim().length > 0
-        : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+    identityReady && (
+      mode === "auracle"
+        ? title.trim().length > 0 && auracleFiles.length >= 2
+        : mode === "raw"
+          ? !!audio
+          : !!(title.trim() && (mode === "file" ? !!audio : !!linkInfo))
+    );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
@@ -247,7 +280,16 @@ function CreatePage() {
             ...aura,
           };
           saveTrack(track);
-          saveAuraFromTrack(track);
+          const saved = saveAuraFromTrack(track);
+          if (profile) {
+            await saveAuraToCloud({
+              saved, userId: profile.id,
+              visibilityMode: identity.mode,
+              artistProfileId: identity.artistProfileId,
+              publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+              publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+            }).catch((e) => console.error("cloud save aura", e));
+          }
           auraIds.push(id);
         }
         const a = saveAuracle({
@@ -257,6 +299,15 @@ function CreatePage() {
           description: auracleDesc.trim() || undefined,
           auraIds,
         });
+        if (profile) {
+          await saveAuracleToCloud({
+            auracle: a, userId: profile.id,
+            visibilityMode: identity.mode,
+            artistProfileId: identity.artistProfileId,
+            publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+            publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+          }).catch((e) => console.error("cloud save auracle", e));
+        }
         toast.success("Auracle created.");
         nav({ to: "/auracle/$id", params: { id: a.id } });
         return;
@@ -311,6 +362,17 @@ function CreatePage() {
           provider: linkInfo.provider,
           embedUrl: linkInfo.embedUrl,
         });
+      }
+      // Persist to cloud (owner-only). Single-aura flow.
+      if (profile) {
+        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: mode !== "link", streamUrl: mode === "link" ? link.trim() : undefined, provider: mode === "link" ? linkInfo?.provider : undefined, embedUrl: mode === "link" ? linkInfo?.embedUrl : undefined } as Parameters<typeof saveAuraFromTrack>[0]);
+        await saveAuraToCloud({
+          saved, userId: profile.id,
+          visibilityMode: identity.mode,
+          artistProfileId: identity.artistProfileId,
+          publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+          publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+        }).catch((e) => console.error("cloud save aura", e));
       }
       nav({ to: "/generating", search: { id } });
     } catch (e) {
@@ -598,6 +660,15 @@ function CreatePage() {
                   placeholder="Your name"
                 />
               </div>
+
+
+              {/* Public Identity */}
+              <IdentitySelector value={identity} onChange={setIdentity} onResolve={setResolvedIdentity} />
+              {identity.mode === "anonymous" && (
+                <p className="px-2 text-[11px] text-muted-foreground">
+                  Your AuraLink will not show your artist name or username, but it will still be saved privately to your Farm.
+                </p>
+              )}
 
               {/* Mood picker + live preview */}
               <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">

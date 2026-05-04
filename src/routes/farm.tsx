@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useState } from "react";
 import { Sparkles, Plus, Layers } from "lucide-react";
 import { Nav } from "@/components/Nav";
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/farm")({
       },
     ],
   }),
-  component: FarmPage,
+  component: () => (<RequireAuth><FarmPage /></RequireAuth>),
 });
 
 type Filter = "all" | "upload" | "platform_link" | "raw_recording";
