@@ -234,7 +234,7 @@ function CreatePage() {
     [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
   );
 
-  const canDetect = mode === "link" ? !!(title.trim() || artist.trim()) : !!audio;
+  const canDetect = !!audio;
 
   const submit = async () => {
     if (!ready) return;
