@@ -741,5 +741,7 @@ export function generateAura(input: {
     tempoBand: tempoBandFor(energy),
     density: densityFor(seedKey, baseKey),
     colors,
+    userColorInfluence: influence ?? undefined,
+    colorGuided,
   };
 }
