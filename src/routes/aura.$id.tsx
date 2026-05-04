@@ -4,7 +4,7 @@ import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
-import { AudioPlayer } from "@/components/AudioPlayer";
+import { AudioUploadPlayer } from "@/components/AudioUploadPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
@@ -310,9 +310,18 @@ function AuraPage() {
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (
-            <AudioPlayer
+            <AudioUploadPlayer
               src={audioUrl}
               palette={track.palette}
+              fileMeta={
+                track.audioFileName
+                  ? {
+                      name: track.audioFileName,
+                      type: track.audioMimeType ?? "audio/*",
+                      size: track.audioSizeBytes ?? 0,
+                    }
+                  : null
+              }
               onPlayingChange={setPlaying}
               onAnalyserReady={(a) => {
                 analyserRef.current = a;
