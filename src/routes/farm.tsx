@@ -12,12 +12,12 @@ export const Route = createFileRoute("/farm")({
       { title: "Aura Farm — Auragram" },
       {
         name: "description",
-        content: "Your growing collection of sonic auras.",
+        content: "Your growing collection of sonic identities.",
       },
       { property: "og:title", content: "Aura Farm — Auragram" },
       {
         property: "og:description",
-        content: "Your growing collection of sonic auras.",
+        content: "Your growing collection of sonic identities.",
       },
     ],
   }),
