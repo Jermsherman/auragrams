@@ -11,6 +11,7 @@ import {
   BookmarkCheck,
   ExternalLink,
   Wand2,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { StoryPreviewDialog } from "./StoryPreviewDialog";
 import { updateTrack, providerLabel, type Track, type StreamingLinks } from "@/lib/tracks";
+import { AddToAuraLinkDialog } from "./AddToAuraLinkDialog";
 
 export function ShareDialog({
   track,
@@ -48,6 +50,7 @@ export function ShareDialog({
     onOpenChange?.(b);
   };
   const [storyOpen, setStoryOpen] = useState(false);
+  const [addToAuraLinkOpen, setAddToAuraLinkOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
   const [links, setLinks] = useState<StreamingLinks>(track.streaming ?? {});
