@@ -30,6 +30,12 @@ export type CloudAuraRow = {
   public_artist_name: string | null;
   public_handle: string | null;
   extra: Record<string, unknown>;
+  audio_storage_path: string | null;
+  audio_public_url: string | null;
+  audio_file_name: string | null;
+  audio_mime_type: string | null;
+  audio_size_bytes: number | null;
+  audio_duration_seconds: number | null;
   created_at: string;
   updated_at: string;
 };
