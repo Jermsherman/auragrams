@@ -77,7 +77,9 @@ function AuraPage() {
     const t = getTrack(id);
     setTrack(t);
     setSaved(isAuraSaved(id));
-    if (t?.hasLocalAudio) {
+    if (t?.audioPublicUrl) {
+      setAudioUrl(t.audioPublicUrl);
+    } else if (t?.hasLocalAudio) {
       const session = getSessionAudio(id);
       setAudioUrl(session?.audioUrl ?? null);
     } else if (t?.audioDataUrl) {
