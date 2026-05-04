@@ -48,7 +48,7 @@ export function AddToAuraLinkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 sm:max-w-sm">
+      <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 max-w-[calc(100vw-1.5rem)] sm:max-w-sm overflow-hidden">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             Add to AuraLink
