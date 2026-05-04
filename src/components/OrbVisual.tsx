@@ -1,6 +1,7 @@
 import { useEffect, useRef, useId } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey } from "@/lib/aura";
+import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 type Props = {
   size?: number | string;
@@ -8,6 +9,7 @@ type Props = {
   intensity?: number;
   className?: string;
   analyser?: React.RefObject<AnalyserNode | null>;
+  metricsRef?: React.RefObject<AudioMetrics> | React.MutableRefObject<AudioMetrics>;
   isPlaying?: boolean;
   /** Either a new MoodKey or a legacy palette key. */
   palette?: string;
