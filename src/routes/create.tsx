@@ -90,6 +90,11 @@ function CreatePage() {
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
+  const [colorInfluence, setColorInfluence] = useState<UserColorInfluence>({
+    mode: "surprise",
+    colors: [],
+    description: "",
+  });
 
   // Auracle (multi-file) state
   const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
