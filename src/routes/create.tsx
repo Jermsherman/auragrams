@@ -263,20 +263,35 @@ function CreatePage() {
 
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
-      const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods, detectedKey });
+      const finalTitle = (title.trim() || (mode === "raw" ? "Untitled Raw Aura" : title.trim()));
+      const aura = generateAura({
+        id,
+        title: finalTitle,
+        artist: artist.trim(),
+        moods,
+        detectedKey: detectedKeyStr,
+        pitchCenter,
+        energyOverride: features?.energy ?? null,
+        keyConfidence: keyDetection?.confidence ?? null,
+        sourceType,
+      });
       const base = {
         id,
-        title: title.trim(),
+        title: finalTitle,
         artist: artist.trim(),
         artistHandle: slugify(artist.trim()) || "artist",
         coverDataUrl,
         seed: seedFromId(id),
         createdAt: Date.now(),
         moods,
-        detectedKey: detectedKey ?? undefined,
+        detectedKey: detectedKeyStr ?? undefined,
+        sourceType,
+        pitchCenter: pitchCenter ?? undefined,
+        keyConfidence: keyDetection?.confidence,
+        detectedEnergy: features?.energy,
         ...aura,
       };
-      if (mode === "file") {
+      if (mode === "file" || mode === "raw") {
         if (!audio) return;
         const audioUrl = URL.createObjectURL(audio);
         const probe = document.createElement("audio");
