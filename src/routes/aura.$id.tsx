@@ -8,7 +8,8 @@ import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { getTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
-import { PALETTES } from "@/lib/aura";
+import { getPersonality } from "@/lib/aura";
+import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft } from "lucide-react";
 
 function labelFor(p?: string) {
