@@ -7,6 +7,7 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { getTrack, type Track } from "@/lib/tracks";
+import { getSessionAudio } from "@/lib/session";
 import { PALETTES } from "@/lib/aura";
 import { ArrowLeft } from "lucide-react";
 
@@ -52,12 +53,23 @@ export const Route = createFileRoute("/aura/$id")({
 function AuraPage() {
   const { id } = Route.useParams();
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const [, force] = useState(0);
 
   useEffect(() => {
-    setTrack(getTrack(id));
+    const t = getTrack(id);
+    setTrack(t);
+    if (t?.hasLocalAudio) {
+      const session = getSessionAudio(id);
+      setAudioUrl(session?.audioUrl ?? null);
+    } else if (t?.audioDataUrl) {
+      // legacy
+      setAudioUrl(t.audioDataUrl);
+    } else {
+      setAudioUrl(null);
+    }
   }, [id]);
 
   if (track === undefined) {
@@ -116,15 +128,29 @@ function AuraPage() {
         </div>
 
         <div className="mt-8 w-full animate-fade-up">
-          {track.audioDataUrl ? (
+          {audioUrl ? (
             <AudioPlayer
-              src={track.audioDataUrl}
+              src={audioUrl}
               onPlayingChange={setPlaying}
               onAnalyserReady={(a) => {
                 analyserRef.current = a;
                 force((n) => n + 1);
               }}
             />
+          ) : track.hasLocalAudio ? (
+            <div className="mx-auto w-full max-w-md text-center">
+              <div className="glass-strong rounded-2xl px-5 py-6">
+                <p className="text-sm text-foreground/90">
+                  This demo track session expired. Please upload again.
+                </p>
+                <Link
+                  to="/create"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full px-5 h-10 text-xs bg-aura-gradient text-primary-foreground"
+                >
+                  Upload again
+                </Link>
+              </div>
+            </div>
           ) : track.embedUrl ? (
             <div className="mx-auto w-full max-w-md">
               <div className="glass-strong rounded-2xl overflow-hidden">
