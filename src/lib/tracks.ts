@@ -1,6 +1,21 @@
 import { generateAura, paletteFromMoods, slugify, type PaletteKey } from "./aura";
 
-export type Provider = "spotify" | "youtube" | "soundcloud" | "apple" | "other";
+export type Provider =
+  | "spotify"
+  | "youtube"
+  | "youtube-music"
+  | "soundcloud"
+  | "apple"
+  | "audiomack"
+  | "bandcamp"
+  | "tidal"
+  | "deezer"
+  | "amazon"
+  | "pandora"
+  | "boomplay"
+  | "audius"
+  | "smartlink"
+  | "external";
 
 export type StreamingLinks = {
   spotify?: string;
