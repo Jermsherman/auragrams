@@ -66,7 +66,7 @@ export const Route = createFileRoute("/create")({
   ),
 });
 
-type Mode = "file" | "link" | "raw" | "auracle";
+type Mode = "file" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
