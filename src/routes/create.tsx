@@ -93,9 +93,35 @@ function CreatePage() {
 
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
   const ready =
-    title.trim() &&
-    artist.trim() &&
-    (mode === "file" ? !!audio : !!linkInfo);
+    mode === "auracle"
+      ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
+      : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+
+  const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
+    if (!files) return;
+    const arr = Array.from(files).filter((f) => {
+      const okType = f.type.startsWith("audio/");
+      const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
+      return okType || okExt;
+    });
+    if (!arr.length) {
+      toast.error("Please upload audio files (.mp3, .wav, .m4a, .aac, .ogg)");
+      return;
+    }
+    setAuracleFiles((prev) => [...prev, ...arr]);
+  };
+
+  const removeAuracleFile = (i: number) =>
+    setAuracleFiles((prev) => prev.filter((_, idx) => idx !== i));
+
+  const moveAuracleFile = (i: number, dir: -1 | 1) =>
+    setAuracleFiles((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   // Live preview of generated aura
   const preview = useMemo(
