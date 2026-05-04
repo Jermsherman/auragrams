@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
@@ -176,30 +177,16 @@ function AuraPage() {
           </div>
         </div>
         <div className="relative mt-6 animate-fade-up">
-          <OrbVisual
-            size="min(82vw, 460px)"
-            hueShift={track.seed}
+          <Aurascope
+            aura={aurascopeAuraFromTrack(track)}
+            size="large"
+            mode="full"
             isPlaying={playing}
-            analyser={analyserRef}
-            metricsRef={metricsRef.current ?? undefined}
-            palette={track.palette}
-            profile={track.colors ? {
-              palette: track.palette,
-              auraName: track.auraName,
-              paletteName: track.paletteName ?? "",
-              energy: track.energy,
-              description: track.description,
-              vibeDescription: track.vibeDescription ?? "",
-              motionKeywords: track.motionKeywords ?? [],
-              musicalKey: track.musicalKey ?? "",
-              tonic: track.tonic,
-              mode: track.mode,
-              keyDetected: track.keyDetected,
-              tempoBand: (track.tempoBand as "Slow"|"Mid"|"Fast") ?? "Mid",
-              density: (track.density as "Sparse"|"Lush"|"Dense") ?? "Lush",
-              colors: track.colors,
-            } : undefined}
-            className={playing ? "" : "animate-breathe"}
+            audioAnalysisData={{
+              analyser: analyserRef,
+              metricsRef: metricsRef.current ?? undefined,
+            }}
+            showLabel={false}
           />
         </div>
 
