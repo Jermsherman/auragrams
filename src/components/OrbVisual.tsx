@@ -339,6 +339,29 @@ export function OrbVisual({
         }}
       />
 
+      {/* oscilloscope waveform ring (uploads only) */}
+      {(metricsRef || analyser) && (
+        <canvas
+          ref={ringCanvasRef}
+          className="pointer-events-none absolute inset-0 w-full h-full"
+          aria-hidden
+        />
+      )}
+
+      {/* transient burst flash */}
+      {(metricsRef || analyser) && (
+        <div
+          className="pointer-events-none absolute inset-0 blur-2xl"
+          style={{
+            ...shape,
+            background: outerGlow,
+            opacity: "calc(var(--orb-burst, 0) * 0.55)",
+            transform: "scale(calc(1 + var(--orb-burst, 0) * 0.18))",
+            transition: "opacity 0.08s linear",
+          }}
+        />
+      )}
+
       {/* particles */}
       {particles && particleCount > 0 && (
         <div
