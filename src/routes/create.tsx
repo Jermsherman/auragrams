@@ -283,7 +283,7 @@ function CreatePage() {
             <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
 
             <div className="flex items-center gap-4 pt-1">
-              <OrbVisual size={72} palette={preview.palette} particles={false} />
+              <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                   Your aura
