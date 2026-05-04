@@ -66,6 +66,10 @@ export type Track = {
   pitchCenter?: PitchCenter;
   keyConfidence?: number;
   detectedEnergy?: number;
+
+  // Phase 5 — Color Influence
+  userColorInfluence?: UserColorInfluence;
+  colorGuided?: boolean;
 };
 
 export type ArtistProfile = {
