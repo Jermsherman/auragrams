@@ -97,6 +97,7 @@ export function Aurascope({
   hero = false,
   interactive = false,
   className,
+  style,
 }: Props) {
   const personality = useMemo(() => getPersonality(aura.palette), [aura.palette]);
   const colors: AuraPalette = useMemo(() => {
@@ -128,6 +129,7 @@ export function Aurascope({
     ["--aura-shadow" as string]: colors.shadow,
     ["--aura-glow" as string]: colors.glow,
     ["--aura-particle" as string]: colors.particle,
+    ...style,
   };
 
   // Story mode: 9:16 frame around the lens.
