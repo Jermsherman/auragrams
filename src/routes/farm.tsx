@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useState } from "react";
-import { Sparkles, Plus, Layers } from "lucide-react";
+import { Sparkles, Plus, Layers, Link2 } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { AuraFarmCard } from "@/components/AuraFarmCard";
@@ -79,12 +79,18 @@ function FarmPage() {
                 Auracles
               </TabsTrigger>
             </TabsList>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Link
                 to="/create"
                 className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
               >
-                <Plus className="h-4 w-4" /> Gain Aura
+                <Plus className="h-4 w-4" /> Create Aura
+              </Link>
+              <Link
+                to="/auralink/create"
+                className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
+              >
+                <Link2 className="h-4 w-4" /> Build AuraLink from Farm
               </Link>
               {canCreateAuracle && (
                 <Link
