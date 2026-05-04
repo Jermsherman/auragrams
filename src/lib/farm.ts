@@ -2,7 +2,7 @@
 // We never store full audio file blobs here — only metadata.
 
 import type { Track, Provider } from "./tracks";
-import type { PaletteKey } from "./aura";
+import type { PaletteKey, AuraPalette } from "./aura";
 
 export type SourceType = "upload" | "platform_link" | "external_link";
 
@@ -27,6 +27,11 @@ export type SavedAura = {
   musicalKey?: string;
   tempoBand?: string;
   density?: string;
+  paletteName?: string;
+  vibeDescription?: string;
+  motionKeywords?: string[];
+  colors?: AuraPalette;
+  keyDetected?: boolean;
 };
 
 const KEY = "auragram_farm_auras";
@@ -89,6 +94,11 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     musicalKey: t.musicalKey,
     tempoBand: t.tempoBand,
     density: t.density,
+    paletteName: t.paletteName,
+    vibeDescription: t.vibeDescription,
+    motionKeywords: t.motionKeywords,
+    colors: t.colors,
+    keyDetected: t.keyDetected,
   };
 
   const all = read();
