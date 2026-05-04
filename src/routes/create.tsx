@@ -21,7 +21,7 @@ import {
   seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
-import { generateAura, slugify, type PitchCenter } from "@/lib/aura";
+import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
 import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
 import { suggestMoods } from "@/lib/moodDetect";
