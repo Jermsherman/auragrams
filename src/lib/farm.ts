@@ -24,6 +24,9 @@ export type SavedAura = {
   palette: PaletteKey;
   seed: number;
   coverDataUrl?: string;
+  musicalKey?: string;
+  tempoBand?: string;
+  density?: string;
 };
 
 const KEY = "auragram_farm_auras";
