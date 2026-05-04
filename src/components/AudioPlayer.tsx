@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause } from "lucide-react";
-import { useAudioReactive } from "@/hooks/useAudioReactive";
+import { useAudioAnalyser, type AudioMetrics } from "@/hooks/useAudioAnalyser";
+import { getPersonality } from "@/lib/aura";
 
 function fmt(t: number) {
   if (!isFinite(t)) return "0:00";
@@ -11,16 +12,28 @@ function fmt(t: number) {
 
 type Props = {
   src: string;
+  palette?: string;
+  showWaveform?: boolean;
   onAnalyserReady?: (analyser: AnalyserNode | null) => void;
+  onMetricsReady?: (metrics: React.MutableRefObject<AudioMetrics>) => void;
   onPlayingChange?: (playing: boolean) => void;
 };
 
-export function AudioPlayer({ src, onAnalyserReady, onPlayingChange }: Props) {
+export function AudioPlayer({
+  src,
+  palette,
+  showWaveform = true,
+  onAnalyserReady,
+  onMetricsReady,
+  onPlayingChange,
+}: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { analyserRef, ensureGraph } = useAudioReactive(audioRef);
+  const { analyserRef, metricsRef, ensureGraph, resume } = useAudioAnalyser(audioRef);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -49,11 +62,99 @@ export function AudioPlayer({ src, onAnalyserReady, onPlayingChange }: Props) {
     };
   }, [onPlayingChange]);
 
+  // Waveform strip canvas
+  useEffect(() => {
+    if (!showWaveform) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let raf = 0;
+
+    const stops = getPersonality(palette).stops;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    const draw = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const wave = metricsRef.current.waveform;
+      const ready = metricsRef.current.ready && wave.length > 0;
+
+      // gradient stroke
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, stops[0]);
+      grad.addColorStop(0.5, stops[2]);
+      grad.addColorStop(1, stops[4]);
+
+      ctx.lineWidth = 1.4 * dpr;
+      ctx.strokeStyle = grad;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+
+      ctx.beginPath();
+      const mid = h / 2;
+      const samples = 220;
+      if (ready) {
+        const step = wave.length / samples;
+        for (let i = 0; i < samples; i++) {
+          const v = (wave[Math.floor(i * step)] - 128) / 128; // -1..1
+          const x = (i / (samples - 1)) * w;
+          const y = mid + v * (h * 0.42);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      } else {
+        // idle line
+        const t = performance.now() / 600;
+        for (let i = 0; i < samples; i++) {
+          const x = (i / (samples - 1)) * w;
+          const y = mid + Math.sin(i * 0.18 + t) * (h * 0.06);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // progress overlay
+      const pct = dur ? time / dur : 0;
+      if (pct > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, w * pct, h);
+        ctx.clip();
+        ctx.globalCompositeOperation = "source-atop";
+        ctx.fillStyle = `${stops[2]}33`;
+        ctx.fillRect(0, 0, w * pct, h);
+        ctx.restore();
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [showWaveform, palette, metricsRef, time, dur]);
+
   const toggle = async () => {
     const a = audioRef.current;
     if (!a) return;
     ensureGraph();
+    await resume();
     onAnalyserReady?.(analyserRef.current);
+    onMetricsReady?.(metricsRef);
     if (a.paused) await a.play();
     else a.pause();
   };
@@ -68,7 +169,7 @@ export function AudioPlayer({ src, onAnalyserReady, onPlayingChange }: Props) {
 
   return (
     <div className="w-full max-w-md mx-auto select-none">
-      <audio ref={audioRef} src={src} preload="metadata" />
+      <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
       <div className="flex items-center gap-4">
         <button
           onClick={toggle}
@@ -100,6 +201,12 @@ export function AudioPlayer({ src, onAnalyserReady, onPlayingChange }: Props) {
           </div>
         </div>
       </div>
+
+      {showWaveform && (
+        <div className="mt-3 rounded-xl glass overflow-hidden">
+          <canvas ref={canvasRef} className="block w-full h-7" />
+        </div>
+      )}
     </div>
   );
 }
