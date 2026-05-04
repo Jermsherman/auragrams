@@ -27,9 +27,12 @@ export const Route = createFileRoute("/farm")({
   component: FarmPage,
 });
 
+type Filter = "all" | "upload" | "platform_link" | "raw_recording";
+
 function FarmPage() {
   const [auras, setAuras] = useState<SavedAura[] | null>(null);
   const [auracles, setAuracles] = useState<Auracle[] | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
     setAuras(getSavedAuras());
@@ -40,6 +43,12 @@ function FarmPage() {
     setAuras((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
   const removedAuracle = (id: string) =>
     setAuracles((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
+
+  const filteredAuras = (auras ?? []).filter((a) => {
+    if (filter === "all") return true;
+    if (filter === "platform_link") return a.sourceType === "platform_link" || a.sourceType === "external_link";
+    return a.sourceType === filter;
+  });
 
   const canCreateAuracle = (auras?.length ?? 0) >= 2;
 
@@ -91,11 +100,40 @@ function FarmPage() {
             {auras === null ? null : auras.length === 0 ? (
               <EmptyAuras />
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {auras.map((a) => (
-                  <AuraFarmCard key={a.id} aura={a} onDeleted={removedAura} />
-                ))}
-              </div>
+              <>
+                <div className="mb-5 flex flex-wrap gap-1.5">
+                  {([
+                    ["all", "All"],
+                    ["upload", "Uploaded Audio"],
+                    ["platform_link", "Platform Links"],
+                    ["raw_recording", "Raw Aura"],
+                  ] as const).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFilter(key)}
+                      className={
+                        filter === key
+                          ? "rounded-full px-3 h-7 text-[11px] uppercase tracking-[0.2em] bg-foreground/10 text-foreground"
+                          : "rounded-full px-3 h-7 text-[11px] uppercase tracking-[0.2em] border border-border/60 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {filteredAuras.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-12">
+                    No Auras match this filter yet.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredAuras.map((a) => (
+                      <AuraFarmCard key={a.id} aura={a} onDeleted={removedAura} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 

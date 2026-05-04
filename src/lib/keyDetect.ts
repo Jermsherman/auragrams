@@ -117,3 +117,72 @@ export async function detectKey(file: File): Promise<KeyDetection | null> {
     return null;
   }
 }
+
+// ---------- Pitch center (YIN-lite autocorrelation) ----------
+
+export type PitchCenter = { note: string; hz: number };
+
+function hzToNote(hz: number): string {
+  const A4 = 440;
+  const semis = Math.round(12 * Math.log2(hz / A4)) + 57; // MIDI 69 = A4 → semis 57 from C0
+  const octave = Math.floor(semis / 12);
+  const name = NOTES[((semis % 12) + 12) % 12];
+  return `${name}${octave}`;
+}
+
+function autocorrPitch(samples: Float32Array, sr: number): number | null {
+  const minHz = 70, maxHz = 600;
+  const minLag = Math.floor(sr / maxHz), maxLag = Math.floor(sr / minHz);
+  // RMS gate
+  let rms = 0; for (let i = 0; i < samples.length; i += 16) rms += samples[i] * samples[i];
+  if (Math.sqrt(rms / (samples.length / 16)) < 0.005) return null;
+
+  let bestLag = -1, bestVal = 0;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let sum = 0;
+    const n = samples.length - lag;
+    for (let i = 0; i < n; i += 2) sum += samples[i] * samples[i + lag];
+    if (sum > bestVal) { bestVal = sum; bestLag = lag; }
+  }
+  if (bestLag < 0 || bestVal <= 0) return null;
+  return sr / bestLag;
+}
+
+export async function detectPitchCenter(file: File): Promise<PitchCenter | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const Ctx = (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext
+      ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return null;
+    const ctx = new Ctx();
+    const buf = await file.arrayBuffer();
+    const audio = await ctx.decodeAudioData(buf.slice(0));
+    void ctx.close();
+
+    const ch = audio.numberOfChannels, len = audio.length;
+    const mono = new Float32Array(len);
+    for (let c = 0; c < ch; c++) {
+      const data = audio.getChannelData(c);
+      for (let i = 0; i < len; i++) mono[i] += data[i] / ch;
+    }
+    const sr = audio.sampleRate;
+    const winLen = Math.floor(sr * 1.0); // 1s windows
+    const totalWindows = Math.min(8, Math.floor(len / winLen));
+    if (totalWindows === 0) return null;
+
+    const startBase = Math.max(0, Math.floor((len - totalWindows * winLen) / 2));
+    const pitches: number[] = [];
+    for (let w = 0; w < totalWindows; w++) {
+      const seg = mono.subarray(startBase + w * winLen, startBase + (w + 1) * winLen);
+      const p = autocorrPitch(seg, sr);
+      if (p && p > 60 && p < 800) pitches.push(p);
+    }
+    if (pitches.length === 0) return null;
+    pitches.sort((a, b) => a - b);
+    const median = pitches[Math.floor(pitches.length / 2)];
+    return { note: hzToNote(median), hz: median };
+  } catch (e) {
+    console.warn("[detectPitchCenter] failed", e);
+    return null;
+  }
+}

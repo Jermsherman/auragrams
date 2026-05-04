@@ -11,6 +11,7 @@ import {
   Link as LinkIcon,
   Layers,
   GripVertical,
+  Mic,
 } from "lucide-react";
 import {
   detectProvider,
@@ -20,10 +21,13 @@ import {
   seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
-import { generateAura, slugify } from "@/lib/aura";
-import { detectKey } from "@/lib/keyDetect";
+import { generateAura, slugify, type PitchCenter } from "@/lib/aura";
+import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
+import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
+import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
+import { RawAuraRecorder } from "@/components/RawAuraRecorder";
 import { saveAuraFromTrack } from "@/lib/farm";
 import {
   PROJECT_TYPE_LABELS,
@@ -35,24 +39,24 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
-      { title: "Create an Aura — Auragram" },
+      { title: "Gain an Aura — Auragram" },
       {
         name: "description",
         content:
-          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
-      { property: "og:title", content: "Create an Aura — Auragram" },
+      { property: "og:title", content: "Gain an Aura — Auragram" },
       {
         property: "og:description",
         content:
-          "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
     ],
   }),
   component: CreatePage,
 });
 
-type Mode = "file" | "link" | "auracle";
+type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -65,12 +69,28 @@ function CreatePage() {
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [detectedKey, setDetectedKey] = useState<string | null>(null);
+  const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
+  const [features, setFeatures] = useState<AudioFeatures | null>(null);
+  const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
 
   // Auracle (multi-file) state
   const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
   const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
   const [auracleDesc, setAuracleDesc] = useState("");
+
+  const runAnalysis = (f: File) => {
+    setKeyDetection(null);
+    setFeatures(null);
+    setPitchCenter(null);
+    detectKey(f).then((res) => {
+      if (res) {
+        setKeyDetection(res);
+        if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
+      }
+    }).catch(() => {});
+    analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }).catch(() => {});
+    detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }).catch(() => {});
+  };
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
@@ -81,21 +101,76 @@ function CreatePage() {
       return;
     }
     setAudio(f);
-    setDetectedKey(null);
-    // Background key detection (non-blocking)
-    detectKey(f).then((res) => {
-      if (res) {
-        setDetectedKey(res.key);
-        toast.success(`Key detected: ${res.key}`);
-      }
-    }).catch(() => {});
+    runAnalysis(f);
+  };
+
+  const onRawRecorded = (f: File) => {
+    setAudio(f);
+    runAnalysis(f);
+  };
+
+  const onRawClear = () => {
+    setAudio(null);
+    setKeyDetection(null);
+    setFeatures(null);
+    setPitchCenter(null);
   };
 
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
   const ready =
     mode === "auracle"
       ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
-      : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+      : mode === "raw"
+        ? !!audio && artist.trim().length > 0
+        : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+
+  const detectedKeyStr = keyDetection?.key ?? null;
+  const sourceType: "raw_recording" | "platform_link" | "upload" =
+    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
+
+  const handleDetectMood = async () => {
+    if (mode === "link") {
+      const sug = suggestMoods({
+        title: title.trim(),
+        artist: artist.trim(),
+        keyDetection,
+        sourceType: "platform_link",
+      });
+      if (sug.length === 0) {
+        toast("Couldn't detect moods yet. Pick up to 4 manually.");
+        return;
+      }
+      setMoods(sug);
+      toast.success("Moods detected. You can still adjust them.");
+      return;
+    }
+    if (!audio) {
+      toast("Couldn't detect moods yet. Pick up to 4 manually.");
+      return;
+    }
+    let feat = features;
+    if (!feat) {
+      feat = await analyzeFile(audio);
+      if (feat) setFeatures(feat);
+    }
+    let kd = keyDetection;
+    if (!kd) {
+      kd = await detectKey(audio);
+      if (kd) setKeyDetection(kd);
+    }
+    const sug = suggestMoods({
+      features: feat,
+      keyDetection: kd,
+      pitchHz: pitchCenter?.hz ?? null,
+      sourceType,
+    });
+    if (sug.length === 0) {
+      toast("Couldn't detect moods yet. Pick up to 4 manually.");
+      return;
+    }
+    setMoods(sug);
+    toast.success("Moods detected. You can still adjust them.");
+  };
 
   const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
     if (!files) return;
@@ -128,13 +203,19 @@ function CreatePage() {
     () =>
       generateAura({
         id: title + artist,
-        title: title || "Untitled",
+        title: title || (mode === "raw" ? "Untitled Raw Aura" : "Untitled"),
         artist: artist || "Unknown",
         moods,
-        detectedKey,
+        detectedKey: detectedKeyStr,
+        pitchCenter,
+        energyOverride: features?.energy ?? null,
+        keyConfidence: keyDetection?.confidence ?? null,
+        sourceType,
       }),
-    [title, artist, moods, detectedKey],
+    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode],
   );
+
+  const canDetect = mode === "link" ? !!(title.trim() || artist.trim()) : !!audio;
 
   const submit = async () => {
     if (!ready) return;
@@ -183,20 +264,35 @@ function CreatePage() {
 
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
-      const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods, detectedKey });
+      const finalTitle = (title.trim() || (mode === "raw" ? "Untitled Raw Aura" : title.trim()));
+      const aura = generateAura({
+        id,
+        title: finalTitle,
+        artist: artist.trim(),
+        moods,
+        detectedKey: detectedKeyStr,
+        pitchCenter,
+        energyOverride: features?.energy ?? null,
+        keyConfidence: keyDetection?.confidence ?? null,
+        sourceType,
+      });
       const base = {
         id,
-        title: title.trim(),
+        title: finalTitle,
         artist: artist.trim(),
         artistHandle: slugify(artist.trim()) || "artist",
         coverDataUrl,
         seed: seedFromId(id),
         createdAt: Date.now(),
         moods,
-        detectedKey: detectedKey ?? undefined,
+        detectedKey: detectedKeyStr ?? undefined,
+        sourceType,
+        pitchCenter: pitchCenter ?? undefined,
+        keyConfidence: keyDetection?.confidence,
+        detectedEnergy: features?.energy,
         ...aura,
       };
-      if (mode === "file") {
+      if (mode === "file" || mode === "raw") {
         if (!audio) return;
         const audioUrl = URL.createObjectURL(audio);
         const probe = document.createElement("audio");
@@ -245,12 +341,21 @@ function CreatePage() {
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm">
+          <div className="glass rounded-full p-1 grid grid-cols-4 text-sm gap-0.5">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" /> <span className="hidden sm:inline">Upload</span> File
+              <UploadCloud className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload File</span>
+              <span className="sm:hidden">File</span>
             </ModeTab>
             <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Paste</span> Link
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Paste Link</span>
+              <span className="sm:hidden">Link</span>
+            </ModeTab>
+            <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Raw Aura</span>
+              <span className="sm:hidden">Raw</span>
             </ModeTab>
             <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
               <Layers className="h-4 w-4" /> Auracle
@@ -451,6 +556,8 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
+              ) : mode === "raw" ? (
+                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               ) : (
                 <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
                   <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
@@ -479,10 +586,10 @@ function CreatePage() {
               {/* Fields */}
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field
-                  label="Track title"
+                  label={mode === "raw" ? "Title · optional" : "Track title"}
                   value={title}
                   onChange={setTitle}
-                  placeholder="Midnight Echoes"
+                  placeholder={mode === "raw" ? "Untitled Raw Aura" : "Midnight Echoes"}
                 />
                 <Field
                   label="Artist name"
@@ -494,7 +601,13 @@ function CreatePage() {
 
               {/* Mood picker + live preview */}
               <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
-                <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
+                <MoodPicker
+                  value={moods}
+                  onChange={setMoods}
+                  glowColor={preview.colors?.glow}
+                  onDetect={handleDetectMood}
+                  canDetect={canDetect}
+                />
 
                 <div className="flex items-center gap-4 pt-1">
                   <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />

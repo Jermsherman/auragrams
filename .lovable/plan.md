@@ -1,115 +1,141 @@
-## Aura Engine v3 — patch plan
 
-Scoped to the Aura generation pipeline + mood UI + orb wiring. No global redesign.
+# Patch: Raw Aura · Detect Mood · Better Key/Pitch
 
-### 1. Rebuild `src/lib/aura.ts` as the engine
+Three focused MVP additions. No DAW, no studio. Each feature is a thin, magical layer over what already exists.
 
-Replace the fixed 12 `PERSONALITIES` with a layered system:
+---
 
-- **`MOOD_TRAITS`** (54 moods): each has `colors: string[]` (hex), `motion: MotionKind`, `texture: TextureKind`, `particle: ParticleKind`, `speed`, `energyBias`, `phrases`. Source = the full mood list in the brief (Warm…Nocturnal).
-- **`KEY_PROFILES`** for all 12 tonics × major/minor: `{ tonic, mode, emotionalBias: string[], colors: string[] }` from the music-theory map in the brief. Enharmonic equivalents share one entry (`F#/Gb`, `Db/C#`, etc.).
-- **`PALETTE_NAMES`**: poetic 2-word bank ("Blue Hour Velvet", "Neon Mourning", "Dusk Tide"…) plus a generator that combines a color-word + texture/time-word seeded by track id, so names rarely repeat.
-- **`AURA_NAMES`**: expanded bank from the brief ("Velvet Current", "Afterglow Theory", …) + procedural patterns: `{Color}+{Image}`, `{Emotion}+{Texture}`, `{Time}+{Motion}`, `{Element}+{Feeling}`. Heavily de-bias prior favorites ("Coastal Drift", "Quiet Drift", "Dark Glow") via a blocklist.
+## 1. Raw Aura recording (`/create` third tab)
 
-New core functions:
+**New file `src/components/RawAuraRecorder.tsx`** — self-contained MediaRecorder UI:
+- Requests mic via `navigator.mediaDevices.getUserMedia({ audio: true })`.
+- States: `idle → recording → recorded`. Big circular button: "Start Recording" → "Stop Recording" (pulsing while live).
+- Live timer (mm:ss) using `requestAnimationFrame`.
+- On stop: assembles `Blob` (`audio/webm` preferred, fallback to `audio/mp4`), creates an object URL, exposes a small `<audio controls>` preview, "Re-record" link, and the parent CTA enables.
+- Picks a supported mime via `MediaRecorder.isTypeSupported`.
+- Emits `onReady({ file: File, durationSec })` to the parent (we wrap the blob in a `File` named `raw-aura-<timestamp>.webm`).
+- Cleans up tracks + revokes URLs on unmount/re-record.
 
+**`src/routes/create.tsx`** — extend `Mode` to `"file" | "link" | "auracle" | "raw"`, change the toggle to a 4-up grid (still pill-glass, icons: `UploadCloud`, `LinkIcon`, `Mic`, `Layers`), and render `<RawAuraRecorder />` in the `raw` branch.
+- Reuse the existing `audio` File state for the recording so all downstream code (energy/key/mood detection, session audio, generate flow) "just works".
+- Set a new local flag `sourceType: "raw_recording"` when in raw mode.
+- Default Title placeholder → `"Untitled Raw Aura"`; if user leaves blank, save as that.
+
+**Persistence rules (per spec):**
+- Raw audio Blob is only kept via `setSessionAudio(id, file, objectURL)` (in-memory map already in `src/lib/session.ts`). Never written to localStorage.
+- Track metadata gets a new `sourceType` field (see schema below) so Farm + AuraLink know it's a Raw Aura even after refresh.
+- AuraLink page: if `sourceType === "raw_recording"` and `getSessionAudio(id)` is null, show a small notice: *"This Raw Aura recording session expired. Record again to replay."* The orb + metadata still render normally.
+
+---
+
+## 2. Detect Mood
+
+**New file `src/lib/audioFeatures.ts`** — small Web Audio analysis module (no new deps):
+- `analyzeFile(file: File)` → decodes audio, computes:
+  - `rms` (loudness 0..1)
+  - `spectralCentroid` (brightness, Hz) via FFT on a few 2 s windows
+  - `bandEnergy.bass / mid / treble` (0..1 normalized)
+  - `tempoEstimate` (rough — onset-energy autocorrelation; optional, may return null)
+  - returns `{ rms, brightness, bands, tempo }`
+- Internally uses the same `OfflineAudioContext` pattern as `keyDetect.ts`. Skip very quiet windows.
+
+**New file `src/lib/moodDetect.ts`**:
 ```ts
-generateAura({ id, title, artist, moods, detectedKey? }) → AuraProfile
+export function suggestMoods(input: {
+  features?: AudioFeatures | null;     // from analyzeFile
+  keyDetection?: KeyDetection | null;  // from keyDetect
+  // For platform links (no audio):
+  title?: string; artist?: string;
+}): string[]   // up to 4 mood names from MOODS in aura.ts
+```
+Rules implement the spec's mappings (low energy + minor → Melancholy/Intimate/Nocturnal/Reflective, high energy + major + bright → Euphoric/Uplifting/Radiant/Electric, etc.). For platform-link fallback, hash `title+artist` into a deterministic mood quartet biased by detected key if present. Always returns at most 4 names that exist in `MOODS`.
+
+**`src/components/MoodPicker.tsx`** — add a "Detect Mood" pill button next to the counter. Accepts `onDetect?: () => Promise<void> | void` and shows a spinner while running. Disabled if no audio source available *and* no title/artist for fallback.
+
+**`src/routes/create.tsx`** — wire `Detect Mood`:
+- In `file` and `raw` modes: call `analyzeFile(audio)` + reuse current `detectKey(audio)` result, pass both to `suggestMoods`.
+- In `link` mode: call `suggestMoods({ title, artist })`.
+- On success: `setMoods(suggested)` + `toast.success("Moods detected. You can still adjust them.")`.
+- On empty/error: `toast("Couldn't detect moods yet. Pick up to 4 manually.")`.
+- Cache the latest `AudioFeatures` in state so we can also pass `energy` straight into `generateAura` later.
+
+---
+
+## 3. Improved key + pitch detection
+
+`src/lib/keyDetect.ts` is solid (Krumhansl-Schmuckler chroma) — keep it but extend output:
+- Already returns `{ key, tonic, mode, confidence }`.
+- **Add** `detectPitchCenter(file)`: uses YIN-lite autocorrelation on a few 1 s windows, returns `{ noteName: "A3", hz: 220 }` or `null`. ~80 lines, no deps.
+- **Add a unified wrapper** `detectTonal(file): Promise<{ key: KeyDetection|null; pitch: PitchCenter|null }>` so callers run one decode (we'll thread the same decoded buffer through both internally — refactor `keyDetect` slightly to expose a `decode(file)` helper and a pure `analyzeBuffer(buf)` so we don't decode twice).
+
+**No npm additions.** Essentia.js / Meyda / Pitchy are nice but heavy; for an MVP that "feels lightweight and magical" we stay on Web Audio + ~150 lines of algorithm. We can swap in Essentia later if accuracy demands it.
+
+**Schema additions** (`src/lib/aura.ts` `AuraProfile`, `src/lib/tracks.ts` `Track`, `src/lib/farm.ts` `SavedAura`):
+- `sourceType?: "upload" | "platform_link" | "raw_recording"` on Track + farm (extend `SourceType` enum).
+- `pitchCenter?: { note: string; hz: number }` on Track + SavedAura + AuraProfile.
+- `keyConfidence?: number`.
+- `detectedEnergy?: number` (so the displayed Energy uses analysis when available).
+
+**`generateAura` signature** grows by optional fields:
+```ts
+generateAura({
+  id, title, artist, moods,
+  detectedKey, pitchCenter, energyOverride, sourceType,
+})
+```
+- If `energyOverride` present, replace `energyFor(...)` result.
+- If `sourceType === "raw_recording"`, draw `auraName` from a new **RAW_NAME_BANK** (`Raw Velvet`, `Voice Ember`, `Midnight Sketch`, `Hook Ghost`, `Soft Signal`, `First Take Bloom`, `Dry Echo`, `Bedroom Static`) with 70% probability, otherwise existing logic.
+- If `sourceType === "raw_recording"`, swap `description` template bank to two new "raw" templates ("A raw vocal idea with intimate shadow…", "An unfinished but emotional signal…") parameterized by mood/key.
+- If `keyConfidence < 0.15` *or* no detection succeeded but pitch did, set `musicalKey = "Unknown"` and surface `pitchCenter` instead.
+
+---
+
+## 4. UI surfaces
+
+**Aura Profile preview (`src/components/AuraProfileCard.tsx`)**
+- Add a small **Source badge** chip at the top: `Uploaded Audio` / `Platform Link` / `Raw Aura`. Raw Aura uses the gradient pill.
+- Stat row: show `Pitch Center: B3` only when `pitchCenter` exists *and* (key is "Unknown" OR sourceType === "raw_recording"). Otherwise show Key as today.
+
+**`src/components/AuraFarmCard.tsx`**
+- New badge variant when `aura.sourceType === "raw_recording"` → label `Raw Aura` with the gradient style instead of muted text.
+
+**Farm filter chips (`src/routes/farm.tsx`)**
+- Add a sticky filter row above the grid: `All · Uploaded Audio · Platform Links · Raw Aura · Auracles`.
+- Implemented as local state, filters the rendered list (Auracles tab swaps to the existing Auracle grid). No persistence needed.
+
+---
+
+## 5. Data flow summary
+
+```text
+File (upload OR raw recording)
+  └─► analyzeFile  ─┐
+  └─► detectTonal ─┤── suggestMoods ──► MoodPicker (auto-fill)
+                   └──► generateAura(moods, key, pitch, energy, sourceType)
+                          └──► saveTrack + saveAuraFromTrack
+Platform link
+  └─► detectProvider → suggestMoods({title,artist}) ──► generateAura
 ```
 
-Returns:
-```ts
-{
-  auraName, paletteName,
-  palette: { primary, secondary, accent, shadow, glow, particle }, // all hex
-  swatches: string[],          // 4–6 hex stops for UI
-  stops: [s0..s4],             // OKLCH for orb conic (derived from hex)
-  motion, texture, particle, particleCount, speed, hueShift,
-  shape,
-  energy, tempoBand, density,
-  musicalKey, tonic, mode,     // mode: "major" | "minor" | undefined
-  shortDescription,            // poetic 1–2 lines
-  vibeDescription,             // human "feels like..." sentence
-  motionKeywords: string[],    // e.g. ["drift","mist","pulse","shimmer"]
-}
-```
+---
 
-Color blending:
-- Take 1–4 mood color sets + key colors → blend via weighted hex mixing (mood weight 0.6, key 0.4 with a small seeded jitter).
-- Derive `shadow` (darken primary), `glow` (lighten/saturate), `particle` (accent shifted).
+## 6. Acceptance check
 
-Description generation:
-- Templates seeded by `hash(id|moods|key)`. Multiple sentence skeletons per mode (major/minor) avoid repetition. Vibe sentence pulls from a pool of "this song feels like…" frames keyed off motion + time-of-day + mood.
+- [ ] /create has Upload File · Paste Music Link · Record Raw Aura · Auracle.
+- [ ] MediaRecorder records, previews, re-records, generates an Aura.
+- [ ] Raw Aura saved to Farm with `sourceType: "raw_recording"` and a Raw Aura badge.
+- [ ] Recorded blob never written to localStorage; expired session shows the notice.
+- [ ] "Detect Mood" button auto-fills up to 4 moods, user can still edit.
+- [ ] Aura Profile shows Key, optional Pitch Center, Energy, source badge.
+- [ ] Raw Auras pull from RAW_NAME_BANK and raw description templates.
+- [ ] Farm has filter chips for source type incl. Auracles.
 
-Backward compatibility: keep `PaletteKey`/`PALETTES`/`personalityFromMoods`/`getPersonality` exported. Old saved tracks (palette = "warm" etc.) still resolve to a personality object derived from the new engine using their stored mood key.
+---
 
-### 2. Mood picker — 4-slot + expanded set
+## Files touched
 
-`src/components/MoodPicker.tsx`:
-- `MAX = 4`, counter shows `n/4`.
-- Render full 54-mood list. Mobile: `max-h-[40vh] overflow-y-auto` scroll inside the card; pills wrap; subtle gradient fade at top/bottom.
-- Selected pills: stronger gradient ring + glow using the *current preview palette's* glow color (so picker glows match the live aura).
-- Disable unselected when `n === 4`.
+Create: `src/components/RawAuraRecorder.tsx`, `src/lib/audioFeatures.ts`, `src/lib/moodDetect.ts`.
 
-`src/lib/aura.ts` `MOODS` const expanded to 54 labels (in brief order).
+Edit: `src/lib/keyDetect.ts` (expose decode + add pitch), `src/lib/aura.ts` (sourceType branching, raw name bank, raw templates, energy override, AuraProfile shape), `src/lib/tracks.ts` + `src/lib/farm.ts` (schema fields + hydrate), `src/routes/create.tsx` (raw mode + Detect Mood wiring), `src/components/MoodPicker.tsx` (Detect button), `src/components/AuraProfileCard.tsx` (source badge + pitch row), `src/components/AuraFarmCard.tsx` (raw badge), `src/routes/farm.tsx` (filter chips), `src/routes/aura.$id.tsx` (raw-expired notice).
 
-### 3. Audio key detection
-
-New `src/lib/keyDetect.ts` — Web Audio + Krumhansl-Schmuckler chroma profile (no extra dependency, works in a Worker-friendly way; avoids Essentia.js bundle bloat).
-
-```ts
-detectKey(file: File): Promise<{ key: string; tonic: string; mode: "major"|"minor"; confidence: number } | null>
-```
-
-Steps: `decodeAudioData` → downsample to mono 11.025 kHz → take ~30 s window from middle of track → FFT in chunks → accumulate chroma vector (12 bins) → correlate against major + minor Krumhansl profiles for all 12 rotations → pick max correlation. Confidence = winner / runner-up ratio.
-
-Fallback: if decode fails or confidence < 0.85, return `null` → UI shows `Key: Unknown` with optional manual selector.
-
-Wired in `create.tsx` after file pick (background promise, doesn't block submit). Result stored on the Track as `detectedKey`. For platform links: skip detection, allow optional manual `musicalKey`.
-
-### 4. Track + Aura data updates
-
-`src/lib/tracks.ts` Track adds: `paletteName`, `swatches`, `palette` (the hex object), `tonic`, `mode`, `shortDescription`, `vibeDescription`, `motionKeywords`. Existing fields kept; hydrate() backfills via `generateAura`. SavedAura mirrors these.
-
-### 5. Orb visual variation
-
-`src/components/OrbVisual.tsx`:
-- Accept an optional `profile?: AuraProfile`. When present, derive `stops/glow/atmosphere/motion/texture/particle/speed/particleCount/shape` from it instead of the static personality.
-- `stops` come from the blended hex palette converted to OKLCH-ish CSS via `color-mix(in oklab, …)` fallbacks (or just use hex directly inside the existing `conic-gradient` — works in CSS).
-- Particle color uses `palette.particle`. Halo uses `palette.glow`. Atmosphere uses `palette.shadow`.
-- Motion/animation already switches on `motion` kind; keep that wiring. Energy multiplies `speed` and particle count: `count = base * (0.6 + energy/100)`.
-
-`AuraAtmosphere.tsx` uses `palette.shadow` for the bg radial.
-
-### 6. Aura Profile UI
-
-`src/components/AuraProfileCard.tsx` extended:
-- Aura name (gradient).
-- Mood pills (up to 4).
-- Key (or "Unknown" with optional inline `<select>` if `mode === "link"` and key not set).
-- Energy bar (current).
-- Palette name + swatch row (4–6 hex circles).
-- Short description.
-- Vibe description.
-- Motion keywords as tiny chips.
-- Mobile: wrap content in 3 `Collapsible` sections — Profile / Vibe / Palette — collapsed by default below `sm` breakpoint.
-
-Used on both `/create` preview block and `/aura/$id`.
-
-### 7. Files touched
-
-- edit `src/lib/aura.ts` (engine rewrite, exports preserved)
-- new  `src/lib/keyDetect.ts`
-- edit `src/lib/tracks.ts` (Track fields, hydrate)
-- edit `src/lib/farm.ts` (SavedAura fields)
-- edit `src/components/MoodPicker.tsx` (4-cap, scroll, glow)
-- edit `src/components/OrbVisual.tsx` (profile-driven palette)
-- edit `src/components/AuraAtmosphere.tsx`
-- edit `src/components/AuraProfileCard.tsx` (palette name, vibe, motion, collapsibles)
-- edit `src/routes/create.tsx` (run keyDetect, pass detected key into generateAura)
-- edit `src/routes/aura.$id.tsx` (use new profile fields)
-- edit `src/routes/generating.tsx` if it pre-generates (pass detectedKey through)
-
-### 8. Acceptance check
-
-After implementation: pick 5 random combos (e.g. `[Melancholy, Intimate, Oceanic, Wistful] + E min`, `[Euphoric, Electric] + D maj`, `[Dark, Brooding] + C min`, `[Coastal, Hopeful] + G maj`, `[Romantic, Velvet] + Db maj`) and verify each produces distinct palette name, distinct swatches, distinct orb feel, distinct vibe sentence.
+No new npm dependencies.

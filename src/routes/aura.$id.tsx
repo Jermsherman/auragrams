@@ -284,13 +284,15 @@ function AuraPage() {
             <div className="mx-auto w-full max-w-md text-center">
               <div className="glass-strong rounded-2xl px-5 py-6">
                 <p className="text-sm text-foreground/90">
-                  This Uploaded Audio session expired. Upload again to replay.
+                  {track.sourceType === "raw_recording"
+                    ? "This Raw Aura recording session expired. Record again to replay."
+                    : "This Uploaded Audio session expired. Upload again to replay."}
                 </p>
                 <Link
                   to="/create"
                   className="mt-4 inline-flex items-center gap-2 rounded-full px-5 h-10 text-xs bg-aura-gradient text-primary-foreground"
                 >
-                  Upload again
+                  {track.sourceType === "raw_recording" ? "Record again" : "Upload again"}
                 </Link>
               </div>
             </div>
@@ -365,6 +367,8 @@ function AuraPage() {
             motionKeywords={track.motionKeywords}
             colors={track.colors}
             keyDetected={track.keyDetected}
+            pitchCenter={track.pitchCenter}
+            sourceType={track.sourceType}
           />
         </div>
 

@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { getPersonality, type PaletteKey, type AuraPalette } from "@/lib/aura";
+import { getPersonality, type PaletteKey, type AuraPalette, type PitchCenter, type SourceType } from "@/lib/aura";
 import { cn } from "@/lib/utils";
+
+const SOURCE_LABEL: Record<SourceType, string> = {
+  upload: "Uploaded Audio",
+  platform_link: "Platform Link",
+  raw_recording: "Raw Aura",
+};
 
 export function AuraProfileCard({
   name,
@@ -17,6 +23,8 @@ export function AuraProfileCard({
   motionKeywords,
   colors,
   keyDetected,
+  pitchCenter,
+  sourceType,
 }: {
   name: string;
   moods: string[];
@@ -31,6 +39,8 @@ export function AuraProfileCard({
   motionKeywords?: string[];
   colors?: AuraPalette;
   keyDetected?: boolean;
+  pitchCenter?: PitchCenter;
+  sourceType?: SourceType;
 }) {
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
@@ -38,10 +48,27 @@ export function AuraProfileCard({
     ? `linear-gradient(90deg, ${colors.primary}, ${colors.accent} 50%, ${colors.glow})`
     : `linear-gradient(90deg, ${p.stops[0]}, ${p.stops[1]} 50%, ${p.stops[2]})`;
 
+  const showPitch = !!pitchCenter && (musicalKey === "Unknown" || sourceType === "raw_recording");
+  const isRaw = sourceType === "raw_recording";
+
   return (
     <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
-      <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-        Aura Profile
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+          Aura Profile
+        </div>
+        {sourceType && (
+          <span
+            className={cn(
+              "rounded-full px-2.5 h-6 inline-flex items-center text-[10px] uppercase tracking-[0.24em]",
+              isRaw
+                ? "bg-aura-gradient text-primary-foreground"
+                : "border border-border/60 bg-background/30 text-muted-foreground",
+            )}
+          >
+            {SOURCE_LABEL[sourceType]}
+          </span>
+        )}
       </div>
       <h3 className="mt-2 font-display text-2xl sm:text-3xl tracking-tight">
         <span className="text-aura-gradient">{name}</span>
@@ -60,11 +87,11 @@ export function AuraProfileCard({
         </div>
       )}
 
-      {/* Profile section — always open */}
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Trait label="Key" value={musicalKey ?? "Unknown"} hint={keyDetected ? "detected" : undefined} />
         <Trait label="Energy" value={`${energy}%`} />
-        {tempoBand && <Trait label="Tempo" value={tempoBand} />}
+        {showPitch && <Trait label="Pitch Center" value={pitchCenter!.note} hint={`${Math.round(pitchCenter!.hz)} Hz`} />}
+        {!showPitch && tempoBand && <Trait label="Tempo" value={tempoBand} />}
         {density && <Trait label="Density" value={density} />}
       </div>
       <div className="mt-4">
