@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Trash2, ArrowUpRight, Wand2, Sparkles } from "lucide-react";
+import { Trash2, ArrowUpRight, Wand2, Sparkles, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Aurascope } from "./Aurascope";
+import { AddToAuraLinkDialog } from "./AddToAuraLinkDialog";
 import { deleteAura, type SavedAura } from "@/lib/farm";
 import { getPersonality } from "@/lib/aura";
 import {
@@ -25,6 +26,7 @@ export function AuraFarmCard({
   onDeleted: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const p = getPersonality(aura.palette);
 
   const isRaw = aura.sourceType === "raw_recording";
@@ -128,6 +130,16 @@ export function AuraFarmCard({
           <Wand2 className="h-4 w-4" />
         </Link>
 
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          aria-label="Add to AuraLink"
+          title="Add to AuraLink"
+          className="rounded-full h-10 w-10 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Link2 className="h-4 w-4" />
+        </button>
+
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogTrigger asChild>
             <button
@@ -151,6 +163,7 @@ export function AuraFarmCard({
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      <AddToAuraLinkDialog aura={aura} open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

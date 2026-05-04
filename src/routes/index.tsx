@@ -3,7 +3,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
-import { ArrowRight, Sparkles, Share2, Wand2, AudioLines } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,16 +58,26 @@ function Index() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.
+              Turn tracks into living Auras, save them to your Farm, and build AuraLinks that make your music instantly shareable.
             </p>
 
-            <div className="mt-10 w-full max-w-sm">
+            <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
               <Link
                 to="/create"
-                className="w-full inline-flex items-center justify-center gap-3 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
               >
-                Gain Aura <ArrowRight className="h-4 w-4" />
+                Create Aura <ArrowRight className="h-4 w-4" />
               </Link>
+              <Link
+                to="/auralink/create"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
+              >
+                <Link2 className="h-4 w-4" /> Build AuraLink
+              </Link>
+            </div>
+
+            <div className="mt-6 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+              Create Aura → Save to Farm → Build AuraLink → Share Anywhere
             </div>
           </div>
         </section>
@@ -98,7 +108,37 @@ function Index() {
           </div>
         </section>
 
-        {/* FEATURES */}
+        {/* AURALINK SPOTLIGHT */}
+        <section className="mx-auto max-w-5xl px-5 sm:px-8 pb-8 sm:pb-12">
+          <div className="rounded-3xl glass-strong p-7 sm:p-12 relative overflow-hidden">
+            <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, oklch(0.7 0.22 310 / 0.6), transparent 70%)" }} />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                <Link2 className="h-3 w-3" /> AuraLink
+              </div>
+              <h2 className="mt-4 font-display text-3xl sm:text-4xl tracking-tight">
+                AuraLink is your <span className="text-aura-gradient">music-first link page.</span>
+              </h2>
+              <p className="mt-3 text-muted-foreground max-w-xl">
+                Group your streaming links, Auras, and releases into one living page built for bios, stories, DMs, and rollouts.
+              </p>
+              <ul className="mt-6 grid sm:grid-cols-2 gap-2.5 text-sm text-foreground/85 max-w-xl">
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and more.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Feature your best Auras.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Share one clean music-first link.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Make your profile feel alive, not generic.</li>
+              </ul>
+              <Link
+                to="/auralink/create"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground px-6 h-12 text-sm font-medium shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                Build AuraLink <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24">
           <div className="grid sm:grid-cols-3 gap-5">
             {[
@@ -136,12 +176,20 @@ function Index() {
             <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
               Give your music a <span className="text-aura-gradient">living identity.</span>
             </h2>
-            <Link
-              to="/create"
-              className="mt-10 inline-flex items-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
-            >
-              Gain Aura <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/create"
+                className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                Create Aura <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/auralink/create"
+                className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium glass-strong"
+              >
+                <Link2 className="h-4 w-4" /> Build AuraLink
+              </Link>
+            </div>
           </div>
         </section>
       </main>
