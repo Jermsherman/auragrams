@@ -95,7 +95,7 @@ export async function saveAuraToCloud(opts: {
     embed_url: saved.embedUrl ?? null,
     mood_tags: saved.moodTags ?? [],
     detected_key: saved.musicalKey ?? null,
-    pitch_center: saved.pitchCenter ? `${saved.pitchCenter.note}${saved.pitchCenter.octave}` : null,
+    pitch_center: saved.pitchCenter ? `${saved.pitchCenter.note} · ${Math.round(saved.pitchCenter.hz)}Hz` : null,
     energy_level: saved.energyLevel ?? null,
     aura_name: saved.auraName,
     aura_description: saved.auraDescription,
