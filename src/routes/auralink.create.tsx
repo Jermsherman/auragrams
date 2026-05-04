@@ -220,15 +220,15 @@ function BuilderPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav showCta={false} />
-      <main className="flex-1 mx-auto w-full max-w-6xl px-5 sm:px-8 py-10 sm:py-14">
+      <main className="flex-1 mx-auto w-full max-w-6xl px-4 sm:px-8 py-8 sm:py-14">
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
             <Sparkles className="h-3 w-3" /> AuraLink
           </div>
-          <h1 className="mt-4 font-display text-4xl sm:text-5xl tracking-tight">
+          <h1 className="mt-3 font-display text-3xl sm:text-5xl tracking-tight">
             Build <span className="text-aura-gradient">AuraLink.</span>
           </h1>
-          <p className="mt-3 text-muted-foreground">
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground px-4">
             Create a music-first link page with streaming links, Auras, or both.
           </p>
         </div>
