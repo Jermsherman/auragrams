@@ -586,10 +586,10 @@ function CreatePage() {
               {/* Fields */}
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field
-                  label="Track title"
+                  label={mode === "raw" ? "Title · optional" : "Track title"}
                   value={title}
                   onChange={setTitle}
-                  placeholder="Midnight Echoes"
+                  placeholder={mode === "raw" ? "Untitled Raw Aura" : "Midnight Echoes"}
                 />
                 <Field
                   label="Artist name"
