@@ -132,13 +132,30 @@ function CreatePage() {
     setPitchCenter(null);
   };
 
+  // Sync artist text from resolved identity (artist profile or username)
+  // When anonymous: keep the artist field as 'Anonymous Artist' for the preview only.
+  useEffect(() => {
+    if (identity.mode === "anonymous") {
+      if (artist !== "Anonymous Artist") setArtist("Anonymous Artist");
+    } else if (resolvedIdentity.publicArtistName && artist !== resolvedIdentity.publicArtistName) {
+      setArtist(resolvedIdentity.publicArtistName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identity.mode, resolvedIdentity.publicArtistName]);
+
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
+  const identityReady =
+    identity.mode === "anonymous" ||
+    (identity.mode === "username" && !!profile?.username) ||
+    (identity.mode === "artist" && !!identity.artistProfileId);
   const ready =
-    mode === "auracle"
-      ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
-      : mode === "raw"
-        ? !!audio && artist.trim().length > 0
-        : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+    identityReady && (
+      mode === "auracle"
+        ? title.trim().length > 0 && auracleFiles.length >= 2
+        : mode === "raw"
+          ? !!audio
+          : !!(title.trim() && (mode === "file" ? !!audio : !!linkInfo))
+    );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
