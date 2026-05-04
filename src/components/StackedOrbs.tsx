@@ -35,7 +35,12 @@ export function StackedOrbs({
             filter: `drop-shadow(0 4px 18px oklch(0.6 0.18 290 / 0.35))`,
           }}
         >
-          <Aurascope aura={{ palette: it.palette, seed: it.seed }} size="mini" mode="minimal" />
+          <Aurascope
+            aura={{ palette: it.palette, seed: it.seed }}
+            size="mini"
+            mode="minimal"
+            style={{ width: size, height: size }}
+          />
         </div>
       ))}
     </div>
