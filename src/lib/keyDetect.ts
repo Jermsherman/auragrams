@@ -61,14 +61,14 @@ export async function detectKey(file: File): Promise<KeyDetection | null> {
     const winSec = 30;
     const winLen = Math.min(len, Math.floor(winSec * sr));
     const start = Math.max(0, Math.floor((len - winLen) / 2));
-    const window = mono.subarray(start, start + winLen);
+    const win = mono.subarray(start, start + winLen);
 
     // Chunk into 2s segments and accumulate chroma (skip very quiet chunks)
     const chunkLen = Math.floor(2 * sr);
     const chroma = new Array(12).fill(0);
     let chunks = 0;
-    for (let off = 0; off + chunkLen <= window.length; off += chunkLen) {
-      const seg = window.subarray(off, off + chunkLen);
+    for (let off = 0; off + chunkLen <= win.length; off += chunkLen) {
+      const seg = win.subarray(off, off + chunkLen);
       // RMS gate
       let rms = 0;
       for (let i = 0; i < seg.length; i += 64) rms += seg[i] * seg[i];
