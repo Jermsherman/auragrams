@@ -74,7 +74,7 @@ function FarmPage() {
                 to="/create"
                 className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
               >
-                <Plus className="h-4 w-4" /> Create Aura
+                <Plus className="h-4 w-4" /> Gain Aura
               </Link>
               {canCreateAuracle && (
                 <Link
@@ -128,7 +128,7 @@ function EmptyAuras() {
         to="/create"
         className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient"
       >
-        Create Aura
+        Gain Aura
       </Link>
     </div>
   );

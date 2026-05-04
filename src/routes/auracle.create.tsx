@@ -127,7 +127,7 @@ function CreateAuraclePage() {
             to="/create"
             className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient"
           >
-            Create Aura <ArrowRight className="h-4 w-4" />
+            Gain Aura <ArrowRight className="h-4 w-4" />
           </Link>
         </main>
         <Footer />

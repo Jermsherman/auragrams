@@ -23,7 +23,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
               to="/create"
               className="group relative inline-flex items-center rounded-full px-4 sm:px-5 h-10 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_30px_-8px_oklch(0.7_0.2_310/0.7)] hover:shadow-[0_0_50px_-6px_oklch(0.7_0.2_310/0.9)] transition-shadow"
             >
-              <span className="hidden sm:inline">Create Aura</span>
+              <span className="hidden sm:inline">Gain Aura</span>
               <span className="sm:hidden">Create</span>
             </Link>
           )}
