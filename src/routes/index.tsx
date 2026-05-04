@@ -69,7 +69,7 @@ function Index() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <section id="how-it-works" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="font-display text-3xl sm:text-4xl tracking-tight text-center">
             How it works
           </h2>
