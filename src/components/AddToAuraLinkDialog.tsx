@@ -21,7 +21,7 @@ export function AddToAuraLinkDialog({
   open,
   onOpenChange,
 }: {
-  aura: SavedAura;
+  aura: Pick<SavedAura, "id"> & { id: string };
   open: boolean;
   onOpenChange: (b: boolean) => void;
 }) {
