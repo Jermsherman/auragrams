@@ -4,7 +4,7 @@ import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
-import { AudioPlayer } from "@/components/AudioPlayer";
+import { AudioUploadPlayer } from "@/components/AudioUploadPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
