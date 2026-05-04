@@ -1,75 +1,56 @@
-# Persist uploaded audio in Supabase Storage
+# Fix: "Publish AuraLink" button does nothing
 
-Today the uploader only creates an in-memory `URL.createObjectURL(file)` and references it via `setSessionAudio()`. After refresh the object URL dies, the Farm Aura plays nothing, and public AuraLinks have no audio. This patch uploads the file to Supabase Storage, saves the public URL on the track/Aura, and falls back to it for playback.
+## Root cause
 
-## What you'll see
+Clicking **Publish** throws `QuotaExceededError` from `localStorage.setItem` inside `saveAuraLink` (`src/lib/auralink.ts`). The toast/navigate after `saveAuraLink(...)` never runs, so the button appears dead.
 
-1. On `/create`, after picking/recording a file, an "Uploading audio…" indicator appears next to the track title. Submit stays disabled until the upload finishes (or you can cancel and pick another file).
-2. After saving, refreshing `/aura/:id` still plays the audio. Aurascope still reacts.
-3. The Farm card and any public AuraLink that includes that Aura play the same audio without needing a re-upload.
-4. Files >50 MB or non-audio MIME types are rejected with a clear toast.
-5. If a legacy Aura has no stored URL, the player shows: "This uploaded audio is no longer available. Re-upload to restore playback."
+The quota is blown because the AuraLink builder reads the chosen cover/avatar image as a base64 data URL and stuffs the whole thing into the page object:
 
-## Backend changes
+```ts
+// src/routes/auralink.create.tsx
+const onImage = (file: File | null) => {
+  const reader = new FileReader();
+  reader.onload = () => setProfileImageUrl(String(reader.result || ""));
+  reader.readAsDataURL(file);              // ← multi-MB string
+};
+// ...
+profileImageUrl: profileImageUrl || undefined,
+saveAuraLink(page);                         // ← localStorage.setItem blows up
+```
 
-Create a new public storage bucket `auragram-audio` via migration:
+A 2–5 MB photo from a phone camera easily exceeds the ~5 MB localStorage cap once combined with existing Farm + AuraLink data.
 
-- public read, authenticated insert/update/delete
-- RLS on `storage.objects` so users can only write under `auth.uid()/...`
-- 100 MB per-object limit, allowed mime types: `audio/*`
+## Fix
 
-Add columns to `public.auras` (nullable for backwards compatibility):
+1. **Upload cover images to Supabase Storage** instead of base64 in localStorage.
+   - Reuse the existing public `auragram-audio` bucket via a new `auralinks/` prefix, or add a new public bucket `auralink-images` (cleaner).
+   - On image select, upload immediately and store only the resulting public URL in component state (and ultimately in the page record).
+   - Show a small "Uploading…" state on the file field while in flight; disable Publish until done.
 
-- `audio_storage_path text`
-- `audio_public_url text`
-- `audio_file_name text`
-- `audio_mime_type text`
-- `audio_size_bytes bigint`
-- `audio_duration_seconds numeric`
+2. **Defensive save in `src/lib/auralink.ts`**
+   - Wrap `localStorage.setItem` in try/catch. On `QuotaExceededError`, surface a real error (return `null` / throw) so the caller can `toast.error("Storage full — try a smaller cover image.")` instead of silently failing.
 
-## Frontend changes
+3. **Trim payload before persisting**
+   - If `profileImageUrl` is still a `data:` URL for any reason (legacy entries), reject it at save time with a clear error rather than attempting to write.
 
-### `src/lib/audioStorage.ts` (new)
-- `uploadAuraAudio({ userId, auraId, file })` → uploads to `auragram-audio/{userId}/{auraId}/{safeName}` using the browser supabase client, returns `{ storagePath, publicUrl, fileName, mimeType, sizeBytes, durationSeconds }`.
-- Uses `supabase.storage.from('auragram-audio').upload(path, file, { upsert: true, contentType })` and then `getPublicUrl`.
-- Probes duration with a temporary `HTMLAudioElement` + the local object URL.
-- Validates: MIME starts with `audio/` or extension in `.mp3 .wav .m4a .aac .ogg .webm`; size ≤ 100 MB.
+4. **Compress as a safety net**
+   - Before upload, downscale the image client-side to max 512×512 JPEG (quality 0.85) using a `<canvas>` helper. Keeps uploads fast and predictable.
 
-### `src/lib/tracks.ts` and `src/lib/farm.ts`
-- Extend `Track` and `SavedAura` with: `audioStoragePath`, `audioPublicUrl`, `audioFileName`, `audioMimeType`, `audioSizeBytes`, `audioDurationSeconds`, `uploadStatus: "pending" | "uploading" | "complete" | "failed"`.
-- `saveAuraFromTrack` carries the new fields through.
+## Files to change
 
-### `src/lib/cloudAura.ts`
-- Persist the new audio fields on insert/update of `auras` rows (mapped to the new columns).
+- `src/lib/auralink.ts` — try/catch around `write()`; bubble quota errors.
+- `src/routes/auralink.create.tsx` — replace `FileReader` data-URL flow with Supabase upload; add upload state; gate Publish on upload completion; show toast on save failure.
+- `src/lib/auralinkImages.ts` *(new)* — small helper: `compressImage(file)` + `uploadAuraLinkCover(file, userId)` returning a public URL.
+- *(optional)* `supabase/migrations/<timestamp>_auralink_images_bucket.sql` — create `auralink-images` public bucket with owner-write RLS, mirroring the audio bucket pattern. If we reuse `auragram-audio`, no migration needed.
 
-### `src/routes/create.tsx`
-- After `onPick`/`onRawRecorded`, kick off `uploadAuraAudio` for the (already‑allocated) `auraId` and track an `uploadStatus` state. Keep the local `URL.createObjectURL(file)` only as a preview while uploading.
-- Generate the `id` once when a file is chosen so the storage path is stable.
-- Block `submit()` while `uploadStatus === "uploading"`; on `failed`, show "Upload failed. Please try again." and allow retry.
-- Save returned audio fields onto the track and into cloud Aura row.
-- For Auracle multi-file flow, upload each file with its allocated id.
+## Acceptance criteria
 
-### `src/routes/aura.$id.tsx`
-- Source priority for `<audio>` and Aurascope analysis:
-  1. `track.audioPublicUrl` (preferred — survives refresh, set `crossOrigin="anonymous"`)
-  2. `getSessionAudio(id)?.audioUrl` (in-memory preview during the same session)
-  3. legacy `track.audioDataUrl`
-- If none and `sourceType === "upload"`, render the "no longer available" message.
+- Selecting a cover image uploads to Supabase Storage and shows a progress indicator.
+- Publish succeeds for users with existing Farm data; the page navigates to `/l/<slug>`.
+- No `QuotaExceededError` in console after publishing.
+- If localStorage ever fills up for another reason, the user sees a clear toast instead of a silent no-op.
+- Existing AuraLinks without a cover image continue to work (fallback to featured Aurascope).
 
-### `src/components/AuraLinkView.tsx` and `src/routes/l.$slug.tsx`
-- When rendering an Aura with `audioPublicUrl`, allow playback of that URL on the public link page (existing logic just gains the new fallback).
+## Decision needed
 
-## Technical notes
-
-- Bucket is public for MVP (matches the public AuraLink expectation). We can switch to signed URLs later without changing call sites — `audioPublicUrl` is the single read field.
-- File names are sanitized (`replace(/[^a-z0-9._-]+/gi, '_')`) and stored under `{userId}/{auraId}/...` so each user's uploads are isolated and RLS on `storage.objects` enforces ownership.
-- `supabase.storage.upload` runs from the browser client with the user's session — no edge function needed.
-- No change to existing `session.ts` flow; it still provides instant local preview before the network round-trip completes.
-
-## Acceptance check
-
-- Upload → refresh `/aura/:id` → audio still plays.
-- Save to Farm → log out and back in → Farm card plays.
-- Build an AuraLink with that Aura → open `/l/:slug` in incognito → Aura plays.
-- Upload a 200 MB file → rejected with size toast.
-- Upload a `.txt` → rejected with type toast.
+Reuse `auragram-audio` bucket under an `auralinks/` prefix (no migration), or add a dedicated `auralink-images` bucket (one small migration, cleaner separation)? Default recommendation: **dedicated bucket**.
