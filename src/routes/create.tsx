@@ -636,6 +636,8 @@ function CreatePage() {
                   canDetect={canDetect}
                 />
 
+                <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
+
                 <div className="flex items-center gap-4 pt-1">
                   <Aurascope
                     aura={{ palette: preview.palette, auraName: preview.auraName, profile: preview, colors: preview.colors }}
