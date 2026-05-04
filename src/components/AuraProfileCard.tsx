@@ -25,6 +25,9 @@ export function AuraProfileCard({
   keyDetected,
   pitchCenter,
   sourceType,
+  editable = false,
+  onSaveVibe,
+  onRegenerateVibe,
 }: {
   name: string;
   moods: string[];
@@ -41,6 +44,9 @@ export function AuraProfileCard({
   keyDetected?: boolean;
   pitchCenter?: PitchCenter;
   sourceType?: SourceType;
+  editable?: boolean;
+  onSaveVibe?: (text: string) => Promise<void> | void;
+  onRegenerateVibe?: () => Promise<void> | void;
 }) {
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
