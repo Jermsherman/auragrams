@@ -140,6 +140,47 @@ function CreatePage() {
     if (!ready) return;
     setBusy(true);
     try {
+      if (mode === "auracle") {
+        const auraIds: string[] = [];
+        for (const file of auracleFiles) {
+          const id = makeId();
+          const trackTitle = file.name.replace(/\.[^.]+$/, "").trim() || "Untitled";
+          const aura = generateAura({
+            id,
+            title: trackTitle,
+            artist: artist.trim(),
+            moods: [],
+            detectedKey: null,
+          });
+          const audioUrl = URL.createObjectURL(file);
+          setSessionAudio(id, file, audioUrl);
+          const track = {
+            id,
+            title: trackTitle,
+            artist: artist.trim(),
+            artistHandle: slugify(artist.trim()) || "artist",
+            seed: seedFromId(id),
+            createdAt: Date.now(),
+            moods: [],
+            hasLocalAudio: true,
+            ...aura,
+          };
+          saveTrack(track);
+          saveAuraFromTrack(track);
+          auraIds.push(id);
+        }
+        const a = saveAuracle({
+          title: title.trim(),
+          artistName: artist.trim(),
+          projectType: auracleType,
+          description: auracleDesc.trim() || undefined,
+          auraIds,
+        });
+        toast.success("Auracle created.");
+        nav({ to: "/auracle/$id", params: { id: a.id } });
+        return;
+      }
+
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
       const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods, detectedKey });
@@ -157,23 +198,13 @@ function CreatePage() {
       };
       if (mode === "file") {
         if (!audio) return;
-        // Create a temporary object URL — do NOT read or persist the file.
         const audioUrl = URL.createObjectURL(audio);
-        console.log("Audio URL:", audioUrl);
-
-        // Validate the browser can decode this format before continuing.
         const probe = document.createElement("audio");
-        const canPlay =
-          probe.canPlayType(audio.type || "") ||
-          probe.canPlayType("audio/mpeg") ||
-          "";
         if (audio.type && probe.canPlayType(audio.type) === "") {
           toast.error(
             "This audio format may not be supported by your browser. Try MP3 or WAV.",
           );
         }
-        void canPlay;
-
         setSessionAudio(id, audio, audioUrl);
         saveTrack({ ...base, hasLocalAudio: true });
       } else {
