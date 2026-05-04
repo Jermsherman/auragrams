@@ -698,7 +698,13 @@ export function generateAura(input: {
       : fallbackKey;
   const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
 
-  const colors = buildPalette(input.moods, kp, seed);
+  const colors = buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
+  const influence = input.userColorInfluence ?? null;
+  const colorGuided = !!(influence && influence.mode !== "surprise" && (
+    (influence.mode === "single" && influence.colors.length > 0) ||
+    (influence.mode === "palette" && influence.colors.length > 0) ||
+    (influence.mode === "description" && colorWordsToHex(influence.description).length > 0)
+  ));
   const desc = generateDescriptions({ seedKey, moods: input.moods, kp, baseKey });
 
   const isRaw = input.sourceType === "raw_recording";
