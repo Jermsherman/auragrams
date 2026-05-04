@@ -49,13 +49,13 @@ export const Route = createFileRoute("/create")({
       {
         name: "description",
         content:
-          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
       { property: "og:title", content: "Gain an Aura — Auragram" },
       {
         property: "og:description",
         content:
-          "Upload a sound, paste a music link, or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
+          "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
     ],
   }),
