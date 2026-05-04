@@ -176,12 +176,20 @@ function Index() {
             <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
               Give your music a <span className="text-aura-gradient">living identity.</span>
             </h2>
-            <Link
-              to="/create"
-              className="mt-10 inline-flex items-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
-            >
-              Gain Aura <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/create"
+                className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                Create Aura <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/auralink/create"
+                className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium glass-strong"
+              >
+                <Link2 className="h-4 w-4" /> Build AuraLink
+              </Link>
+            </div>
           </div>
         </section>
       </main>
