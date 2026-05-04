@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope } from "@/components/Aurascope";
 import { AuracleOrb } from "@/components/AuracleOrb";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { AuracleShareDialog } from "@/components/AuracleShareDialog";
@@ -211,7 +212,11 @@ function AuraclePage() {
                   <span className="w-6 text-center text-xs text-muted-foreground tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <OrbVisual size={48} palette={m.palette} hueShift={m.seed} particles={false} />
+                  <Aurascope
+                    aura={{ palette: m.palette, seed: m.seed, auraName: m.auraName, trackTitle: m.trackTitle }}
+                    size="mini"
+                    mode="minimal"
+                  />
                   <div className="flex-1 min-w-0 text-left">
                     <div className="text-sm font-medium truncate">{m.trackTitle}</div>
                     <div className="text-[11px] text-muted-foreground truncate">
