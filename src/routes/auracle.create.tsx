@@ -42,7 +42,7 @@ export const Route = createFileRoute("/auracle/create")({
       },
     ],
   }),
-  component: CreateAuraclePage,
+  component: () => (<RequireAuth><CreateAuraclePage /></RequireAuth>),
 });
 
 const TYPES: AuracleProjectType[] = [

@@ -24,7 +24,7 @@ export const Route = createFileRoute("/farm")({
       },
     ],
   }),
-  component: FarmPage,
+  component: () => (<RequireAuth><FarmPage /></RequireAuth>),
 });
 
 type Filter = "all" | "upload" | "platform_link" | "raw_recording";
