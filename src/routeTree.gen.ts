@@ -9,15 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuracleCreateRouteImport } from './routes/auracle.create'
 import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
 import { Route as ArtistHandleRouteImport } from './routes/artist.$handle'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GeneratingRoute = GeneratingRouteImport.update({
   id: '/generating',
   path: '/generating',
@@ -31,6 +38,11 @@ const FarmRoute = FarmRouteImport.update({
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -61,9 +73,11 @@ const ArtistHandleRoute = ArtistHandleRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
+  '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
@@ -71,9 +85,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
+  '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
@@ -82,9 +98,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/farm': typeof FarmRoute
   '/generating': typeof GeneratingRoute
+  '/onboarding': typeof OnboardingRoute
   '/artist/$handle': typeof ArtistHandleRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
@@ -94,9 +112,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/create'
     | '/farm'
     | '/generating'
+    | '/onboarding'
     | '/artist/$handle'
     | '/aura/$id'
     | '/auracle/$id'
@@ -104,9 +124,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/create'
     | '/farm'
     | '/generating'
+    | '/onboarding'
     | '/artist/$handle'
     | '/aura/$id'
     | '/auracle/$id'
@@ -114,9 +136,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/create'
     | '/farm'
     | '/generating'
+    | '/onboarding'
     | '/artist/$handle'
     | '/aura/$id'
     | '/auracle/$id'
@@ -125,9 +149,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
   FarmRoute: typeof FarmRoute
   GeneratingRoute: typeof GeneratingRoute
+  OnboardingRoute: typeof OnboardingRoute
   ArtistHandleRoute: typeof ArtistHandleRoute
   AuraIdRoute: typeof AuraIdRoute
   AuracleIdRoute: typeof AuracleIdRoute
@@ -136,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/generating': {
       id: '/generating'
       path: '/generating'
@@ -155,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -197,9 +237,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
   FarmRoute: FarmRoute,
   GeneratingRoute: GeneratingRoute,
+  OnboardingRoute: OnboardingRoute,
   ArtistHandleRoute: ArtistHandleRoute,
   AuraIdRoute: AuraIdRoute,
   AuracleIdRoute: AuracleIdRoute,

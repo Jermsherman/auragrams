@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
+import { UserMenu } from "./UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Nav({ showCta = true }: { showCta?: boolean }) {
+  const { user } = useAuth();
   return (
     <header className="sticky top-0 z-40">
       <div className="absolute inset-0 backdrop-blur-md bg-background/40 border-b border-border/60" />
@@ -10,14 +13,16 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           <Logo />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            to="/farm"
-            activeProps={{ className: "text-foreground" }}
-            inactiveProps={{ className: "text-muted-foreground" }}
-            className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
-          >
-            Farm
-          </Link>
+          {user && (
+            <Link
+              to="/farm"
+              activeProps={{ className: "text-foreground" }}
+              inactiveProps={{ className: "text-muted-foreground" }}
+              className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
+            >
+              Farm
+            </Link>
+          )}
           {showCta && (
             <Link
               to="/create"
@@ -27,6 +32,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
               <span className="sm:hidden">Create</span>
             </Link>
           )}
+          <UserMenu />
         </div>
       </nav>
     </header>
