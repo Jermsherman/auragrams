@@ -56,7 +56,7 @@ export function AuracleShareDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
               Share Auracle
