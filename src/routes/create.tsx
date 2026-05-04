@@ -736,27 +736,6 @@ function ModeTab({
   );
 }
 
-function labelFor(p: string) {
-  return (
-    {
-      spotify: "Spotify",
-      youtube: "YouTube",
-      "youtube-music": "YouTube Music",
-      soundcloud: "SoundCloud",
-      apple: "Apple Music",
-      audiomack: "Audiomack",
-      bandcamp: "Bandcamp",
-      tidal: "Tidal",
-      deezer: "Deezer",
-      amazon: "Amazon Music",
-      pandora: "Pandora",
-      boomplay: "Boomplay",
-      audius: "Audius",
-      smartlink: "Smart Link",
-      external: "External Link",
-    }[p] || "External Link"
-  );
-}
 
 function Field({
   label,
