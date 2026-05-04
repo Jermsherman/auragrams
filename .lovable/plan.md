@@ -1,131 +1,98 @@
-# Auragram — Phase 2 Plan
+# Expressive Aura System v2
 
-Make every track feel like a living identity: a personalized aura profile, mood-driven palettes, an artist profile, an Instagram-ready story preview, and a richer share flow.
+Goal: every aura should feel like its own emotional organism — distinct shape, motion, texture, particle behavior, and atmosphere — not a re-tinted version of the same orb.
 
-## 1. Mood + palette system (`src/lib/aura.ts`)
+## 1. Expand the mood → personality mapping (`src/lib/aura.ts`)
 
-Single source of truth for moods, palettes, and aura-name generation.
+Replace the current 5-palette system with a richer **AuraPersonality** record keyed by mood. Each personality bundles everything the visual layer needs:
 
-- **Moods**: `Warm, Dark, Nostalgic, Euphoric, Chill, Cinematic, Romantic, Energetic, Melancholy, Dreamy, Coastal, Night Drive` — each tagged with a primary palette key.
-- **Palettes** (5 presets, each = 4 oklch stops + a `--gradient-aura` and a `--shadow-glow`):
-  - `warm-nostalgic` (purple / pink / orange / peach) — default
-  - `dark-cinematic` (black / violet / deep blue / crimson)
-  - `bright-euphoric` (blue / cyan / pink / white)
-  - `coastal-dreamy` (teal / blue / lavender / soft pink)
-  - `melancholy-romantic` (deep purple / rose / muted red / soft amber)
-- **Palette resolver**: from selected moods, pick the palette of the dominant mood (first selected wins ties).
-- **Aura name generator**: `[adjective from moods] + [noun from moods]` from a small curated list (e.g., "Coastal Nostalgia", "Velvet Midnight", "Glass Horizon"). Deterministic from `seed + moods` so the same upload always reads the same.
-- **Energy**: deterministic 35–95% from seed, biased by mood (Energetic/Euphoric → high; Chill/Melancholy → low).
-- **Description**: small templated sentence built from 2–3 selected moods.
-
-## 2. Track model update (`src/lib/tracks.ts`)
-
-Extend `Track` with:
 ```ts
-moods: string[];
-palette: PaletteKey;
-auraName: string;
-energy: number;
-description: string;
-streaming?: { spotify?: string; apple?: string; soundcloud?: string };
-artistHandle?: string;        // slug from artist name
+type AuraPersonality = {
+  key: MoodKey;                  // warm, nostalgic, dreamy, euphoric,
+                                 // romantic, melancholy, dark, cinematic,
+                                 // coastal, intimate, mysterious, energetic
+  label: string;
+  stops: [string, string, string, string, string]; // 5 oklch stops
+  swatches: string[];
+  glow: string;                  // halo tint
+  atmosphere: string;            // background gradient color
+  shape: "round" | "oval" | "soft-blob" | "tall" | "wide";
+  motion: "breathe" | "pulse" | "tide" | "shimmer" | "drift" | "smoke";
+  texture: "smooth" | "grain" | "silk" | "mist" | "smoke" | "ripple";
+  particle: "dust" | "smoke" | "shimmer" | "mist" | "embers" | "tide";
+  particleCount: number;         // 6 – 28
+  speed: number;                 // 0.4 – 1.6 motion multiplier
+  hueShift: number;
+};
 ```
-Backwards-compatible: existing Phase 1 tracks read with sensible defaults via a `hydrateTrack()` helper. Add helpers `listTracks()` and `listTracksByHandle(handle)`.
 
-## 3. Orb upgrade (`src/components/OrbVisual.tsx`)
+Add 12 personalities matching the requested moods (Warm, Nostalgic, Dreamy, Euphoric, Romantic, Melancholy, Dark, Cinematic, Coastal, Intimate, Mysterious, Energetic). Update `paletteFromMoods` → `personalityFromMoods` (first matching mood wins, deterministic fallback by hash).
 
-- Accept a `palette` prop (PaletteKey) — orb pulls gradient stops + glow from that palette via inline CSS variables, replacing the current global-only gradient.
-- Add a soft particle layer (8–14 small dots floating with `animate-float-y`, opacity tied to `intensity`).
-- Stronger reaction when audio plays (already wired via analyser); add a second layer that scales + glows from bass-band only.
+Keep `PaletteKey` as a re-export alias of `MoodKey` so existing track data still loads; map the 5 old keys to the closest new personality.
 
-## 4. Create page upgrades (`src/routes/create.tsx`)
+## 2. Rewrite `OrbVisual.tsx` as layered render
 
-After title/artist/source, add an optional **mood selector** (1–3 selectable):
-- Pill buttons with subtle border; selected → palette gradient fill + glow + scale.
-- Counter: "Pick up to 3".
-- A live mini-orb preview reflects the chosen palette in real time.
-- A small "What's your aura?" preview line shows the generated aura name.
+Replace the current 4-layer orb with 6 stacked layers, all driven by the personality:
 
-On submit, persist `moods, palette, auraName, energy, description, artistHandle`.
+```text
+┌─ ambient atmosphere (full-bleed radial, very soft)
+│  ┌─ outer halo (blurred glow, breathes with bass)
+│  │  ┌─ outer shell (conic, slow rotation, hue from palette)
+│  │  │  ┌─ inner core (radial, audio-reactive scale)
+│  │  │  │  ┌─ texture overlay (grain / silk / mist / smoke / ripple SVG)
+│  │  │  │  │  └─ sheen highlight
+│  │  │  │  └─ particle field (style + count from personality)
+```
 
-## 5. Aura experience page upgrade (`src/routes/aura.$id.tsx`)
+Key changes:
+- Accept `personality` prop instead of `palette`; keep `palette` as deprecated alias.
+- Shape: apply non-uniform `border-radius` / `scaleX/Y` per `shape` (oval, blob, tall, wide).
+- Motion: swap the single `animate-spin-slow` for motion variants — `breathe`, `pulse` (sharper bass response), `tide` (slow XY sway), `shimmer` (rotating sheen), `drift` (slow translate), `smoke` (turbulence-style filter).
+- Texture: SVG `<filter>` overlays for grain (feTurbulence + composite), silk (feDisplacementMap), mist/smoke (large blurred turbulence), ripple (animated displacement). Defined once in component, referenced by id.
+- Particles: per-style sprite — round dust, blurred smoke puffs, sharp shimmer sparks, soft mist blobs, ember dots with warm glow, horizontal tide streaks. Count + speed from personality.
+- Drop the global `--hue` rotation hack; colors come straight from palette stops so each mood looks distinct rather than hue-shifted from the same base.
 
-- Orb uses the track's palette.
-- Below the player, an **Aura Profile card** (glass):
-  - Eyebrow: `AURA PROFILE`
-  - Aura name (display font)
-  - Mood tags (pill chips)
-  - Energy bar (palette-gradient fill, % label)
-  - Short description
-  - Color palette dots (4 swatches)
-- Streaming buttons row (only renders when at least one URL is set): Spotify · Apple Music · SoundCloud — small glass pills with brand-tinted dot.
-- Background hue subtly shifts to match palette (radial gradient overlay).
+## 3. Background atmosphere on the experience page (`src/routes/aura.$id.tsx`)
 
-## 6. Share modal upgrade (`src/components/ShareDialog.tsx`)
+Add a fixed, behind-everything `<AuraAtmosphere personality={...} />` component:
+- Two oversized blurred radial gradients using the personality's `atmosphere` + `glow` colors, slowly drifting.
+- Subtle vignette so the orb sits in a "scene", not on flat black.
+- Respects `prefers-reduced-motion`.
 
-Three actions stacked:
-1. **Copy Auragram link** (primary)
-2. **Share via device** (when `navigator.share` available)
-3. **View Story Preview** → opens story modal
+This is what sells the cinematic / coastal / intimate feeling beyond the orb itself.
 
-Plus a collapsible **"Add streaming links"** section with three inputs (Spotify / Apple / SoundCloud). Persisting updates the track in localStorage and re-renders the aura page chips. All optional.
+## 4. Poetic descriptions (`descriptionFor` in `src/lib/aura.ts`)
 
-## 7. Story Preview (`src/components/StoryPreview.tsx`)
+Replace the current single-template description with a small grammar:
 
-A 9:16 vertical canvas (rendered as a styled `<div>` framed inside a Dialog at `aspect-[9/16]`, `max-h-[80vh]`):
+```text
+"A {tone} {mood} aura with {colorPhrase}, {edgePhrase}, and {motionPhrase}."
+```
 
-- Full-bleed dark background tinted by palette
-- Large animated orb centered (~70% width)
-- Track title + artist below orb
-- One mood tag chip
-- Auragram logo watermark bottom
-- Tagline: `Listen now · Open Auragram`
+Each personality contributes its own phrase pools, e.g.:
+- Warm: tone=`warm coastal`, color=`sunset tones`, edge=`glowing edges`, motion=`slow tidal motion`
+- Cinematic: tone=`deep cinematic`, color=`indigo and crimson shadow`, edge=`a smoldering halo`, motion=`a heavy pulse`
+- Dreamy: tone=`weightless`, color=`lavender and cyan light`, edge=`a shimmering veil`, motion=`airy floating drift`
 
-**Download**: render the DOM node to PNG using `html-to-image` (small, edge-safe, no native deps). Falls back to a toast "Saved to downloads" message. If rendering fails, show "Long-press to save" hint on mobile.
+Pick deterministically from the seed so the same track keeps the same description.
 
-Add `bun add html-to-image`.
+## 5. Update consumers
 
-## 8. Artist profile page (`src/routes/artist.$handle.tsx`)
+- `MoodPicker.tsx`: drive previews from new personalities; show a small motion hint badge.
+- `AuraProfileCard.tsx`: use `personality.swatches`; add a one-line "motion · texture · particle" descriptor under the energy bar.
+- `StoryCanvas.tsx`: pass `personality` so exported story matches; ensure html-to-image still captures filters (use `cacheBust: true`, embed SVG filters inline — already inline so fine).
+- `create.tsx` / `generating.tsx` / `artist.$handle.tsx`: switch `palette` prop → `personality`.
 
-Public-feeling profile:
-- Top: Auragram logo (left), share link (right)
-- Hero: artist name (display), small bio (editable inline → saved to `localStorage` `auragram:artists:{handle}`)
-- Featured aura: most recent track shown as a larger card with full orb + play
-- Grid (1 col mobile, 2-3 desktop) of remaining tracks. Each card:
-  - Mini orb (size 96–120) using the track's palette
-  - Track title + mood tag
-  - Play button (inline mini player using existing `AudioPlayer` for file tracks, or "Open" link for streaming-only)
-  - "Open aura" → navigates to `/aura/:id`
+## 6. Performance + a11y
 
-If a handle has no tracks, show a graceful empty state with seeded demo tracks (Jerm Sherman: "South Shore Lady", "Midnight Thoughts", "Higher Ground") generated on the fly so the page always feels populated for demo links.
-
-Auto-link from the aura page artist name → `/artist/:handle`.
-
-## 9. Subtle polish
-
-- Mood pill component reused in: create page, aura profile card, story preview.
-- Page transitions: keep existing `animate-fade-up` consistently on hero blocks.
-- Background tint per page driven by `--page-tint` set from palette.
+- Single `requestAnimationFrame` loop per orb (already the case); cap particle count at 28.
+- Pause motion when `document.hidden` or `prefers-reduced-motion: reduce` (fall back to static gradient + halo).
+- Texture SVG filters defined once per orb, not per particle.
 
 ## Files
 
-**New**
-- `src/lib/aura.ts` — moods, palettes, generators
-- `src/components/MoodPicker.tsx`
-- `src/components/AuraProfileCard.tsx`
-- `src/components/StreamingLinks.tsx`
-- `src/components/StoryPreview.tsx`
-- `src/components/MiniOrb.tsx` (thin wrapper for sizes/perf)
-- `src/routes/artist.$handle.tsx`
+Edited: `src/lib/aura.ts`, `src/components/OrbVisual.tsx`, `src/components/AuraProfileCard.tsx`, `src/components/MoodPicker.tsx`, `src/components/StoryCanvas.tsx`, `src/components/StoryPreviewDialog.tsx`, `src/routes/aura.$id.tsx`, `src/routes/create.tsx`, `src/routes/generating.tsx`, `src/routes/artist.$handle.tsx`.
 
-**Modified**
-- `src/lib/tracks.ts` (Track shape, hydrate, list helpers, streaming, artistHandle)
-- `src/components/OrbVisual.tsx` (palette prop, particles)
-- `src/components/ShareDialog.tsx` (story preview, streaming inputs)
-- `src/routes/create.tsx` (mood picker, live preview)
-- `src/routes/aura.$id.tsx` (palette orb, profile card, streaming row, link to artist page)
-- `src/styles.css` (palette variables + utility classes)
+Created: `src/components/AuraAtmosphere.tsx`.
 
-## Out of scope
-
-Backend/auth, analytics, real audio analysis for naming, Reels/TikTok auto-post, video export, multi-aura editing tools, NFT/crypto language.
+No new dependencies.
