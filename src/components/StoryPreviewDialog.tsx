@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StoryCanvas } from "./StoryCanvas";
-import type { Track } from "@/lib/tracks";
+import { providerLabel as labelFor, type Track } from "@/lib/tracks";
 
 export function StoryPreviewDialog({
   track,
