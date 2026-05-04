@@ -82,7 +82,7 @@ function CreatePage() {
   );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  const [link, setLink] = useState("");
+  // link mode removed
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
