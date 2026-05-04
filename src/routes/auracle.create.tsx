@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope } from "@/components/Aurascope";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import {
   PROJECT_TYPE_LABELS,
@@ -221,7 +222,7 @@ function CreateAuraclePage() {
                         <Check className="h-3 w-3" />
                       </span>
                     )}
-                    <OrbVisual size={56} palette={a.palette} hueShift={a.seed} particles={false} />
+                    <Aurascope aura={{ palette: a.palette, seed: a.seed }} size="mini" mode="minimal" />
                     <div className="w-full min-w-0 text-center">
                       <div className="text-xs font-medium truncate">{a.trackTitle}</div>
                       <div className="text-[10px] text-muted-foreground truncate">
@@ -252,7 +253,7 @@ function CreateAuraclePage() {
                       <span className="w-6 text-center text-xs text-muted-foreground tabular-nums">
                         {i + 1}
                       </span>
-                      <OrbVisual size={36} palette={a.palette} hueShift={a.seed} particles={false} />
+                      <Aurascope aura={{ palette: a.palette, seed: a.seed }} size="mini" mode="minimal" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm truncate">{a.trackTitle}</div>
                         <div className="text-[11px] text-muted-foreground truncate">
