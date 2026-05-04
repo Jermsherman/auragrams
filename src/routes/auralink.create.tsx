@@ -639,7 +639,7 @@ function Section({
         <h2 className="font-display text-lg">{title}</h2>
         {action}
       </div>
-      <div className="rounded-3xl border border-border/60 bg-background/30 p-5">
+      <div className="rounded-2xl sm:rounded-3xl border border-border/60 bg-background/30 p-3 sm:p-5">
         {children}
       </div>
     </section>
