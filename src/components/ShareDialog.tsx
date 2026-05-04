@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Share2, Copy, Check, Sparkles, Music2, ChevronDown } from "lucide-react";
+import {
+  Share2,
+  Copy,
+  Check,
+  Sparkles,
+  Music2,
+  ChevronDown,
+  Bookmark,
+  BookmarkCheck,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -10,9 +20,19 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { StoryPreviewDialog } from "./StoryPreviewDialog";
-import { updateTrack, type Track, type StreamingLinks } from "@/lib/tracks";
+import { updateTrack, providerLabel, type Track, type StreamingLinks } from "@/lib/tracks";
 
-export function ShareDialog({ track, url }: { track: Track; url: string }) {
+export function ShareDialog({
+  track,
+  url,
+  saved = false,
+  onSave,
+}: {
+  track: Track;
+  url: string;
+  saved?: boolean;
+  onSave?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
