@@ -341,12 +341,21 @@ function CreatePage() {
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm">
+          <div className="glass rounded-full p-1 grid grid-cols-4 text-sm gap-0.5">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" /> <span className="hidden sm:inline">Upload</span> File
+              <UploadCloud className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload File</span>
+              <span className="sm:hidden">File</span>
             </ModeTab>
             <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Paste</span> Link
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Paste Link</span>
+              <span className="sm:hidden">Link</span>
+            </ModeTab>
+            <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Raw Aura</span>
+              <span className="sm:hidden">Raw</span>
             </ModeTab>
             <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
               <Layers className="h-4 w-4" /> Auracle
