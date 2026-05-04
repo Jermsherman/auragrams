@@ -156,7 +156,14 @@ function AuraPage() {
               <BookmarkCheck className="h-3.5 w-3.5" /> Saved
             </span>
           )}
-          <ShareDialog track={track} url={url} saved={saved} onSave={handleSave} />
+          <ShareDialog
+            track={track}
+            url={url}
+            saved={saved}
+            onSave={handleSave}
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+          />
         </div>
       </header>
 
