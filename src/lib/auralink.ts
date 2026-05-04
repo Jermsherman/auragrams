@@ -53,7 +53,17 @@ function read(): Record<string, AuraLinkPage> {
   }
 }
 function write(map: Record<string, AuraLinkPage>) {
-  localStorage.setItem(KEY, JSON.stringify(map));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(map));
+  } catch (e: unknown) {
+    const err = e as { name?: string };
+    if (err?.name === "QuotaExceededError") {
+      throw new Error(
+        "Local storage is full. Try a smaller cover image or remove old AuraLinks.",
+      );
+    }
+    throw e as Error;
+  }
 }
 
 export function getAuraLinks(): AuraLinkPage[] {
