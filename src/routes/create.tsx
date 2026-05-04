@@ -125,7 +125,8 @@ function CreatePage() {
         : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
 
   const detectedKeyStr = keyDetection?.key ?? null;
-  const sourceType = mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
+  const sourceType: "raw_recording" | "platform_link" | "upload" =
+    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
 
   const handleDetectMood = async () => {
     if (mode === "link") {
