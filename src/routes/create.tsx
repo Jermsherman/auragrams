@@ -261,6 +261,19 @@ function CreatePage() {
           });
           const audioUrl = URL.createObjectURL(file);
           setSessionAudio(id, file, audioUrl);
+
+          let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+          if (user) {
+            try {
+              uploaded = await uploadAuraAudio({ authUserId: user.id, auraId: id, file });
+            } catch (e) {
+              console.error("audio upload", e);
+              toast.error("Upload failed. Please try again.");
+              setBusy(false);
+              return;
+            }
+          }
+
           const track = {
             id,
             title: trackTitle,
@@ -270,6 +283,13 @@ function CreatePage() {
             createdAt: Date.now(),
             moods: [],
             hasLocalAudio: true,
+            audioStoragePath: uploaded?.storagePath,
+            audioPublicUrl: uploaded?.publicUrl,
+            audioFileName: uploaded?.fileName,
+            audioMimeType: uploaded?.mimeType,
+            audioSizeBytes: uploaded?.sizeBytes,
+            audioDurationSeconds: uploaded?.durationSeconds ?? undefined,
+            uploadStatus: uploaded ? ("complete" as const) : ("failed" as const),
             ...aura,
           };
           saveTrack(track);
