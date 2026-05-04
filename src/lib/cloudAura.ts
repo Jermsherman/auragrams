@@ -111,6 +111,12 @@ export async function saveAuraToCloud(opts: {
     },
     public_artist_name: publicArtistName,
     public_handle: publicHandle,
+    audio_storage_path: saved.audioStoragePath ?? null,
+    audio_public_url: saved.audioPublicUrl ?? null,
+    audio_file_name: saved.audioFileName ?? null,
+    audio_mime_type: saved.audioMimeType ?? null,
+    audio_size_bytes: saved.audioSizeBytes ?? null,
+    audio_duration_seconds: saved.audioDurationSeconds ?? null,
     extra: {
       coverDataUrl: saved.coverDataUrl ?? null,
       keyConfidence: saved.keyConfidence,
