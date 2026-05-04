@@ -310,9 +310,18 @@ function AuraPage() {
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (
-            <AudioPlayer
+            <AudioUploadPlayer
               src={audioUrl}
               palette={track.palette}
+              fileMeta={
+                track.audioFileName
+                  ? {
+                      name: track.audioFileName,
+                      type: track.audioMimeType ?? "audio/*",
+                      size: track.audioSizeBytes ?? 0,
+                    }
+                  : null
+              }
               onPlayingChange={setPlaying}
               onAnalyserReady={(a) => {
                 analyserRef.current = a;
