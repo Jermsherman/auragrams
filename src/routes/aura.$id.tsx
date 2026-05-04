@@ -63,6 +63,8 @@ function AuraPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
