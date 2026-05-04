@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -62,6 +63,7 @@ function AuraPage() {
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -167,6 +169,7 @@ function AuraPage() {
             hueShift={track.seed}
             isPlaying={playing}
             analyser={analyserRef}
+            metricsRef={metricsRef.current ?? undefined}
             palette={track.palette}
             className={playing ? "" : "animate-breathe"}
           />
@@ -192,9 +195,14 @@ function AuraPage() {
           {audioUrl ? (
             <AudioPlayer
               src={audioUrl}
+              palette={track.palette}
               onPlayingChange={setPlaying}
               onAnalyserReady={(a) => {
                 analyserRef.current = a;
+                force((n) => n + 1);
+              }}
+              onMetricsReady={(m) => {
+                metricsRef.current = m;
                 force((n) => n + 1);
               }}
             />
