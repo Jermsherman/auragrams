@@ -27,6 +27,7 @@ import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
 import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope } from "@/components/Aurascope";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
 import { saveAuraFromTrack } from "@/lib/farm";
 import {
@@ -681,7 +682,11 @@ function CreatePage() {
                 />
 
                 <div className="flex items-center gap-4 pt-1">
-                  <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />
+                  <Aurascope
+                    aura={{ palette: preview.palette, auraName: preview.auraName, profile: preview, colors: preview.colors }}
+                    size="mini"
+                    mode="minimal"
+                  />
                   <div className="min-w-0">
                     <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                       Your aura
