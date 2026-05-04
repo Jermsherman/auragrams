@@ -112,11 +112,12 @@ export function AuraProfileCard({
 
       <Section title="Vibe" defaultOpen>
         <p className="text-sm leading-relaxed text-foreground/85">{description}</p>
-        {vibeDescription && (
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground italic">
-            “{vibeDescription}”
-          </p>
-        )}
+        <VibeEditor
+          vibeDescription={vibeDescription}
+          editable={editable}
+          onSaveVibe={onSaveVibe}
+          onRegenerateVibe={onRegenerateVibe}
+        />
         {motionKeywords && motionKeywords.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
             {motionKeywords.map((m) => (
