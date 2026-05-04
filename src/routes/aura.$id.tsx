@@ -15,7 +15,7 @@ import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2 } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
-import { updateAuraVibe } from "@/lib/cloudAura";
+import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { toast } from "sonner";
@@ -74,19 +74,63 @@ function AuraPage() {
   const [, force] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     const t = getTrack(id);
     setTrack(t);
     setSaved(isAuraSaved(id));
+
+    // Priority: local public URL → session blob (just uploaded) → legacy data URL
     if (t?.audioPublicUrl) {
       setAudioUrl(t.audioPublicUrl);
-    } else if (t?.hasLocalAudio) {
-      const session = getSessionAudio(id);
-      setAudioUrl(session?.audioUrl ?? null);
-    } else if (t?.audioDataUrl) {
-      setAudioUrl(t.audioDataUrl);
     } else {
-      setAudioUrl(null);
+      const session = getSessionAudio(id);
+      if (session?.audioUrl) {
+        setAudioUrl(session.audioUrl);
+      } else if (t?.audioDataUrl) {
+        setAudioUrl(t.audioDataUrl);
+      } else {
+        setAudioUrl(null);
+      }
     }
+
+    // Cloud fallback: hydrate audioPublicUrl (and basic track shell) from the
+    // server when the local cache doesn't have it (e.g. another device, or
+    // local cache cleared).
+    (async () => {
+      if (t?.audioPublicUrl) return;
+      try {
+        const row = await getPublicAura(id);
+        if (cancelled || !row?.audio_public_url) return;
+        setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        if (!t) {
+          // Build a minimal Track shell from the cloud row so the page renders.
+          const shell = {
+            id: row.id,
+            title: row.track_title,
+            artist: row.public_artist_name ?? "Unknown",
+            artistHandle: row.public_handle ?? "artist",
+            seed: 0,
+            createdAt: new Date(row.created_at).getTime(),
+            moods: row.mood_tags ?? [],
+            palette: (row.palette_name as Track["palette"]) ?? "amethyst",
+            auraName: row.aura_name ?? row.track_title,
+            energy: Number(row.energy_level ?? 0.6),
+            description: row.aura_description ?? "",
+            hasLocalAudio: !!row.audio_storage_path,
+            audioPublicUrl: row.audio_public_url ?? undefined,
+            audioStoragePath: row.audio_storage_path ?? undefined,
+            sourceType: (row.source_type as Track["sourceType"]) ?? "upload",
+          } as Track;
+          setTrack(shell);
+        }
+      } catch {
+        /* ignore — local-only mode still works */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (track === undefined) {
