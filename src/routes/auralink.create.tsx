@@ -31,6 +31,7 @@ import {
   type AuraLinkTheme,
 } from "@/lib/auralink";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
+import { HelpLink } from "@/components/HelpLink";
 
 export const Route = createFileRoute("/auralink/create")({
   head: () => ({

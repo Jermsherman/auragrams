@@ -9,6 +9,7 @@ import { AuracleCard } from "@/components/AuracleCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { getSavedAuracles, type Auracle } from "@/lib/auracle";
+import { HelpLink } from "@/components/HelpLink";
 
 export const Route = createFileRoute("/farm")({
   head: () => ({
