@@ -9,15 +9,15 @@ const search = z.object({ id: z.string().optional() });
 export const Route = createFileRoute("/generating")({
   validateSearch: (s) => search.parse(s),
   head: () => ({
-    meta: [{ title: "Creating your aura…" }],
+    meta: [{ title: "Shaping your Aura… — Auragram" }],
   }),
   component: GeneratingPage,
 });
 
 const MESSAGES = [
-  "Analyzing your sound…",
-  "Mapping motion, color, and energy…",
-  "Creating your aura…",
+  "Shaping your Aura…",
+  "Mapping mood, color, and motion…",
+  "Preparing your AuraLink…",
 ];
 
 function GeneratingPage() {
