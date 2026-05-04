@@ -1,113 +1,75 @@
+# Persist uploaded audio in Supabase Storage
 
-## AuraLink as a first-class product
+Today the uploader only creates an in-memory `URL.createObjectURL(file)` and references it via `setSessionAudio()`. After refresh the object URL dies, the Farm Aura plays nothing, and public AuraLinks have no audio. This patch uploads the file to Supabase Storage, saves the public URL on the track/Aura, and falls back to it for playback.
 
-Auragram already calls each Aura page an "AuraLink." This patch introduces the **AuraLink page builder** — a separate Linktree-style music-first page that bundles streaming links and saved Auras into a single shareable URL. To avoid confusion with the existing `/aura/$id` page (also called "AuraLink"), we treat per-track AuraLinks and the new multi-link AuraLink pages as two flavours of the same idea — the new builder is for "AuraLink pages."
+## What you'll see
 
-### 1. Data model — `src/lib/auralink.ts` (new)
+1. On `/create`, after picking/recording a file, an "Uploading audio…" indicator appears next to the track title. Submit stays disabled until the upload finishes (or you can cancel and pick another file).
+2. After saving, refreshing `/aura/:id` still plays the audio. Aurascope still reacts.
+3. The Farm card and any public AuraLink that includes that Aura play the same audio without needing a re-upload.
+4. Files >50 MB or non-audio MIME types are rejected with a clear toast.
+5. If a legacy Aura has no stored URL, the player shows: "This uploaded audio is no longer available. Re-upload to restore playback."
 
-```ts
-export type AuraLinkMode = "streaming_links" | "auras" | "mixed";
-export type AuraLinkTheme = "midnight" | "sunset" | "ocean" | "velvet" | "minimal";
-export type AuraLinkLink = {
-  id: string;
-  type: "streaming" | "custom" | "aura";
-  platformName?: string;   // spotify, apple, youtube, ...
-  label: string;
-  url?: string;
-  auraId?: string;
-  order: number;
-  icon?: string;
-  isFeatured?: boolean;
-};
-export type AuraLinkPage = {
-  id: string;
-  userId?: string;
-  createdAt: number;
-  updatedAt: number;
-  title: string;
-  artistName: string;
-  handleSlug: string;       // unique slug for /l/:slug
-  description?: string;
-  profileImageUrl?: string;
-  mode: AuraLinkMode;
-  selectedAuraIds: string[];
-  links: AuraLinkLink[];
-  theme: AuraLinkTheme;
-  visibility: "public" | "unlisted";
-  publicUrl?: string;
-};
-```
+## Backend changes
 
-CRUD via localStorage (key `auragram_auralinks`): `getAuraLinks`, `saveAuraLink`, `updateAuraLink`, `deleteAuraLink`, `getAuraLinkBySlug`, `slugify`, `ensureUniqueSlug`. Code structured so a Supabase migration is a drop-in later.
+Create a new public storage bucket `auragram-audio` via migration:
 
-### 2. Builder route — `src/routes/auralink.create.tsx` (new)
+- public read, authenticated insert/update/delete
+- RLS on `storage.objects` so users can only write under `auth.uid()/...`
+- 100 MB per-object limit, allowed mime types: `audio/*`
 
-Sections, top to bottom:
+Add columns to `public.auras` (nullable for backwards compatibility):
 
-- Header: "Build AuraLink" / "Create a music-first link page with streaming links, Auras, or both."
-- **Mode selector** ("What do you want to share?"): Streaming Links · Auras · Mixed Page (3 large pill cards).
-- **Identity block**: AuraLink title, artist name, slug (`/l/{slug}` preview), description, optional cover image (data URL upload).
-- **Links block** (visible in Streaming + Mixed):
-  - "Add Streaming Link" — opens a small platform picker (Spotify, Apple Music, SoundCloud, YouTube, YouTube Music, Bandcamp, Audiomack, Tidal, Deezer, Amazon Music, Pandora, Boomplay, Audius, Website, Merch, Tickets, Presave, Other) with URL + display label.
-  - "Add Custom Link" — label + URL.
-  - List with reorder (Move Up / Down) + remove.
-- **Auras block** (visible in Auras + Mixed): grid of saved Auras from Farm with checkmark selection, ordered list of selected ones. Empty-state with "Create Aura" / "Use Streaming Links" CTAs.
-- **Theme picker** ("Choose a vibe"): Midnight Glass · Sunset Pulse · Ocean Glow · Velvet Neon · Minimal Dark — small swatches.
-- **Live mobile preview** (right column on desktop, toggle Edit/Preview on mobile) — renders the same `<AuraLinkView />` used by the public page.
-- Sticky footer: "Preview AuraLink" (open public page in new tab) + "Publish AuraLink" (saves, navigates to `/l/{slug}`).
+- `audio_storage_path text`
+- `audio_public_url text`
+- `audio_file_name text`
+- `audio_mime_type text`
+- `audio_size_bytes bigint`
+- `audio_duration_seconds numeric`
 
-### 3. Public page — `src/routes/l.$slug.tsx` (new)
+## Frontend changes
 
-Mobile-first layout:
-- Optional Logo top-left.
-- Hero: profile image OR featured Aurascope (uses theme palette and first selected aura when `mode !== "streaming_links"`).
-- Title, artist name, short description.
-- Streaming buttons — large rounded buttons with platform glyph + label + glow accent from theme.
-- Aura items rendered as alive cards: mini Aurascope + track title + aura name + mood tags + "Open Aura" link to `/aura/$id`.
-- Share button (Web Share API, falls back to copy).
-- "Created with Auragram" footer link.
+### `src/lib/audioStorage.ts` (new)
+- `uploadAuraAudio({ userId, auraId, file })` → uploads to `auragram-audio/{userId}/{auraId}/{safeName}` using the browser supabase client, returns `{ storagePath, publicUrl, fileName, mimeType, sizeBytes, durationSeconds }`.
+- Uses `supabase.storage.from('auragram-audio').upload(path, file, { upsert: true, contentType })` and then `getPublicUrl`.
+- Probes duration with a temporary `HTMLAudioElement` + the local object URL.
+- Validates: MIME starts with `audio/` or extension in `.mp3 .wav .m4a .aac .ogg .webm`; size ≤ 100 MB.
 
-Theme drives: page gradient, button glow, accent color, featured Aurascope tint. Implemented as a `THEMES` map of `{ bgClass, accent, glow }`.
+### `src/lib/tracks.ts` and `src/lib/farm.ts`
+- Extend `Track` and `SavedAura` with: `audioStoragePath`, `audioPublicUrl`, `audioFileName`, `audioMimeType`, `audioSizeBytes`, `audioDurationSeconds`, `uploadStatus: "pending" | "uploading" | "complete" | "failed"`.
+- `saveAuraFromTrack` carries the new fields through.
 
-Reusable component `src/components/AuraLinkView.tsx` shared by builder preview and public page.
+### `src/lib/cloudAura.ts`
+- Persist the new audio fields on insert/update of `auras` rows (mapped to the new columns).
 
-### 4. Home page emphasis — `src/routes/index.tsx`
+### `src/routes/create.tsx`
+- After `onPick`/`onRawRecorded`, kick off `uploadAuraAudio` for the (already‑allocated) `auraId` and track an `uploadStatus` state. Keep the local `URL.createObjectURL(file)` only as a preview while uploading.
+- Generate the `id` once when a file is chosen so the storage path is stable.
+- Block `submit()` while `uploadStatus === "uploading"`; on `failed`, show "Upload failed. Please try again." and allow retry.
+- Save returned audio fields onto the track and into cloud Aura row.
+- For Auracle multi-file flow, upload each file with its allocated id.
 
-- Hero CTAs become two buttons: primary "Create Aura" → `/create`, secondary "Build AuraLink" → `/auralink/create`. Subheadline rewritten per spec, plus a small flow chip: `Create Aura → Save to Farm → Build AuraLink → Share Anywhere`.
-- New section "AuraLink is your music-first link page." with feature bullets and a "Build AuraLink" CTA. Replaces nothing — sits between How It Works and the existing Features grid.
+### `src/routes/aura.$id.tsx`
+- Source priority for `<audio>` and Aurascope analysis:
+  1. `track.audioPublicUrl` (preferred — survives refresh, set `crossOrigin="anonymous"`)
+  2. `getSessionAudio(id)?.audioUrl` (in-memory preview during the same session)
+  3. legacy `track.audioDataUrl`
+- If none and `sourceType === "upload"`, render the "no longer available" message.
 
-### 5. Navigation — `src/components/Nav.tsx`
+### `src/components/AuraLinkView.tsx` and `src/routes/l.$slug.tsx`
+- When rendering an Aura with `audioPublicUrl`, allow playback of that URL on the public link page (existing logic just gains the new fallback).
 
-Authenticated users see: `Farm` · `AuraLink` (new link to `/auralink/create`) · `Create` (CTA). On narrow widths the labels stay because they're short.
+## Technical notes
 
-### 6. Farm + Aura integrations
+- Bucket is public for MVP (matches the public AuraLink expectation). We can switch to signed URLs later without changing call sites — `audioPublicUrl` is the single read field.
+- File names are sanitized (`replace(/[^a-z0-9._-]+/gi, '_')`) and stored under `{userId}/{auraId}/...` so each user's uploads are isolated and RLS on `storage.objects` enforces ownership.
+- `supabase.storage.upload` runs from the browser client with the user's session — no edge function needed.
+- No change to existing `session.ts` flow; it still provides instant local preview before the network round-trip completes.
 
-- **`src/routes/farm.tsx`**: top-right adds "Build AuraLink from Farm" link (to `/auralink/create?mode=auras`). Empty Auras state stays.
-- **`src/components/AuraFarmCard.tsx`**: new "Add to AuraLink" small action that opens a lightweight picker dialog listing the user's existing AuraLink pages (and a "Build new" button). For this iteration the dialog appends the aura into `selectedAuraIds` + a `type: "aura"` link entry on the chosen AuraLink. Dialog component: `src/components/AddToAuraLinkDialog.tsx` (new).
-- **`src/components/ShareDialog.tsx`**: extend the existing dialog with three new rows above the existing Influence Aura link:
-  - "Add Aura to existing AuraLink" → opens the `AddToAuraLinkDialog`.
-  - "Build new AuraLink" → navigates to `/auralink/create?mode=mixed&aura={id}`.
-  - "Copy Aura page link" — already covered by the existing copy button (kept).
+## Acceptance check
 
-### 7. Empty states
-
-- No saved Auras in Auras mode: "You don't have any Auras yet." with **Create Aura** + **Use Streaming Links** buttons (the latter switches the builder mode).
-- No AuraLinks list (used inside `AddToAuraLinkDialog`): "No AuraLinks yet." + Build AuraLink CTA.
-
-### 8. Files
-
-Created
-- `src/lib/auralink.ts`
-- `src/components/AuraLinkView.tsx`
-- `src/components/AddToAuraLinkDialog.tsx`
-- `src/routes/auralink.create.tsx`
-- `src/routes/l.$slug.tsx`
-
-Edited
-- `src/routes/index.tsx` — hero CTAs, AuraLink section.
-- `src/routes/farm.tsx` — "Build AuraLink from Farm" CTA.
-- `src/components/Nav.tsx` — AuraLink nav link.
-- `src/components/AuraFarmCard.tsx` — "Add to AuraLink" action.
-- `src/components/ShareDialog.tsx` — AuraLink share rows.
-
-No DB migration in this pass (localStorage only) — the data shape is structured so a Supabase `auralinks` table can be wired in a follow-up without changing call sites.
+- Upload → refresh `/aura/:id` → audio still plays.
+- Save to Farm → log out and back in → Farm card plays.
+- Build an AuraLink with that Aura → open `/l/:slug` in incognito → Aura plays.
+- Upload a 200 MB file → rejected with size toast.
+- Upload a `.txt` → rejected with type toast.
