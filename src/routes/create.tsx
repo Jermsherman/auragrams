@@ -73,6 +73,12 @@ function CreatePage() {
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [identity, setIdentity] = useState<{ mode: VisibilityMode; artistProfileId: string | null }>(
+    { mode: "artist", artistProfileId: null },
+  );
+  const [resolvedIdentity, setResolvedIdentity] = useState<{ artistProfile: ArtistProfile | null; publicArtistName: string; publicHandle: string }>(
+    { artistProfile: null, publicArtistName: "", publicHandle: "" },
+  );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [link, setLink] = useState("");
