@@ -14,7 +14,7 @@ import {
   Mic,
 } from "lucide-react";
 import {
-  detectProvider,
+  
   fileToDataUrl,
   makeId,
   saveTrack,
