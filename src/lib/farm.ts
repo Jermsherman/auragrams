@@ -44,6 +44,12 @@ export type SavedAura = {
     visibilityMode: "artist" | "username" | "anonymous";
     updatedAt: string;
   };
+  audioStoragePath?: string;
+  audioPublicUrl?: string;
+  audioFileName?: string;
+  audioMimeType?: string;
+  audioSizeBytes?: number;
+  audioDurationSeconds?: number;
 };
 
 const KEY = "auragram_farm_auras";
