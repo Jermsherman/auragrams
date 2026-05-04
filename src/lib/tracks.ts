@@ -23,17 +23,16 @@ export type StreamingLinks = {
   soundcloud?: string;
 };
 
+import type { AuraPalette } from "./aura";
+
 export type Track = {
   id: string;
   title: string;
   artist: string;
   artistHandle: string;
-  // File-based source: audio is held in-memory via session store (object URL),
-  // not persisted. This flag indicates the track was created from a local file.
   hasLocalAudio?: boolean;
   /** @deprecated legacy data URLs from older sessions; no longer written. */
   audioDataUrl?: string;
-  // Streaming-link source
   streamUrl?: string;
   provider?: Provider;
   embedUrl?: string;
@@ -51,6 +50,16 @@ export type Track = {
   musicalKey?: string;
   tempoBand?: string;
   density?: string;
+
+  // Phase 3 — Aura Engine v3
+  paletteName?: string;
+  vibeDescription?: string;
+  motionKeywords?: string[];
+  tonic?: string;
+  mode?: "major" | "minor";
+  keyDetected?: boolean;
+  detectedKey?: string;
+  colors?: AuraPalette;
 };
 
 export type ArtistProfile = {
