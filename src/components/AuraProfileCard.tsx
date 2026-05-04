@@ -1,4 +1,4 @@
-import { PALETTES, getPersonality, type PaletteKey } from "@/lib/aura";
+import { getPersonality, type PaletteKey } from "@/lib/aura";
 
 export function AuraProfileCard({
   name,
