@@ -93,7 +93,7 @@ export function ShareDialog({
             </button>
           </DialogTrigger>
         )}
-        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+        <DialogContent className="bg-card/85 backdrop-blur-2xl border-border/60 sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Share AuraLink</DialogTitle>
             <DialogDescription>
