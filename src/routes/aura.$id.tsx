@@ -156,7 +156,12 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <div className="relative animate-fade-up">
+        <div className="animate-fade-up">
+          <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Your Aura is ready
+          </div>
+        </div>
+        <div className="relative mt-6 animate-fade-up">
           <OrbVisual
             size="min(82vw, 460px)"
             hueShift={track.seed}
