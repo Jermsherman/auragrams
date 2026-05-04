@@ -163,21 +163,6 @@ function CreatePage() {
     mode === "raw" ? "raw_recording" : "upload";
 
   const handleDetectMood = async () => {
-    {
-      const sug = suggestMoods({
-        title: title.trim(),
-        artist: artist.trim(),
-        keyDetection,
-        sourceType: "platform_link",
-      });
-      if (sug.length === 0) {
-        toast("Couldn't detect moods yet. Pick up to 4 manually.");
-        return;
-      }
-      setMoods(sug);
-      toast.success("Moods detected. You can still adjust them.");
-      return;
-    }
     if (!audio) {
       toast("Couldn't detect moods yet. Pick up to 4 manually.");
       return;
