@@ -1,4 +1,4 @@
-import { generateAura, paletteFromMoods, slugify, type PaletteKey } from "./aura";
+import { generateAura, slugify, type PaletteKey } from "./aura";
 
 export type Provider =
   | "spotify"
