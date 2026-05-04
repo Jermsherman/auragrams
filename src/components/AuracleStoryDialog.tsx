@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { AuracleOrb } from "./AuracleOrb";
 import { OrbVisual } from "./OrbVisual";
+import { Aurascope } from "./Aurascope";
 import mark from "@/assets/auragram-mark.png";
 import { getMembers, PROJECT_TYPE_LABELS, type Auracle } from "@/lib/auracle";
 import { getPersonality } from "@/lib/aura";
@@ -129,14 +130,13 @@ const AuracleStoryCanvas = forwardRef<HTMLDivElement, CanvasProps>(
           {mini.length > 0 && (
             <div className="mt-3 flex items-center justify-center gap-2">
               {mini.map((m, i) => (
-                <div key={i} style={{ width: 28, height: 28 }}>
-                  <OrbVisual
-                    size={28}
-                    palette={m.palette as never}
-                    hueShift={m.seed}
-                    particles={false}
-                  />
-                </div>
+                <Aurascope
+                  key={i}
+                  aura={{ palette: m.palette as never, seed: m.seed }}
+                  size="mini"
+                  mode="minimal"
+                  style={{ width: 28, height: 28 }}
+                />
               ))}
             </div>
           )}
