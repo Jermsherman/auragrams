@@ -655,6 +655,8 @@ export type AuraProfile = {
   tempoBand: TempoBand;
   density: Density;
   colors: AuraPalette;
+  userColorInfluence?: UserColorInfluence;
+  colorGuided?: boolean;
 };
 
 const RAW_NAME_BANK = [
