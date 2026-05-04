@@ -174,15 +174,27 @@ function BuilderPage() {
     });
   };
 
-  const onImage = (file: File | null) => {
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const onImage = async (file: File | null) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setProfileImageUrl(String(reader.result || ""));
-    reader.readAsDataURL(file);
+    setUploadingCover(true);
+    try {
+      const { uploadAuraLinkCover } = await import("@/lib/auralinkImages");
+      const url = await uploadAuraLinkCover(file);
+      setProfileImageUrl(url);
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "Could not upload cover image.",
+      );
+    } finally {
+      setUploadingCover(false);
+    }
   };
 
   // Validation
   const canPublish =
+    !uploadingCover &&
     title.trim().length > 1 &&
     (mode === "auras"
       ? selectedAuraIds.length > 0
@@ -191,6 +203,10 @@ function BuilderPage() {
         : selectedAuraIds.length > 0 || links.length > 0);
 
   const publish = () => {
+    if (uploadingCover) {
+      toast.error("Cover image is still uploading.");
+      return;
+    }
     if (!canPublish) {
       toast.error("Add a title and at least one link or Aura.");
       return;
@@ -212,7 +228,15 @@ function BuilderPage() {
       theme,
       visibility: "public",
     };
-    saveAuraLink(page);
+    try {
+      saveAuraLink(page);
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "Could not publish AuraLink.",
+      );
+      return;
+    }
     toast.success("AuraLink published.");
     navigate({ to: "/l/$slug", params: { slug: finalSlug } });
   };
@@ -317,6 +341,16 @@ function BuilderPage() {
                     onChange={(e) => onImage(e.target.files?.[0] ?? null)}
                     className="block text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs"
                   />
+                  {uploadingCover && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploading…
+                    </div>
+                  )}
+                  {!uploadingCover && profileImageUrl && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploaded ✓
+                    </div>
+                  )}
                 </Field>
                 <Field label="Description (optional)" className="sm:col-span-2">
                   <textarea
