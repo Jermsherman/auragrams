@@ -58,12 +58,14 @@ export function OrbVisual({
   intensity = 1,
   className,
   analyser,
+  metricsRef,
   isPlaying = false,
   palette,
   personality,
   particles = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
   const p: AuraPersonality =
@@ -73,67 +75,146 @@ export function OrbVisual({
           (typeof personality === "string" ? personality : undefined) ?? palette,
         );
 
+  // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
-    if (!analyser?.current || !ref.current) return;
-    const a = analyser.current;
-    const freq = new Uint8Array(a.frequencyBinCount);
-    const wave = new Uint8Array(a.fftSize);
+    const el = ref.current;
+    if (!el) return;
+    if (!metricsRef && !analyser?.current) return;
+
     let raf = 0;
-    // Smoothed envelopes
-    let waveEnv = 0; // peak-to-peak waveform amplitude
-    let bassEnv = 0;
-    let midEnv = 0;
-    let highEnv = 0;
+    // smoothed values for var output
+    let scale = 1;
+    let glow = 0.6;
+    let bassHalo = 1;
+    let shimmer = 0.5;
+    let deform = 0;
+    let burst = 0;
+
+    // fallback analyser-only state
+    const a = analyser?.current ?? null;
+    const freq = a ? new Uint8Array(a.frequencyBinCount) : null;
+    const wave = a ? new Uint8Array(a.fftSize) : null;
+
     const tick = () => {
-      a.getByteTimeDomainData(wave);
-      a.getByteFrequencyData(freq);
+      let vol = 0;
+      let bass = 0;
+      let mid = 0;
+      let treble = 0;
+      let peak = 0;
+      let trans = 0;
 
-      // Waveform peak-to-peak (oscilloscope-style)
-      let min = 255;
-      let max = 0;
-      // Subsample for perf
-      const stride = Math.max(1, Math.floor(wave.length / 256));
-      for (let i = 0; i < wave.length; i += stride) {
-        const v = wave[i];
-        if (v < min) min = v;
-        if (v > max) max = v;
+      if (metricsRef?.current?.ready) {
+        const m = metricsRef.current;
+        vol = m.volume;
+        bass = m.bass;
+        mid = m.mid;
+        treble = m.treble;
+        peak = m.peak;
+        trans = m.transient;
+      } else if (a && freq && wave) {
+        a.getByteTimeDomainData(wave);
+        a.getByteFrequencyData(freq);
+        let min = 255;
+        let max = 0;
+        let sumSq = 0;
+        for (let i = 0; i < wave.length; i += 4) {
+          const v = wave[i];
+          if (v < min) min = v;
+          if (v > max) max = v;
+          const c = (v - 128) / 128;
+          sumSq += c * c;
+        }
+        peak = (max - min) / 255;
+        vol = Math.sqrt(sumSq / (wave.length / 4));
+        const n = freq.length;
+        const bEnd = Math.floor(n * 0.08);
+        const mEnd = Math.floor(n * 0.35);
+        let bs = 0;
+        let ms = 0;
+        let ts = 0;
+        for (let i = 0; i < bEnd; i++) bs += freq[i];
+        for (let i = bEnd; i < mEnd; i++) ms += freq[i];
+        for (let i = mEnd; i < n; i++) ts += freq[i];
+        bass = bs / Math.max(1, bEnd) / 255;
+        mid = ms / Math.max(1, mEnd - bEnd) / 255;
+        treble = ts / Math.max(1, n - mEnd) / 255;
       }
-      const peak = (max - min) / 255; // 0..1
 
-      // Frequency bands — split into bass / mid / high
-      const n = freq.length;
-      const bassEnd = Math.floor(n * 0.08);
-      const midEnd = Math.floor(n * 0.35);
-      let bassSum = 0;
-      let midSum = 0;
-      let highSum = 0;
-      for (let i = 0; i < bassEnd; i++) bassSum += freq[i];
-      for (let i = bassEnd; i < midEnd; i++) midSum += freq[i];
-      for (let i = midEnd; i < n; i++) highSum += freq[i];
-      const bass = bassSum / Math.max(1, bassEnd) / 255;
-      const mid = midSum / Math.max(1, midEnd - bassEnd) / 255;
-      const high = highSum / Math.max(1, n - midEnd) / 255;
+      // Targets
+      const tScale = 1 + Math.min(0.18, vol * 0.5 + peak * 0.08);
+      const tGlow = 0.55 + (vol * 0.7 + mid * 0.55);
+      const tBass = 1 + Math.min(0.3, bass * 0.45);
+      const tShim = 0.4 + treble * 1.6;
+      const tDeform = Math.min(14, peak * 14);
 
-      // Smooth (slow attack/release for premium feel)
-      waveEnv += (peak - waveEnv) * 0.18;
-      bassEnv += (bass - bassEnv) * 0.15;
-      midEnv += (mid - midEnv) * 0.12;
-      highEnv += (high - highEnv) * 0.2;
+      // Lerp envelopes (slow attack/release for premium feel)
+      scale += (tScale - scale) * 0.18;
+      glow += (tGlow - glow) * 0.18;
+      bassHalo += (tBass - bassHalo) * 0.22;
+      shimmer += (tShim - shimmer) * 0.2;
+      deform += (tDeform - deform) * 0.25;
+      burst = Math.max(burst * 0.86, trans);
 
-      const el = ref.current;
-      if (el) {
-        const pulseGain = p.motion === "pulse" ? 0.32 : 0.2;
-        el.style.setProperty("--orb-scale", String(1 + waveEnv * pulseGain));
-        el.style.setProperty("--orb-glow", String(0.55 + (midEnv + waveEnv * 0.5) * 1.2));
-        el.style.setProperty("--orb-bass", String(1 + bassEnv * 0.22));
-        el.style.setProperty("--orb-shimmer", String(0.4 + highEnv * 1.6));
-        el.style.setProperty("--orb-deform", String(waveEnv * 8)); // px displacement-ish
+      el.style.setProperty("--orb-scale", scale.toFixed(3));
+      el.style.setProperty("--orb-glow", glow.toFixed(3));
+      el.style.setProperty("--orb-bass", bassHalo.toFixed(3));
+      el.style.setProperty("--orb-shimmer", shimmer.toFixed(3));
+      el.style.setProperty("--orb-deform", deform.toFixed(2));
+      el.style.setProperty("--orb-burst", burst.toFixed(3));
+
+      // Draw waveform ring (oscilloscope) when we have time-domain data
+      const canvas = ringCanvasRef.current;
+      const waveData =
+        metricsRef?.current?.waveform ??
+        (a && wave ? wave : null);
+      if (canvas && waveData && waveData.length > 0) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const rect = canvas.getBoundingClientRect();
+          const need =
+            canvas.width !== Math.floor(rect.width * dpr) ||
+            canvas.height !== Math.floor(rect.height * dpr);
+          if (need) {
+            canvas.width = Math.floor(rect.width * dpr);
+            canvas.height = Math.floor(rect.height * dpr);
+          }
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx.clearRect(0, 0, w, h);
+          const cx = w / 2;
+          const cy = h / 2;
+          const baseR = Math.min(w, h) * 0.42;
+          const deformGain = baseR * 0.18 + deform * 0.6;
+          const samples = 180;
+          const step = waveData.length / samples;
+
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.strokeStyle = `${p.stops[3]}`;
+          ctx.globalAlpha = 0.35 + Math.min(0.55, vol * 1.8);
+
+          ctx.beginPath();
+          for (let i = 0; i <= samples; i++) {
+            const idx = Math.floor((i % samples) * step);
+            const v = (waveData[idx] - 128) / 128; // -1..1
+            const angle = (i / samples) * Math.PI * 2;
+            const r = baseR + v * deformGain;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
       }
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [analyser, isPlaying, p.motion]);
+  }, [analyser, metricsRef, isPlaying, p.motion, p.stops]);
 
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
