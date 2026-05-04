@@ -556,6 +556,8 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
+              ) : mode === "raw" ? (
+                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               ) : (
                 <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
                   <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
