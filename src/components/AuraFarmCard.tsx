@@ -163,6 +163,7 @@ export function AuraFarmCard({
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      <AddToAuraLinkDialog aura={aura} open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
