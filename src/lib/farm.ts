@@ -107,6 +107,8 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     keyDetected: t.keyDetected,
     pitchCenter: t.pitchCenter,
     keyConfidence: t.keyConfidence,
+    userColorInfluence: t.userColorInfluence,
+    colorGuided: t.colorGuided,
   };
 
   const all = read();
