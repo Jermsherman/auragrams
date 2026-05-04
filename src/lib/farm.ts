@@ -44,6 +44,12 @@ export type SavedAura = {
     visibilityMode: "artist" | "username" | "anonymous";
     updatedAt: string;
   };
+  audioStoragePath?: string;
+  audioPublicUrl?: string;
+  audioFileName?: string;
+  audioMimeType?: string;
+  audioSizeBytes?: number;
+  audioDurationSeconds?: number;
 };
 
 const KEY = "auragram_farm_auras";
@@ -119,6 +125,12 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     colorGuided: t.colorGuided,
     visibilityMode: t.visibilityMode,
     influenceSettings: t.influenceSettings,
+    audioStoragePath: t.audioStoragePath,
+    audioPublicUrl: t.audioPublicUrl,
+    audioFileName: t.audioFileName,
+    audioMimeType: t.audioMimeType,
+    audioSizeBytes: t.audioSizeBytes,
+    audioDurationSeconds: t.audioDurationSeconds,
   };
 
   const all = read();

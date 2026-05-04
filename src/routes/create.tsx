@@ -42,6 +42,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
+import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -71,7 +72,7 @@ type Mode = "file" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -117,10 +118,9 @@ function CreatePage() {
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
-    const okType = f.type.startsWith("audio/");
-    const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
-    if (!okType && !okExt) {
-      toast.error("Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg)");
+    const err = validateAudioFile(f);
+    if (err) {
+      toast.error(err);
       return;
     }
     setAudio(f);
@@ -261,6 +261,19 @@ function CreatePage() {
           });
           const audioUrl = URL.createObjectURL(file);
           setSessionAudio(id, file, audioUrl);
+
+          let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+          if (user) {
+            try {
+              uploaded = await uploadAuraAudio({ authUserId: user.id, auraId: id, file });
+            } catch (e) {
+              console.error("audio upload", e);
+              toast.error("Upload failed. Please try again.");
+              setBusy(false);
+              return;
+            }
+          }
+
           const track = {
             id,
             title: trackTitle,
@@ -270,6 +283,13 @@ function CreatePage() {
             createdAt: Date.now(),
             moods: [],
             hasLocalAudio: true,
+            audioStoragePath: uploaded?.storagePath,
+            audioPublicUrl: uploaded?.publicUrl,
+            audioFileName: uploaded?.fileName,
+            audioMimeType: uploaded?.mimeType,
+            audioSizeBytes: uploaded?.sizeBytes,
+            audioDurationSeconds: uploaded?.durationSeconds ?? undefined,
+            uploadStatus: uploaded ? ("complete" as const) : ("failed" as const),
             ...aura,
           };
           saveTrack(track);
@@ -346,10 +366,40 @@ function CreatePage() {
         );
       }
       setSessionAudio(id, audio, audioUrl);
-      saveTrack({ ...base, hasLocalAudio: true });
+
+      // Upload to persistent storage (best effort — playback still works locally if it fails)
+      let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+      if (user) {
+        try {
+          uploaded = await uploadAuraAudio({
+            authUserId: user.id,
+            auraId: id,
+            file: audio,
+            rawRecording: mode === "raw",
+          });
+        } catch (e) {
+          console.error("audio upload", e);
+          toast.error("Upload failed. Please try again.");
+          setBusy(false);
+          return;
+        }
+      }
+
+      const fullTrack = {
+        ...base,
+        hasLocalAudio: true,
+        audioStoragePath: uploaded?.storagePath,
+        audioPublicUrl: uploaded?.publicUrl,
+        audioFileName: uploaded?.fileName,
+        audioMimeType: uploaded?.mimeType,
+        audioSizeBytes: uploaded?.sizeBytes,
+        audioDurationSeconds: uploaded?.durationSeconds ?? undefined,
+        uploadStatus: uploaded ? ("complete" as const) : ("failed" as const),
+      };
+      saveTrack(fullTrack);
       // Persist to cloud (owner-only). Single-aura flow.
       if (profile) {
-        const saved = saveAuraFromTrack({ ...base, hasLocalAudio: true } as Parameters<typeof saveAuraFromTrack>[0]);
+        const saved = saveAuraFromTrack(fullTrack as Parameters<typeof saveAuraFromTrack>[0]);
         await saveAuraToCloud({
           saved, userId: profile.id,
           visibilityMode: identity.mode,

@@ -121,6 +121,12 @@ export type Database = {
       auras: {
         Row: {
           artist_profile_id: string | null
+          audio_duration_seconds: number | null
+          audio_file_name: string | null
+          audio_mime_type: string | null
+          audio_public_url: string | null
+          audio_size_bytes: number | null
+          audio_storage_path: string | null
           aura_description: string | null
           aura_name: string | null
           color_palette: Json | null
@@ -148,6 +154,12 @@ export type Database = {
         }
         Insert: {
           artist_profile_id?: string | null
+          audio_duration_seconds?: number | null
+          audio_file_name?: string | null
+          audio_mime_type?: string | null
+          audio_public_url?: string | null
+          audio_size_bytes?: number | null
+          audio_storage_path?: string | null
           aura_description?: string | null
           aura_name?: string | null
           color_palette?: Json | null
@@ -175,6 +187,12 @@ export type Database = {
         }
         Update: {
           artist_profile_id?: string | null
+          audio_duration_seconds?: number | null
+          audio_file_name?: string | null
+          audio_mime_type?: string | null
+          audio_public_url?: string | null
+          audio_size_bytes?: number | null
+          audio_storage_path?: string | null
           aura_description?: string | null
           aura_name?: string | null
           color_palette?: Json | null
