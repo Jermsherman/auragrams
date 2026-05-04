@@ -9,6 +9,8 @@ import {
   X,
   Image as ImageIcon,
   Link as LinkIcon,
+  Layers,
+  GripVertical,
 } from "lucide-react";
 import {
   detectProvider,
@@ -22,6 +24,12 @@ import { generateAura, slugify } from "@/lib/aura";
 import { detectKey } from "@/lib/keyDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
+import { saveAuraFromTrack } from "@/lib/farm";
+import {
+  PROJECT_TYPE_LABELS,
+  saveAuracle,
+  type AuracleProjectType,
+} from "@/lib/auracle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/create")({
@@ -44,7 +52,7 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
-type Mode = "file" | "link";
+type Mode = "file" | "link" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -58,6 +66,11 @@ function CreatePage() {
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
+
+  // Auracle (multi-file) state
+  const [auracleFiles, setAuracleFiles] = useState<File[]>([]);
+  const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
+  const [auracleDesc, setAuracleDesc] = useState("");
 
   const onPick = (f: File | undefined | null) => {
     if (!f) return;
@@ -80,9 +93,35 @@ function CreatePage() {
 
   const linkInfo = link.trim() ? detectProvider(link.trim()) : null;
   const ready =
-    title.trim() &&
-    artist.trim() &&
-    (mode === "file" ? !!audio : !!linkInfo);
+    mode === "auracle"
+      ? title.trim().length > 0 && artist.trim().length > 0 && auracleFiles.length >= 2
+      : !!(title.trim() && artist.trim() && (mode === "file" ? !!audio : !!linkInfo));
+
+  const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
+    if (!files) return;
+    const arr = Array.from(files).filter((f) => {
+      const okType = f.type.startsWith("audio/");
+      const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
+      return okType || okExt;
+    });
+    if (!arr.length) {
+      toast.error("Please upload audio files (.mp3, .wav, .m4a, .aac, .ogg)");
+      return;
+    }
+    setAuracleFiles((prev) => [...prev, ...arr]);
+  };
+
+  const removeAuracleFile = (i: number) =>
+    setAuracleFiles((prev) => prev.filter((_, idx) => idx !== i));
+
+  const moveAuracleFile = (i: number, dir: -1 | 1) =>
+    setAuracleFiles((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   // Live preview of generated aura
   const preview = useMemo(
@@ -101,6 +140,47 @@ function CreatePage() {
     if (!ready) return;
     setBusy(true);
     try {
+      if (mode === "auracle") {
+        const auraIds: string[] = [];
+        for (const file of auracleFiles) {
+          const id = makeId();
+          const trackTitle = file.name.replace(/\.[^.]+$/, "").trim() || "Untitled";
+          const aura = generateAura({
+            id,
+            title: trackTitle,
+            artist: artist.trim(),
+            moods: [],
+            detectedKey: null,
+          });
+          const audioUrl = URL.createObjectURL(file);
+          setSessionAudio(id, file, audioUrl);
+          const track = {
+            id,
+            title: trackTitle,
+            artist: artist.trim(),
+            artistHandle: slugify(artist.trim()) || "artist",
+            seed: seedFromId(id),
+            createdAt: Date.now(),
+            moods: [],
+            hasLocalAudio: true,
+            ...aura,
+          };
+          saveTrack(track);
+          saveAuraFromTrack(track);
+          auraIds.push(id);
+        }
+        const a = saveAuracle({
+          title: title.trim(),
+          artistName: artist.trim(),
+          projectType: auracleType,
+          description: auracleDesc.trim() || undefined,
+          auraIds,
+        });
+        toast.success("Auracle created.");
+        nav({ to: "/auracle/$id", params: { id: a.id } });
+        return;
+      }
+
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
       const aura = generateAura({ id, title: title.trim(), artist: artist.trim(), moods, detectedKey });
@@ -118,23 +198,13 @@ function CreatePage() {
       };
       if (mode === "file") {
         if (!audio) return;
-        // Create a temporary object URL — do NOT read or persist the file.
         const audioUrl = URL.createObjectURL(audio);
-        console.log("Audio URL:", audioUrl);
-
-        // Validate the browser can decode this format before continuing.
         const probe = document.createElement("audio");
-        const canPlay =
-          probe.canPlayType(audio.type || "") ||
-          probe.canPlayType("audio/mpeg") ||
-          "";
         if (audio.type && probe.canPlayType(audio.type) === "") {
           toast.error(
             "This audio format may not be supported by your browser. Try MP3 or WAV.",
           );
         }
-        void canPlay;
-
         setSessionAudio(id, audio, audioUrl);
         saveTrack({ ...base, hasLocalAudio: true });
       } else {
@@ -160,171 +230,322 @@ function CreatePage() {
       <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20 pb-32 sm:pb-20">
         <div className="text-center animate-fade-up">
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
-            Create an <span className="text-aura-gradient">Aura.</span>
+            {mode === "auracle" ? (
+              <>Create an <span className="text-aura-gradient">Auracle.</span></>
+            ) : (
+              <>Create an <span className="text-aura-gradient">Aura.</span></>
+            )}
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share.
+            {mode === "auracle"
+              ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
+              : "Upload a sound or paste a music link. Auragram turns it into a living visual identity you can share."}
           </p>
         </div>
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-2 text-sm">
+          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm">
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" /> Upload File
+              <UploadCloud className="h-4 w-4" /> <span className="hidden sm:inline">Upload</span> File
             </ModeTab>
             <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
-              <LinkIcon className="h-4 w-4" /> Paste Music Link
+              <LinkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Paste</span> Link
+            </ModeTab>
+            <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
+              <Layers className="h-4 w-4" /> Auracle
             </ModeTab>
           </div>
 
-          {mode === "file" ? (
-            <label
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDrag(true);
-              }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDrag(false);
-                onPick(e.dataTransfer.files?.[0]);
-              }}
-              className={`relative block cursor-pointer rounded-3xl p-8 sm:p-12 text-center transition-all glass ${
-                drag
-                  ? "shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.7)] border-foreground/30"
-                  : ""
-              }`}
-            >
-              <input
-                type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.ogg"
-                className="hidden"
-                onChange={(e) => onPick(e.target.files?.[0])}
-              />
-              {!audio ? (
-                <div className="flex flex-col items-center gap-3">
+          {mode === "auracle" ? (
+            <>
+              {/* Multi-file uploader */}
+              <label
+                onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDrag(false);
+                  onPickAuracleFiles(e.dataTransfer.files);
+                }}
+                className={`relative block cursor-pointer rounded-3xl p-6 sm:p-10 text-center transition-all glass ${
+                  drag ? "shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.7)] border-foreground/30" : ""
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                  className="hidden"
+                  onChange={(e) => onPickAuracleFiles(e.target.files)}
+                />
+                <div className="flex flex-col items-center gap-2">
                   <div className="grid place-items-center h-12 w-12 rounded-full glass-strong">
-                    <UploadCloud className="h-5 w-5 text-foreground/85" />
+                    <Layers className="h-5 w-5 text-foreground/85" />
                   </div>
-                  <p className="font-display text-base">Drop your track here</p>
+                  <p className="font-display text-base">
+                    {auracleFiles.length
+                      ? `${auracleFiles.length} track${auracleFiles.length === 1 ? "" : "s"} added`
+                      : "Drop multiple tracks here"}
+                  </p>
                   <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                    .mp3 · .wav
+                    Tap to choose · .mp3 · .wav
                   </p>
                 </div>
-              ) : (
-                <div className="flex items-center gap-4 text-left">
-                  <div className="grid place-items-center h-11 w-11 rounded-2xl bg-aura-gradient text-primary-foreground">
-                    <Music2 className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium">{audio.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(audio.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAudio(null);
-                    }}
-                    className="rounded-full p-2 hover:bg-foreground/10 transition-colors"
-                    aria-label="Remove"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+              </label>
+
+              {/* Tracklist */}
+              {auracleFiles.length > 0 && (
+                <div className="glass rounded-3xl p-3 space-y-2">
+                  {auracleFiles.map((f, i) => (
+                    <div
+                      key={`${f.name}-${i}`}
+                      className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-3 py-2"
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground w-6 shrink-0">
+                        {String(i + 1).padStart(2, "0")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm">{f.name.replace(/\.[^.]+$/, "")}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {(f.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => moveAuracleFile(i, -1)}
+                        disabled={i === 0}
+                        className="rounded-full p-1.5 hover:bg-foreground/10 disabled:opacity-30 transition-colors"
+                        aria-label="Move up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveAuracleFile(i, 1)}
+                        disabled={i === auracleFiles.length - 1}
+                        className="rounded-full p-1.5 hover:bg-foreground/10 disabled:opacity-30 transition-colors"
+                        aria-label="Move down"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeAuracleFile(i)}
+                        className="rounded-full p-1.5 hover:bg-foreground/10 transition-colors"
+                        aria-label="Remove"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
-            </label>
-          ) : (
-            <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
-              <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
-                <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <input
-                  value={link}
-                  onChange={(e) => setLink(e.target.value)}
-                  placeholder="Paste a Spotify, Apple Music, YouTube, or SoundCloud link"
-                  className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-                  autoCapitalize="none"
-                  spellCheck={false}
+
+              {/* Project type */}
+              <div className="glass rounded-2xl p-2 flex flex-wrap gap-1">
+                {(Object.keys(PROJECT_TYPE_LABELS) as AuracleProjectType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setAuracleType(t)}
+                    className={`rounded-full px-3 h-8 text-xs transition-colors ${
+                      auracleType === t
+                        ? "bg-foreground/10 text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {PROJECT_TYPE_LABELS[t]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Project fields */}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field
+                  label="Project title"
+                  value={title}
+                  onChange={setTitle}
+                  placeholder="Midnight EP"
+                />
+                <Field
+                  label="Artist name"
+                  value={artist}
+                  onChange={setArtist}
+                  placeholder="Your name"
                 />
               </div>
-              <p className="text-[11px] tracking-wide text-muted-foreground px-1">
-                {linkInfo
-                  ? linkInfo.embedUrl
-                    ? `Detected: ${labelFor(linkInfo.provider)} · we'll embed the player.`
-                    : `We'll link out to ${labelFor(linkInfo.provider)}.`
-                  : link
-                    ? "Doesn't look like a valid URL yet."
-                    : "Spotify · Apple Music · YouTube · SoundCloud"}
-              </p>
-            </div>
-          )}
 
-          {/* Fields */}
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Field
-              label="Track title"
-              value={title}
-              onChange={setTitle}
-              placeholder="Midnight Echoes"
-            />
-            <Field
-              label="Artist name"
-              value={artist}
-              onChange={setArtist}
-              placeholder="Your name"
-            />
-          </div>
-
-          {/* Mood picker + live preview */}
-          <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
-            <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
-
-            <div className="flex items-center gap-4 pt-1">
-              <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                  Your aura
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">
+                  Description · optional
+                </span>
+                <textarea
+                  value={auracleDesc}
+                  onChange={(e) => setAuracleDesc(e.target.value)}
+                  rows={2}
+                  placeholder="A few words about the project"
+                  className="mt-1.5 w-full glass rounded-2xl px-4 py-3 text-sm outline-none focus:border-foreground/25 transition-shadow resize-none"
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              {mode === "file" ? (
+                <label
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDrag(true);
+                  }}
+                  onDragLeave={() => setDrag(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDrag(false);
+                    onPick(e.dataTransfer.files?.[0]);
+                  }}
+                  className={`relative block cursor-pointer rounded-3xl p-8 sm:p-12 text-center transition-all glass ${
+                    drag
+                      ? "shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.7)] border-foreground/30"
+                      : ""
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                    className="hidden"
+                    onChange={(e) => onPick(e.target.files?.[0])}
+                  />
+                  {!audio ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="grid place-items-center h-12 w-12 rounded-full glass-strong">
+                        <UploadCloud className="h-5 w-5 text-foreground/85" />
+                      </div>
+                      <p className="font-display text-base">Drop your track here</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                        .mp3 · .wav
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 text-left">
+                      <div className="grid place-items-center h-11 w-11 rounded-2xl bg-aura-gradient text-primary-foreground">
+                        <Music2 className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-medium">{audio.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(audio.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAudio(null);
+                        }}
+                        className="rounded-full p-2 hover:bg-foreground/10 transition-colors"
+                        aria-label="Remove"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </label>
+              ) : (
+                <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
+                  <div className="flex items-center gap-3 rounded-2xl bg-background/40 border border-border/60 px-4 h-12">
+                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <input
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      placeholder="Paste a Spotify, Apple Music, YouTube, or SoundCloud link"
+                      className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <p className="text-[11px] tracking-wide text-muted-foreground px-1">
+                    {linkInfo
+                      ? linkInfo.embedUrl
+                        ? `Detected: ${labelFor(linkInfo.provider)} · we'll embed the player.`
+                        : `We'll link out to ${labelFor(linkInfo.provider)}.`
+                      : link
+                        ? "Doesn't look like a valid URL yet."
+                        : "Spotify · Apple Music · YouTube · SoundCloud"}
+                  </p>
                 </div>
-                <div className="font-display text-base sm:text-lg truncate text-aura-gradient">
-                  {preview.auraName}
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Energy {preview.energy}%
+              )}
+
+              {/* Fields */}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field
+                  label="Track title"
+                  value={title}
+                  onChange={setTitle}
+                  placeholder="Midnight Echoes"
+                />
+                <Field
+                  label="Artist name"
+                  value={artist}
+                  onChange={setArtist}
+                  placeholder="Your name"
+                />
+              </div>
+
+              {/* Mood picker + live preview */}
+              <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
+                <MoodPicker value={moods} onChange={setMoods} glowColor={preview.colors?.glow} />
+
+                <div className="flex items-center gap-4 pt-1">
+                  <OrbVisual size={72} palette={preview.palette} profile={preview} particles={false} />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Your aura
+                    </div>
+                    <div className="font-display text-base sm:text-lg truncate text-aura-gradient">
+                      {preview.auraName}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Energy {preview.energy}%
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Optional cover */}
-          <div className="glass rounded-2xl px-4 py-3 flex items-center gap-3">
-            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="flex-1 text-sm truncate text-muted-foreground">
-              {cover ? cover.name : "Cover image · optional"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id="cover-input"
-              onChange={(e) => setCover(e.target.files?.[0] ?? null)}
-            />
-            <label
-              htmlFor="cover-input"
-              className="cursor-pointer text-xs rounded-full border border-border/70 px-3 py-1.5 hover:bg-foreground/5 transition-colors"
-            >
-              Choose
-            </label>
-          </div>
+              {/* Optional cover */}
+              <div className="glass rounded-2xl px-4 py-3 flex items-center gap-3">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 text-sm truncate text-muted-foreground">
+                  {cover ? cover.name : "Cover image · optional"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="cover-input"
+                  onChange={(e) => setCover(e.target.files?.[0] ?? null)}
+                />
+                <label
+                  htmlFor="cover-input"
+                  className="cursor-pointer text-xs rounded-full border border-border/70 px-3 py-1.5 hover:bg-foreground/5 transition-colors"
+                >
+                  Choose
+                </label>
+              </div>
+            </>
+          )}
 
           <button
             disabled={!ready || busy}
             onClick={submit}
             className="hidden sm:inline-flex w-full items-center justify-center gap-2 rounded-full h-13 py-4 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] transition-shadow"
           >
-            {busy ? "Preparing…" : "Generate Aura"} <ArrowRight className="h-4 w-4" />
+            {busy
+              ? "Preparing…"
+              : mode === "auracle"
+                ? "Create Auracle"
+                : "Generate Aura"}{" "}
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </main>
@@ -336,11 +557,18 @@ function CreatePage() {
           onClick={submit}
           className="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]"
         >
-          {busy ? "Preparing…" : "Generate Aura"} <ArrowRight className="h-4 w-4" />
+          {busy
+            ? "Preparing…"
+            : mode === "auracle"
+              ? "Create Auracle"
+              : "Generate Aura"}{" "}
+          <ArrowRight className="h-4 w-4" />
         </button>
         {!ready && (
           <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-            Add a track and the song details
+            {mode === "auracle"
+              ? "Add 2+ tracks, project title, and artist"
+              : "Add a track and the song details"}
           </p>
         )}
       </div>
