@@ -1,98 +1,109 @@
-# Expressive Aura System v2
+# Auragram MVP Upgrade Plan
 
-Goal: every aura should feel like its own emotional organism — distinct shape, motion, texture, particle behavior, and atmosphere — not a re-tinted version of the same orb.
+A focused patch that strengthens audio reactivity, broadens platform link support, and introduces the "Aura Farm" saved-collection concept — without bloating the product.
 
-## 1. Expand the mood → personality mapping (`src/lib/aura.ts`)
+## 1. Upload + Real Audio Reactivity
 
-Replace the current 5-palette system with a richer **AuraPersonality** record keyed by mood. Each personality bundles everything the visual layer needs:
+**`src/lib/session.ts`** — already correct (object URL only, in-memory). No change.
 
-```ts
-type AuraPersonality = {
-  key: MoodKey;                  // warm, nostalgic, dreamy, euphoric,
-                                 // romantic, melancholy, dark, cinematic,
-                                 // coastal, intimate, mysterious, energetic
-  label: string;
-  stops: [string, string, string, string, string]; // 5 oklch stops
-  swatches: string[];
-  glow: string;                  // halo tint
-  atmosphere: string;            // background gradient color
-  shape: "round" | "oval" | "soft-blob" | "tall" | "wide";
-  motion: "breathe" | "pulse" | "tide" | "shimmer" | "drift" | "smoke";
-  texture: "smooth" | "grain" | "silk" | "mist" | "smoke" | "ripple";
-  particle: "dust" | "smoke" | "shimmer" | "mist" | "embers" | "tide";
-  particleCount: number;         // 6 – 28
-  speed: number;                 // 0.4 – 1.6 motion multiplier
-  hueShift: number;
-};
-```
+**`src/routes/create.tsx`** — small polish:
+- Add file size + extended `accept` (`.aac`, `.ogg` already partially listed, normalize).
+- After picking, show file size (already shown) + name (already shown). Keep as is.
+- Drag/drop already wired.
 
-Add 12 personalities matching the requested moods (Warm, Nostalgic, Dreamy, Euphoric, Romantic, Melancholy, Dark, Cinematic, Coastal, Intimate, Mysterious, Energetic). Update `paletteFromMoods` → `personalityFromMoods` (first matching mood wins, deterministic fallback by hash).
+**`src/hooks/useAudioReactive.ts`** — upgrade:
+- Increase `analyser.fftSize` to `2048` so we can read time-domain (waveform) data.
+- Lower `smoothingTimeConstant` to `0.6`.
+- Expose both frequency and waveform readers via the same analyser node.
 
-Keep `PaletteKey` as a re-export alias of `MoodKey` so existing track data still loads; map the 5 old keys to the closest new personality.
+**`src/components/OrbVisual.tsx`** — upgrade analyser loop:
+- Read `getByteTimeDomainData` (waveform) → drives **deformation, ripple, pulse** (peak-to-peak amplitude, smoothed).
+- Read `getByteFrequencyData` → split into bass / mid / high bins.
+  - bass → outer halo scale + ripple bursts
+  - mid → surface motion (overall brightness)
+  - high → particle shimmer intensity
+- Heavy smoothing (lerp factor 0.15) + envelope follower so visuals feel musical, not jittery.
+- Idle (no analyser): keep current breathing animation.
 
-## 2. Rewrite `OrbVisual.tsx` as layered render
+## 2. Platform Link Expansion
 
-Replace the current 4-layer orb with 6 stacked layers, all driven by the personality:
+**`src/lib/tracks.ts` — `detectProvider()`** rewrite to recognize:
 
-```text
-┌─ ambient atmosphere (full-bleed radial, very soft)
-│  ┌─ outer halo (blurred glow, breathes with bass)
-│  │  ┌─ outer shell (conic, slow rotation, hue from palette)
-│  │  │  ┌─ inner core (radial, audio-reactive scale)
-│  │  │  │  ┌─ texture overlay (grain / silk / mist / smoke / ripple SVG)
-│  │  │  │  │  └─ sheen highlight
-│  │  │  │  └─ particle field (style + count from personality)
-```
+| Platform | Domains | Embed |
+|---|---|---|
+| Spotify | `open.spotify.com` | `embed/{type}/{id}` |
+| YouTube / YT Music | `youtube.com`, `youtu.be`, `music.youtube.com` | `youtube.com/embed/{id}` |
+| SoundCloud | `soundcloud.com`, `on.soundcloud.com` | `w.soundcloud.com/player/?url=…` |
+| Apple Music | `music.apple.com` | `embed.music.apple.com` |
+| Audiomack | `audiomack.com` | card |
+| Bandcamp | `*.bandcamp.com` | card |
+| Tidal | `tidal.com` | card |
+| Deezer | `deezer.com` | card |
+| Amazon Music | `music.amazon.com` | card |
+| Pandora, Boomplay, Audius | their domains | card |
+| Smart links (linkfire, lnk.to, ffm.to, fanlink.to, hyperfollow, distrokid, toneden, smarturl, solo.to, beacons, linktr.ee) | their domains | card |
+| Anything else valid | — | card with "External Link" |
 
-Key changes:
-- Accept `personality` prop instead of `palette`; keep `palette` as deprecated alias.
-- Shape: apply non-uniform `border-radius` / `scaleX/Y` per `shape` (oval, blob, tall, wide).
-- Motion: swap the single `animate-spin-slow` for motion variants — `breathe`, `pulse` (sharper bass response), `tide` (slow XY sway), `shimmer` (rotating sheen), `drift` (slow translate), `smoke` (turbulence-style filter).
-- Texture: SVG `<filter>` overlays for grain (feTurbulence + composite), silk (feDisplacementMap), mist/smoke (large blurred turbulence), ripple (animated displacement). Defined once in component, referenced by id.
-- Particles: per-style sprite — round dust, blurred smoke puffs, sharp shimmer sparks, soft mist blobs, ember dots with warm glow, horizontal tide streaks. Count + speed from personality.
-- Drop the global `--hue` rotation hack; colors come straight from palette stops so each mood looks distinct rather than hue-shifted from the same base.
+Update `Provider` union to include all platforms; add `platformName` (display label) and treat unknown valid URLs as `provider: "external"`.
 
-## 3. Background atmosphere on the experience page (`src/routes/aura.$id.tsx`)
+**`src/components/PlatformCard.tsx`** (new): polished glass card with platform icon/badge + "Open on {platform}" CTA. Used when no embed is available.
 
-Add a fixed, behind-everything `<AuraAtmosphere personality={...} />` component:
-- Two oversized blurred radial gradients using the personality's `atmosphere` + `glow` colors, slowly drifting.
-- Subtle vignette so the orb sits in a "scene", not on flat black.
-- Respects `prefers-reduced-motion`.
+**`src/routes/aura.$id.tsx`**: render embed iframe when `embedUrl` present, otherwise render the new `PlatformCard`. Show small caption *"Aura generated from your selected mood and track identity."* for platform sources, vs *"Aura reacting to uploaded audio."* for uploads.
 
-This is what sells the cinematic / coastal / intimate feeling beyond the orb itself.
+## 3. Aura Farm (Saved Collection)
 
-## 4. Poetic descriptions (`descriptionFor` in `src/lib/aura.ts`)
+**`src/lib/farm.ts`** (new): localStorage helpers under key `auragram_farm_auras`:
+- `getSavedAuras(): SavedAura[]`
+- `saveAura(track: Track)` — stores metadata only (no file blobs)
+- `deleteAura(id: string)`
+- `isAuraSaved(id: string): boolean`
 
-Replace the current single-template description with a small grammar:
+`SavedAura` shape: id, createdAt, trackTitle, artistName, sourceType (`upload` | `platform_link` | `external_link`), platformName, platformUrl, embedUrl, moodTags, auraName, auraDescription, energyLevel, palette.
 
-```text
-"A {tone} {mood} aura with {colorPhrase}, {edgePhrase}, and {motionPhrase}."
-```
+**`src/routes/farm.tsx`** (new route `/farm`):
+- Header with title "Aura Farm" + subtitle "Your growing collection of sonic auras."
+- "Create New Aura" CTA → `/create`.
+- Responsive grid of `AuraFarmCard`s.
+- Empty state: "Your Farm is empty." + Create CTA.
 
-Each personality contributes its own phrase pools, e.g.:
-- Warm: tone=`warm coastal`, color=`sunset tones`, edge=`glowing edges`, motion=`slow tidal motion`
-- Cinematic: tone=`deep cinematic`, color=`indigo and crimson shadow`, edge=`a smoldering halo`, motion=`a heavy pulse`
-- Dreamy: tone=`weightless`, color=`lavender and cyan light`, edge=`a shimmering veil`, motion=`airy floating drift`
+**`src/components/AuraFarmCard.tsx`** (new):
+- Mini orb (`<OrbVisual size={88} particles={false} />`).
+- Aura name, track title, artist, mood chips, source-type badge.
+- Buttons: Open (→ `/aura/$id`), Share (opens ShareDialog), Delete (trash icon → confirm).
 
-Pick deterministically from the seed so the same track keeps the same description.
+**`src/components/Nav.tsx`** — add "Farm" link beside the create CTA.
 
-## 5. Update consumers
+## 4. Save / Delete UX on Aura Page
 
-- `MoodPicker.tsx`: drive previews from new personalities; show a small motion hint badge.
-- `AuraProfileCard.tsx`: use `personality.swatches`; add a one-line "motion · texture · particle" descriptor under the energy bar.
-- `StoryCanvas.tsx`: pass `personality` so exported story matches; ensure html-to-image still captures filters (use `cacheBust: true`, embed SVG filters inline — already inline so fine).
-- `create.tsx` / `generating.tsx` / `artist.$handle.tsx`: switch `palette` prop → `personality`.
+**`src/routes/aura.$id.tsx`**:
+- "Save to Farm" button beside Share. Becomes "Saved in Farm" once saved.
+- Overflow menu with "Delete from Farm" (confirm dialog → toast → navigate to `/farm`).
+- For uploads where session expired AND aura is saved, still render the orb + metadata; show subtle banner "This uploaded audio session expired. Upload again to replay."
 
-## 6. Performance + a11y
+## 5. Share Modal Updates
 
-- Single `requestAnimationFrame` loop per orb (already the case); cap particle count at 28.
-- Pause motion when `document.hidden` or `prefers-reduced-motion: reduce` (fall back to static gradient + halo).
-- Texture SVG filters defined once per orb, not per particle.
+**`src/components/ShareDialog.tsx`**:
+- Add "Save to Farm" / "Saved in Farm" row.
+- If platform link: add "Open on {platform}" + "Copy platform link" rows.
+- Source-type badge at top (Uploaded Audio / Spotify / etc).
 
-## Files
+## 6. Story Preview Updates
 
-Edited: `src/lib/aura.ts`, `src/components/OrbVisual.tsx`, `src/components/AuraProfileCard.tsx`, `src/components/MoodPicker.tsx`, `src/components/StoryCanvas.tsx`, `src/components/StoryPreviewDialog.tsx`, `src/routes/aura.$id.tsx`, `src/routes/create.tsx`, `src/routes/generating.tsx`, `src/routes/artist.$handle.tsx`.
+**`src/components/StoryCanvas.tsx`**:
+- Add platform badge when `sourceType === "platform_link"` (small pill above title).
+- CTA text becomes "Open on {platform}" for platform links, otherwise "Listen on Auragram".
 
-Created: `src/components/AuraAtmosphere.tsx`.
+## 7. Routing
 
-No new dependencies.
+Add `src/routes/farm.tsx`. The TanStack Router Vite plugin regenerates `routeTree.gen.ts` automatically.
+
+## Acceptance check
+- Upload → orb reacts to real waveform, smooth.
+- Paste any of 13+ platforms → embed or platform card.
+- Save → appears in `/farm`. Delete works from card and aura page.
+- Share modal & story preview adapt to source type.
+- No streaming-audio scraping anywhere.
+- App stays minimal, premium, dark, mobile-first.
+
+## Out of scope
+Backend persistence, analytics, NFT/wallet, multi-user collections, real Spotify SDK playback.

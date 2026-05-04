@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
@@ -6,22 +6,25 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
-import { getTrack, type Track } from "@/lib/tracks";
+import { PlatformCard } from "@/components/PlatformCard";
+import { getTrack, providerLabel, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft } from "lucide-react";
-
-function labelFor(p?: string) {
-  return (
-    {
-      spotify: "Spotify",
-      youtube: "YouTube",
-      soundcloud: "SoundCloud",
-      apple: "Apple Music",
-    }[p ?? ""] || "source"
-  );
-}
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2 } from "lucide-react";
+import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/aura/$id")({
   head: ({ params }) => ({
@@ -53,20 +56,22 @@ export const Route = createFileRoute("/aura/$id")({
 
 function AuraPage() {
   const { id } = Route.useParams();
+  const nav = useNavigate();
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [saved, setSaved] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const [, force] = useState(0);
 
   useEffect(() => {
     const t = getTrack(id);
     setTrack(t);
+    setSaved(isAuraSaved(id));
     if (t?.hasLocalAudio) {
       const session = getSessionAudio(id);
       setAudioUrl(session?.audioUrl ?? null);
     } else if (t?.audioDataUrl) {
-      // legacy
       setAudioUrl(t.audioDataUrl);
     } else {
       setAudioUrl(null);
@@ -84,16 +89,70 @@ function AuraPage() {
 
   const url = typeof window !== "undefined" ? window.location.href : "";
   const p = getPersonality(track.palette);
+  const isUpload = !!track.hasLocalAudio;
+  const platformName = providerLabel(track.provider);
+
+  const handleSave = () => {
+    saveAuraFromTrack(track);
+    setSaved(true);
+    toast.success("Aura added to your Farm.");
+  };
+
+  const handleDelete = () => {
+    deleteAura(track.id);
+    toast.success("Aura deleted.");
+    nav({ to: "/farm" });
+  };
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <AuraAtmosphere personality={p} />
 
-      <header className="px-5 sm:px-8 pt-5 sm:pt-7 flex items-center justify-between">
+      <header className="px-5 sm:px-8 pt-5 sm:pt-7 flex items-center justify-between gap-3">
         <Link to="/" className="hover:opacity-80 transition-opacity">
           <Logo />
         </Link>
-        <ShareDialog track={track} url={url} />
+        <div className="flex items-center gap-2">
+          {saved ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  aria-label="Delete from Farm"
+                  className="inline-flex items-center gap-2 rounded-full glass px-3 sm:px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this aura from your Farm?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This only removes it from your local collection.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <button
+              onClick={handleSave}
+              className="inline-flex items-center gap-2 rounded-full glass px-3 sm:px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
+            >
+              <Bookmark className="h-4 w-4" />
+              <span className="hidden sm:inline">Save to Farm</span>
+            </button>
+          )}
+          {saved && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full glass px-3 h-10 text-xs text-foreground/80">
+              <BookmarkCheck className="h-3.5 w-3.5" /> Saved
+            </span>
+          )}
+          <ShareDialog track={track} url={url} saved={saved} onSave={handleSave} />
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
@@ -131,11 +190,11 @@ function AuraPage() {
                 force((n) => n + 1);
               }}
             />
-          ) : track.hasLocalAudio ? (
+          ) : isUpload ? (
             <div className="mx-auto w-full max-w-md text-center">
               <div className="glass-strong rounded-2xl px-5 py-6">
                 <p className="text-sm text-foreground/90">
-                  This demo track session expired. Please upload again.
+                  This uploaded audio session expired. Upload again to replay.
                 </p>
                 <Link
                   to="/create"
@@ -176,21 +235,31 @@ function AuraPage() {
                   rel="noreferrer"
                   className="mt-3 block text-center text-[11px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Open on {labelFor(track.provider)} ↗
+                  Open on {platformName} ↗
                 </a>
               )}
             </div>
+          ) : track.streamUrl ? (
+            <PlatformCard
+              platformName={platformName}
+              url={track.streamUrl}
+              provider={track.provider}
+            />
           ) : null}
         </div>
 
-        {/* Streaming chips */}
+        <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80">
+          {isUpload
+            ? "Aura reacting to uploaded audio"
+            : "Aura generated from your selected mood and track identity"}
+        </p>
+
         {track.streaming && (
           <div className="mt-6 w-full animate-fade-up">
             <StreamingChips links={track.streaming} />
           </div>
         )}
 
-        {/* Aura profile */}
         <div className="mt-10 w-full max-w-md animate-fade-up">
           <AuraProfileCard
             name={track.auraName}

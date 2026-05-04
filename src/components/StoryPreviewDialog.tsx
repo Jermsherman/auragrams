@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StoryCanvas } from "./StoryCanvas";
-import type { Track } from "@/lib/tracks";
+import { providerLabel as labelFor, type Track } from "@/lib/tracks";
 
 export function StoryPreviewDialog({
   track,
@@ -67,6 +67,11 @@ export function StoryPreviewDialog({
             artist={track.artist}
             mood={track.moods?.[0]}
             palette={track.palette}
+            platformName={
+              track.provider && track.provider !== "external" && !track.hasLocalAudio
+                ? labelFor(track.provider)
+                : undefined
+            }
           />
         </div>
 

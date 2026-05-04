@@ -74,29 +74,58 @@ export function OrbVisual({
   useEffect(() => {
     if (!analyser?.current || !ref.current) return;
     const a = analyser.current;
-    const data = new Uint8Array(a.frequencyBinCount);
+    const freq = new Uint8Array(a.frequencyBinCount);
+    const wave = new Uint8Array(a.fftSize);
     let raf = 0;
-    let smooth = 0;
-    let bassSmooth = 0;
+    // Smoothed envelopes
+    let waveEnv = 0; // peak-to-peak waveform amplitude
+    let bassEnv = 0;
+    let midEnv = 0;
+    let highEnv = 0;
     const tick = () => {
-      a.getByteFrequencyData(data);
-      let sum = 0;
-      let bass = 0;
-      const n = Math.min(48, data.length);
-      for (let i = 0; i < n; i++) {
-        sum += data[i];
-        if (i < 8) bass += data[i];
+      a.getByteTimeDomainData(wave);
+      a.getByteFrequencyData(freq);
+
+      // Waveform peak-to-peak (oscilloscope-style)
+      let min = 255;
+      let max = 0;
+      // Subsample for perf
+      const stride = Math.max(1, Math.floor(wave.length / 256));
+      for (let i = 0; i < wave.length; i += stride) {
+        const v = wave[i];
+        if (v < min) min = v;
+        if (v > max) max = v;
       }
-      const avg = sum / n / 255;
-      const b = bass / 8 / 255;
-      smooth += (avg - smooth) * 0.18;
-      bassSmooth += (b - bassSmooth) * 0.22;
+      const peak = (max - min) / 255; // 0..1
+
+      // Frequency bands — split into bass / mid / high
+      const n = freq.length;
+      const bassEnd = Math.floor(n * 0.08);
+      const midEnd = Math.floor(n * 0.35);
+      let bassSum = 0;
+      let midSum = 0;
+      let highSum = 0;
+      for (let i = 0; i < bassEnd; i++) bassSum += freq[i];
+      for (let i = bassEnd; i < midEnd; i++) midSum += freq[i];
+      for (let i = midEnd; i < n; i++) highSum += freq[i];
+      const bass = bassSum / Math.max(1, bassEnd) / 255;
+      const mid = midSum / Math.max(1, midEnd - bassEnd) / 255;
+      const high = highSum / Math.max(1, n - midEnd) / 255;
+
+      // Smooth (slow attack/release for premium feel)
+      waveEnv += (peak - waveEnv) * 0.18;
+      bassEnv += (bass - bassEnv) * 0.15;
+      midEnv += (mid - midEnv) * 0.12;
+      highEnv += (high - highEnv) * 0.2;
+
       const el = ref.current;
       if (el) {
-        const pulseGain = p.motion === "pulse" ? 0.28 : 0.16;
-        el.style.setProperty("--orb-scale", String(1 + smooth * pulseGain));
-        el.style.setProperty("--orb-glow", String(0.55 + smooth * 1.4));
-        el.style.setProperty("--orb-bass", String(1 + bassSmooth * 0.18));
+        const pulseGain = p.motion === "pulse" ? 0.32 : 0.2;
+        el.style.setProperty("--orb-scale", String(1 + waveEnv * pulseGain));
+        el.style.setProperty("--orb-glow", String(0.55 + (midEnv + waveEnv * 0.5) * 1.2));
+        el.style.setProperty("--orb-bass", String(1 + bassEnv * 0.22));
+        el.style.setProperty("--orb-shimmer", String(0.4 + highEnv * 1.6));
+        el.style.setProperty("--orb-deform", String(waveEnv * 8)); // px displacement-ish
       }
       raf = requestAnimationFrame(tick);
     };
@@ -229,7 +258,10 @@ export function OrbVisual({
 
       {/* particles */}
       {particles && particleCount > 0 && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" style={shape}>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{ ...shape, opacity: "var(--orb-shimmer, 1)" }}
+        >
           {Array.from({ length: particleCount }).map((_, i) => (
             <Particle key={i} index={i} kind={p.particle} speed={p.speed} stops={p.stops} />
           ))}

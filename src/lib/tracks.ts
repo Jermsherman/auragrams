@@ -1,6 +1,21 @@
 import { generateAura, paletteFromMoods, slugify, type PaletteKey } from "./aura";
 
-export type Provider = "spotify" | "youtube" | "soundcloud" | "apple" | "other";
+export type Provider =
+  | "spotify"
+  | "youtube"
+  | "youtube-music"
+  | "soundcloud"
+  | "apple"
+  | "audiomack"
+  | "bandcamp"
+  | "tidal"
+  | "deezer"
+  | "amazon"
+  | "pandora"
+  | "boomplay"
+  | "audius"
+  | "smartlink"
+  | "external";
 
 export type StreamingLinks = {
   spotify?: string;
@@ -150,7 +165,50 @@ export function saveArtist(p: ArtistProfile) {
   localStorage.setItem(ARTIST_KEY, JSON.stringify(all));
 }
 
-export function detectProvider(url: string): { provider: Provider; embedUrl?: string } | null {
+export type ProviderInfo = {
+  provider: Provider;
+  platformName: string;
+  embedUrl?: string;
+};
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  spotify: "Spotify",
+  youtube: "YouTube",
+  "youtube-music": "YouTube Music",
+  soundcloud: "SoundCloud",
+  apple: "Apple Music",
+  audiomack: "Audiomack",
+  bandcamp: "Bandcamp",
+  tidal: "Tidal",
+  deezer: "Deezer",
+  amazon: "Amazon Music",
+  pandora: "Pandora",
+  boomplay: "Boomplay",
+  audius: "Audius",
+  smartlink: "Smart Link",
+  external: "External Link",
+};
+
+export function providerLabel(p?: Provider | string | null): string {
+  if (!p) return "External Link";
+  return PROVIDER_LABELS[p as Provider] ?? "External Link";
+}
+
+const SMARTLINK_HOSTS = [
+  "linkfire.com",
+  "lnk.to",
+  "ffm.to",
+  "fanlink.to",
+  "hyperfollow.com",
+  "distrokid.com",
+  "toneden.io",
+  "smarturl.it",
+  "solo.to",
+  "beacons.ai",
+  "linktr.ee",
+];
+
+export function detectProvider(url: string): ProviderInfo | null {
   let u: URL;
   try {
     u = new URL(url.trim());
@@ -158,36 +216,66 @@ export function detectProvider(url: string): { provider: Provider; embedUrl?: st
     return null;
   }
   const host = u.hostname.replace(/^www\./, "");
+  const make = (provider: Provider, embedUrl?: string): ProviderInfo => ({
+    provider,
+    platformName: PROVIDER_LABELS[provider],
+    embedUrl,
+  });
 
   if (host.endsWith("spotify.com")) {
-    const m = u.pathname.match(/\/(track|album|episode|playlist)\/([A-Za-z0-9]+)/);
+    const m = u.pathname.match(/\/(track|album|episode|playlist|artist)\/([A-Za-z0-9]+)/);
     if (m) {
-      return {
-        provider: "spotify",
-        embedUrl: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator&theme=0`,
-      };
+      return make(
+        "spotify",
+        `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator&theme=0`,
+      );
     }
+    return make("spotify");
   }
+
   if (host === "youtu.be") {
     const id = u.pathname.slice(1);
-    if (id) return { provider: "youtube", embedUrl: `https://www.youtube.com/embed/${id}` };
+    if (id) return make("youtube", `https://www.youtube.com/embed/${id}`);
+  }
+  if (host === "music.youtube.com") {
+    const id = u.searchParams.get("v");
+    if (id) return make("youtube-music", `https://www.youtube.com/embed/${id}`);
+    return make("youtube-music");
   }
   if (host.endsWith("youtube.com")) {
     const id = u.searchParams.get("v");
-    if (id) return { provider: "youtube", embedUrl: `https://www.youtube.com/embed/${id}` };
+    if (id) return make("youtube", `https://www.youtube.com/embed/${id}`);
     const m = u.pathname.match(/^\/(embed|shorts)\/([\w-]+)/);
-    if (m) return { provider: "youtube", embedUrl: `https://www.youtube.com/embed/${m[2]}` };
+    if (m) return make("youtube", `https://www.youtube.com/embed/${m[2]}`);
+    return make("youtube");
   }
+
   if (host.endsWith("soundcloud.com")) {
-    return {
-      provider: "soundcloud",
-      embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(
+    return make(
+      "soundcloud",
+      `https://w.soundcloud.com/player/?url=${encodeURIComponent(
         url,
       )}&color=%23a855f7&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false`,
-    };
+    );
   }
+
   if (host.endsWith("music.apple.com")) {
-    return { provider: "apple", embedUrl: url.replace("music.apple.com", "embed.music.apple.com") };
+    return make("apple", url.replace("music.apple.com", "embed.music.apple.com"));
   }
-  return { provider: "other" };
+
+  if (host.endsWith("audiomack.com")) return make("audiomack");
+  if (host.endsWith("bandcamp.com")) return make("bandcamp");
+  if (host.endsWith("tidal.com")) return make("tidal");
+  if (host.endsWith("deezer.com")) return make("deezer");
+  if (host.endsWith("music.amazon.com") || host.endsWith("amazon.com"))
+    return make("amazon");
+  if (host.endsWith("pandora.com")) return make("pandora");
+  if (host.endsWith("boomplay.com")) return make("boomplay");
+  if (host.endsWith("audius.co")) return make("audius");
+
+  if (SMARTLINK_HOSTS.some((h) => host === h || host.endsWith("." + h))) {
+    return make("smartlink");
+  }
+
+  return make("external");
 }
