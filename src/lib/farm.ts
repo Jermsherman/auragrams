@@ -125,6 +125,12 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     colorGuided: t.colorGuided,
     visibilityMode: t.visibilityMode,
     influenceSettings: t.influenceSettings,
+    audioStoragePath: t.audioStoragePath,
+    audioPublicUrl: t.audioPublicUrl,
+    audioFileName: t.audioFileName,
+    audioMimeType: t.audioMimeType,
+    audioSizeBytes: t.audioSizeBytes,
+    audioDurationSeconds: t.audioDurationSeconds,
   };
 
   const all = read();
