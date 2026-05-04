@@ -72,12 +72,23 @@ export function OrbVisual({
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
-  const p: AuraPersonality =
-    typeof personality === "object"
-      ? personality!
-      : getPersonality(
-          (typeof personality === "string" ? personality : undefined) ?? palette,
-        );
+  const p: AuraPersonality = useMemo(() => {
+    const base =
+      typeof personality === "object"
+        ? personality!
+        : getPersonality(
+            (typeof personality === "string" ? personality : undefined) ?? palette ?? profile?.palette,
+          );
+    if (!profile) return base;
+    const c = profile.colors;
+    return {
+      ...base,
+      stops: [c.primary, c.secondary, c.accent, c.glow, c.primary] as AuraPersonality["stops"],
+      swatches: c.swatches,
+      glow: c.glow,
+      atmosphere: c.shadow,
+    };
+  }, [personality, palette, profile]);
 
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
