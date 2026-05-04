@@ -169,7 +169,7 @@ export function AudioPlayer({
 
   return (
     <div className="w-full max-w-md mx-auto select-none">
-      <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
+      <audio ref={audioRef} src={src} preload="metadata" />
       <div className="flex items-center gap-4">
         <button
           onClick={toggle}
