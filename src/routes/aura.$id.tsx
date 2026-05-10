@@ -13,11 +13,12 @@ import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2 } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
 import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
+import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -69,6 +70,7 @@ function AuraPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
@@ -299,6 +301,14 @@ function AuraPage() {
           >
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
+          {saved && track.colors && (
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <Palette className="h-3.5 w-3.5" /> Edit Palette
+            </button>
+          )}
         </div>
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
@@ -307,6 +317,19 @@ function AuraPage() {
           open={auracleOpen}
           onOpenChange={setAuracleOpen}
         />
+        {track.colors && (
+          <EditPaletteDialog
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            initialColors={track.colors}
+            generatedColors={track.colors}
+            initialName={track.paletteName}
+            onSave={(next, name) => {
+              updateTrack(track.id, { colors: next, paletteName: name });
+              setTrack({ ...track, colors: next, paletteName: name });
+            }}
+          />
+        )}
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (

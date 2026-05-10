@@ -229,6 +229,9 @@ function BuilderPage() {
       mode,
       selectedAuraIds,
       links: links.map((l, i) => ({ ...l, order: i })),
+      streamingLinks: [],
+      socialLinks: [],
+      customLinks: [],
       theme,
       visibility: "public",
     };
