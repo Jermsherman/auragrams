@@ -394,8 +394,8 @@ function AuraPage() {
 
         <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80">
           {isUpload
-            ? "Aura reacting to Uploaded Audio"
-            : "Aura generated from your selected mood and track identity"}
+            ? "Aurascope reacting to audio"
+            : "Aura generated from track identity"}
         </p>
 
         {track.streaming && (
