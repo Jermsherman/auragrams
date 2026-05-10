@@ -28,7 +28,7 @@ import {
   type AuraLinkLink,
   type AuraLinkMode,
   type AuraLinkPage,
-  type AuraLinkTheme,
+  type AuraLinkThemePreset,
 } from "@/lib/auralink";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
