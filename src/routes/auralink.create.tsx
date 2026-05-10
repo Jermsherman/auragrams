@@ -116,7 +116,7 @@ function BuilderPage() {
       streamingLinks: [],
       socialLinks: [],
       customLinks: [],
-      theme,
+      theme: themeValue,
       visibility: "public",
     }),
     [title, artistName, computedSlug, description, profileImageUrl, mode, selectedAuraIds, links, theme],
@@ -241,7 +241,7 @@ function BuilderPage() {
       streamingLinks: [],
       socialLinks: [],
       customLinks: [],
-      theme,
+      theme: themeValue,
       visibility: "public",
     };
     try {
