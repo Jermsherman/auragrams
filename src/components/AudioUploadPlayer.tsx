@@ -337,8 +337,31 @@ export function AudioUploadPlayer({
     a.currentTime = Number(e.target.value);
   };
 
+  // Apply volume + muted to the underlying element reactively.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = volume;
+    a.muted = muted;
+  }, [volume, muted, src]);
+
+  const onVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = Math.max(0, Math.min(1, Number(e.target.value) / 100));
+    setVolume(v);
+    if (v > 0 && muted) setMuted(false);
+    try { localStorage.setItem(VOLUME_KEY, String(v)); } catch { /* noop */ }
+  };
+  const toggleMute = () => {
+    setMuted((m) => {
+      const next = !m;
+      try { localStorage.setItem(MUTED_KEY, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  };
+
   const stops = getPersonality(palette).stops;
   const pct = duration ? (time / duration) * 100 : 0;
+  const VolIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div className="w-full max-w-md mx-auto select-none">
@@ -390,11 +413,34 @@ export function AudioUploadPlayer({
         </div>
       </div>
 
-      {fileMeta && (
-        <p className="mt-3 text-[11px] text-muted-foreground truncate">
-          <span className="text-foreground/80">{fileMeta.name}</span> · {fileMeta.type || "audio"} · {fmtBytes(fileMeta.size)}
-        </p>
-      )}
+      {/* Volume row */}
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          onClick={toggleMute}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="grid place-items-center h-9 w-9 rounded-full glass hover:bg-foreground/10 transition-colors text-foreground/80"
+        >
+          <VolIcon className="h-4 w-4" />
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={Math.round((muted ? 0 : volume) * 100)}
+          onChange={onVolumeChange}
+          aria-label="Volume"
+          className="flex-1 h-1 accent-foreground/70 cursor-pointer"
+        />
+        <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">
+          {muted ? 0 : Math.round(volume * 100)}
+        </span>
+      </div>
+
+      {/* Generic, brand-friendly caption — never expose the file name. */}
+      <p className="mt-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80 text-center">
+        Aurascope reacting to audio
+      </p>
 
       {lastError && (
         <div
