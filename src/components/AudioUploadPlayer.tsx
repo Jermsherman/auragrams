@@ -376,29 +376,6 @@ export function AudioUploadPlayer({
         </div>
       </div>
 
-      {/* Volume row */}
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          onClick={toggleMute}
-          aria-label={muted ? "Unmute" : "Mute"}
-          className="grid place-items-center h-9 w-9 rounded-full glass hover:bg-foreground/10 transition-colors text-foreground/80"
-        >
-          <VolIcon className="h-4 w-4" />
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          value={Math.round((muted ? 0 : volume) * 100)}
-          onChange={onVolumeChange}
-          aria-label="Volume"
-          className="flex-1 h-1 accent-foreground/70 cursor-pointer"
-        />
-        <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">
-          {muted ? 0 : Math.round(volume * 100)}
-        </span>
-      </div>
 
 
 
