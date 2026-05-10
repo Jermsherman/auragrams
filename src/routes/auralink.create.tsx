@@ -79,7 +79,7 @@ function BuilderPage() {
   const [description, setDescription] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState<string>("");
   const [slug, setSlug] = useState("");
-  const [theme, setTheme] = useState<AuraLinkTheme>("midnight");
+  const [theme, setTheme] = useState<AuraLinkThemePreset>("midnight");
   const [links, setLinks] = useState<AuraLinkLink[]>([]);
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
 
