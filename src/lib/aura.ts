@@ -522,10 +522,28 @@ export function auraNameFor(seedKey: string, moods: string[], kp?: KeyProfile | 
   return pick(AURA_NAME_BANK, h);
 }
 
-// ----------------- energy + key + tempo + density -----------------
+// ----------------- vocabulary banks -----------------
 const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"] as const;
 const MINOR_BIAS_KEY = new Set<MoodKey>(["melancholy","dark","mysterious","nostalgic","intimate"]);
 const MAJOR_BIAS_KEY = new Set<MoodKey>(["warm","euphoric","coastal","energetic","dreamy"]);
+
+// Used to bias palette/description language by audio features.
+export const ADJECTIVE_BANK = [
+  "aching","tender","restless","radiant","haunted","golden","bruised","weightless",
+  "intimate","feverish","wistful","electric","velvet","smoky","fragile","luminous",
+  "heavy","sacred","glossy","muted","storm-lit","moonlit","sun-washed","nocturnal",
+  "cinematic","raw","analog","honeyed","shadowed",
+];
+export const TEXTURE_ADJ_BANK = [
+  "glass","velvet","smoke","mist","static","saltwater","ember","chrome","pearl",
+  "dust","candlelight","frost","silk","grain","neon","ash","bloom","current","haze","rain","amber",
+];
+export const NOUN_BANK = [
+  "tide","chapel","weather","signal","memory","voltage","halo","static","echo","fever",
+  "bloom","current","mercy","distance","pressure","shoreline","mirage","afterglow","rain",
+  "velvet","ghostlight","ember","dusk","orbit","glass","ache",
+];
+
 
 export type MusicalKey = string;
 export type TempoBand = "Slow" | "Mid" | "Fast";
