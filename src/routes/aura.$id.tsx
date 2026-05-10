@@ -302,6 +302,18 @@ function AuraPage() {
           >
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
+          {track.colors && (
+            <button
+              onClick={() => {
+                const r = shufflePalette();
+                if (r) toast.success("Palette shuffled");
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+              title="Reroll palette colors"
+            >
+              <Shuffle className="h-3.5 w-3.5" /> Shuffle
+            </button>
+          )}
           {saved && track.colors && (
             <button
               onClick={() => setPaletteOpen(true)}
@@ -328,6 +340,20 @@ function AuraPage() {
             onSave={(next, name) => {
               updateTrack(track.id, { colors: next, paletteName: name });
               setTrack({ ...track, colors: next, paletteName: name });
+            }}
+            onShuffle={() => {
+              const gen = generateAura({
+                id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+                title: track.title,
+                artist: track.artist,
+                moods: track.moods,
+                detectedKey: track.detectedKey ?? null,
+                pitchCenter: track.pitchCenter ?? null,
+                energyOverride: track.energy,
+                sourceType: track.sourceType,
+                userColorInfluence: track.userColorInfluence,
+              });
+              return { colors: gen.colors, name: gen.paletteName };
             }}
           />
         )}
