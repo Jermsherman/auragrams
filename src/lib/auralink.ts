@@ -9,6 +9,11 @@ export type AuraLinkThemePreset =
   | "ocean"
   | "velvet"
   | "minimal"
+  | "aurora"
+  | "ember"
+  | "emerald"
+  | "rose"
+  | "onyx"
   | "custom";
 
 export type AuraLinkLinkType = "streaming" | "custom" | "aura" | "social";
@@ -340,6 +345,46 @@ export const PRESET_THEMES: Record<Exclude<AuraLinkThemePreset, "custom">, Theme
     buttonBg: "oklch(0.2 0 0 / 0.65)",
     glow: "0 0 30px -12px oklch(0.6 0 0 / 0.5)",
   },
+  aurora: {
+    key: "aurora",
+    name: "Aurora Drift",
+    bg: "radial-gradient(ellipse at top, oklch(0.55 0.2 160) 0%, oklch(0.3 0.14 220) 55%, oklch(0.1 0.05 270) 100%)",
+    accent: "oklch(0.92 0.18 170)",
+    buttonBg: "oklch(0.2 0.08 200 / 0.7)",
+    glow: "0 0 55px -8px oklch(0.75 0.22 170 / 0.7)",
+  },
+  ember: {
+    key: "ember",
+    name: "Ember Smoke",
+    bg: "radial-gradient(ellipse at top, oklch(0.45 0.2 40) 0%, oklch(0.2 0.08 30) 55%, oklch(0.1 0.03 25) 100%)",
+    accent: "oklch(0.88 0.16 50)",
+    buttonBg: "oklch(0.2 0.06 30 / 0.7)",
+    glow: "0 0 50px -8px oklch(0.7 0.22 40 / 0.75)",
+  },
+  emerald: {
+    key: "emerald",
+    name: "Emerald Hour",
+    bg: "radial-gradient(ellipse at top, oklch(0.4 0.18 150) 0%, oklch(0.18 0.08 160) 55%, oklch(0.08 0.04 170) 100%)",
+    accent: "oklch(0.9 0.18 150)",
+    buttonBg: "oklch(0.18 0.06 155 / 0.7)",
+    glow: "0 0 50px -10px oklch(0.7 0.22 150 / 0.7)",
+  },
+  rose: {
+    key: "rose",
+    name: "Rose Quartz",
+    bg: "radial-gradient(ellipse at top, oklch(0.6 0.18 10) 0%, oklch(0.3 0.1 350) 55%, oklch(0.14 0.05 340) 100%)",
+    accent: "oklch(0.92 0.16 15)",
+    buttonBg: "oklch(0.24 0.08 5 / 0.7)",
+    glow: "0 0 55px -10px oklch(0.78 0.2 10 / 0.75)",
+  },
+  onyx: {
+    key: "onyx",
+    name: "Onyx Bloom",
+    bg: "radial-gradient(ellipse at top, oklch(0.22 0.06 290) 0%, oklch(0.1 0.03 280) 60%, oklch(0.05 0.01 270) 100%)",
+    accent: "oklch(0.85 0.15 295)",
+    buttonBg: "oklch(0.16 0.04 285 / 0.7)",
+    glow: "0 0 45px -10px oklch(0.65 0.18 295 / 0.6)",
+  },
 };
 
 /** Backward-compatible map (some older imports use THEMES[key]). */
@@ -352,6 +397,11 @@ export const THEME_LIST: ThemeDef[] = [
   PRESET_THEMES.sunset,
   PRESET_THEMES.ocean,
   PRESET_THEMES.velvet,
+  PRESET_THEMES.aurora,
+  PRESET_THEMES.ember,
+  PRESET_THEMES.emerald,
+  PRESET_THEMES.rose,
+  PRESET_THEMES.onyx,
   PRESET_THEMES.minimal,
 ];
 
