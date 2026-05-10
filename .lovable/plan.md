@@ -1,105 +1,174 @@
-## What's going wrong
+## Goal
 
-Network logs and console confirm the real failure mode:
+Improve Aura Profile creation across 4 dimensions:
+1. Richer audio analysis from uploads/Raw Aura
+2. Smarter, less repetitive mood detection
+3. Stronger color↔emotion mapping with editable palette
+4. More poetic, varied vibe language with editable Vibe + media player volume
 
-- The audio file uploads to Storage successfully (200 OK at
-  `auragram-audio/{userId}/gqz92qvsao/...mp3`).
-- The follow-up `POST /rest/v1/auras` fails with **400**:
-  `invalid input syntax for type uuid: "gqz92qvsao"`.
+This is a patch — no app-wide redesign. We extend existing `aura.ts`, `audioFeatures.ts`, `moodDetect.ts`, and add three small editor surfaces (Edit Vibe, Edit Palette, Volume).
 
-Why: `makeId()` in `src/lib/tracks.ts` returns a short random base36 string,
-but `public.auras.id` is a `uuid` column. So:
+---
 
-1. The Aura row is **never created in the cloud**.
-2. After refresh, or on Farm/AuraLink/public views that read from the cloud,
-   there is no row → no `audio_public_url` → playback shows the
-   "audio is no longer available" empty state.
-3. Even though `localStorage` still has the track with `audioPublicUrl`,
-   anything cloud-driven (Farm sync, public AuraLink page, another device)
-   sees nothing.
+## 1. Extend audio analysis (`src/lib/audioFeatures.ts`)
 
-The Storage object itself plays fine — the failure is purely the missing DB
-row, which breaks every code path that doesn't rely on the same browser's
-localStorage.
+Expand `AudioFeatures` from the current 5 fields to a richer normalized object. Computed in the same single FFT pass — no new deps:
 
-## Fix
-
-### 1. Use real UUIDs for new Auras and Auracles
-
-In `src/lib/tracks.ts` and `src/lib/auracle.ts`, change `makeId()` to:
-
-```ts
-export function makeId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  // RFC4122 v4 fallback
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+```text
+loudness          (current rms)
+peakLevel         max abs sample
+dynamicRange      peak − avgRms
+brightness        spectral centroid / nyquist (current)
+bassEnergy / midEnergy / trebleEnergy   (current bands, but stored as 0..1)
+lowEndDensity / midrangeDensity / highFrequencySparkle   relative band fullness
+transientIntensity     short-window envelope deltas, 0..1
+rhythmIntensity        autocorr of envelope, 0..1
+zeroCrossingRate       0..1
+densityScore           weighted blend of band fullness + rms consistency
+energyScore            existing 0..100
+warmthScore            mid + low-mid bias, 0..1
+darknessScore          (1 − brightness) * (1 − rms), 0..1
+softnessScore          1 − transientIntensity
+aggressionScore        transientIntensity * (1 − warmthScore)
+estimatedTempo         null for v1 (autocorr stub, optional)
 ```
 
-This makes the cloud insert succeed, so `auras.audio_public_url` is actually
-persisted and playback works after refresh, on the Farm, and on public
-AuraLinks.
+`analyzeFile` and `analyzeBuffer` return this superset. Key/mode/pitchCenter stay where they are (`keyDetect.ts`).
 
-### 2. Surface upload/save failures instead of swallowing them
+For platform links: skip analysis, leave `audioFeatures` undefined — mood detection falls back to title+artist seed (already does).
 
-In `src/routes/create.tsx`, replace the silent
-`.catch((e) => console.error("cloud save aura", e))` with a user-facing
-toast:
+## 2. Smarter mood detection (`src/lib/moodDetect.ts`)
 
-```ts
-.catch((e) => {
-  console.error("cloud save aura", e);
-  toast.error("We couldn't save your Aura to the cloud. Try again.");
-});
+Rewrite `suggestMoods` as a weighted, seeded picker over the **full 60+ mood pool** in `MOOD_TRAITS` (already exists in `aura.ts`; currently the function only returns a small repeated subset).
+
+Algorithm:
+1. Score every mood in `MOOD_TRAITS` against audio features (energy band match, brightness match, mode match, density match, warmth/darkness match, raw-recording bias).
+2. Add a deterministic jitter `seed = hash(title + artist + energy + brightness + key)` so identical inputs are stable but small input changes shift the picks.
+3. Enforce slot diversity: pick 1 from each "axis" (energy, brightness, key/mode, density/texture) when scores allow; never return only neighbors of the same archetype.
+4. Avoid contradictory pairs (e.g. Serene + Aggressive) unless audio strongly supports both.
+5. Return 2–4 moods.
+
+Result: variety across tracks, no more "same 4 every time".
+
+## 3. Aura Density label
+
+Map continuous `densityScore` (0..1) to one of: Sparse, Airy, Light, Open, Balanced, Full, Dense, Heavy, Saturated, Layered, Overgrown. Store both `densityScore` and `densityLabel` on the aura. Show in `AuraProfileCard` as `Full · 72%`. Use score to scale particle count and orb opacity inside `Aurascope` (light touch — only multipliers on existing values).
+
+## 4. Improved color engine (`src/lib/aura.ts` → `buildPalette`)
+
+Extend `buildPalette` to accept `audioFeatures` and apply rules:
+- major key → push hue toward warm/clear; minor → push toward cool/shadow
+- high brightness → bias accent to cyan/silver/gold/neon
+- low brightness → bias accent to violet/navy/burgundy
+- high density → deepen shadow + raise saturation
+- low density → lighten + raise transparency in glow
+- high energy → increase contrast between primary/secondary
+- low energy → soften contrast
+- mood-to-color seed lists expanded per spec (Melancholy, Romantic, Euphoric, Dark, Coastal, Nostalgic, Electric, Soulful, Raw, Ethereal, Gritty, Nocturnal — most already present, fill any gaps).
+
+Output adds: `shadowColor`, `glowColor`, `particleColor`, `waveformColor`, `backgroundColor` (all derivable from existing primary/accent/shadow). `swatches` continues to exist.
+
+## 5. Richer naming + descriptions
+
+Expand the existing `AURA_NAME_BANK`, `PALETTE_NAME_BANK`, and `SHORT_TEMPLATES_*` / `VIBE_FRAMES` / scene banks with the adjective/noun banks from the brief (emotional, texture, motion, noun lists). Keep the seeded picker — adds variety without breaking determinism. Block over-used tokens ("cool", "nice", "vibe", "Coastal Drift", "Quiet Drift").
+
+Also add `textureKeywords` (2–4 words like velvet, mist, glass) alongside existing `motionKeywords`. Both come from selected moods' trait banks.
+
+For Raw recordings: keep current bank but add the new "raw intimate signal…" templates from the spec.
+
+## 6. Edit Vibe (modal)
+
+New `<EditVibeDialog>` (new component). Trigger lives in:
+- `AuraProfileCard` (replace inline VibeEditor block with "Edit Vibe" button that opens the modal)
+- `aura.$id.tsx` action menu (already has "Influence Aura" — add "Edit Vibe" link that opens the dialog)
+- `aura.$id.influence.tsx` already has these fields — keep that page; the new dialog is the lightweight version
+
+Fields: vibe note (textarea), mood blend (existing `MoodPicker`), density preference (Auto / Airy / Balanced / Dense / Intense), Regenerate button, Save / Cancel.
+
+On save: persist `vibeSettings = { vibeNote, moodTags, densityPreference, updatedAt }`, regenerate `auraDescription`, `vibeDescription`, `motionKeywords`, `textureKeywords` via `generateAura`. Update local + cloud (`updateAuraVibe` already exists; extend with palette/density fields). Toast: "Vibe updated."
+
+## 7. Edit Palette (modal)
+
+New `<EditPaletteDialog>`. Trigger in `AuraProfileCard` ("Edit Palette" button next to Edit Vibe) and on the Influence page.
+
+UI: rename input + 4–8 color swatches each with a color picker (`<input type="color">`), Add/Remove swatch, Reset to generated palette, Save, Cancel.
+
+Data:
+```text
+generatedColorPalette   snapshot from generateAura
+finalColorPalette       what is rendered (defaults to generated)
+paletteName             editable
+paletteWasEdited        true once user saves an edit
+paletteSettings: { paletteName, colors, wasEdited, updatedAt }
 ```
 
-That way, if the DB insert ever fails again the user knows immediately
-instead of getting a broken playback experience later.
+Aurascope reads `finalColorPalette ?? generatedColorPalette`. Cloud row stores both. Toast: "Palette updated."
 
-### 3. Tighten the playback fallback in `/aura/$id`
+## 8. Media player cleanup (`src/components/AudioUploadPlayer.tsx`)
 
-`src/routes/aura.$id.tsx` currently uses local track only. Add a cloud
-fallback so an Aura opened on a fresh device still plays:
+- Add volume control: speaker icon + horizontal slider (0–100), mute toggle. Slider collapses behind the icon on small screens. Persist last volume per-session via `mediaSettings: { volume, muted }` in localStorage.
+- Set `audio.volume` on change; `audio.muted` on mute.
+- Remove file name from the "Reacting to …" caption in `aura.$id.tsx`. Replace with:
+  - upload/raw: "Aurascope reacting to audio"
+  - platform: "Aura generated from track identity"
+- Keep the existing dark-glass styling.
 
-- If `getTrack(id)` returns null OR has no `audioPublicUrl`, call
-  `getPublicAura(id)` from `src/lib/cloudAura.ts` and use
-  `audio_public_url` as the source.
-- Keep the existing session-URL path for the just-uploaded case.
+## 9. Aura Profile UI cleanup (`AuraProfileCard.tsx`)
 
-Final priority for `audioUrl`:
-1. `track.audioPublicUrl` (local cache)
-2. cloud row's `audio_public_url`
-3. session blob URL (just-uploaded, same tab)
-4. legacy `audioDataUrl`
+Add density row, palette name, texture keywords, Edit Vibe + Edit Palette buttons. Wrap long sections in collapsibles (Profile, Vibe, Palette) — already partially using `<Section>`.
 
-### 4. Validate IDs already in localStorage
+## 10. Data model (`src/lib/tracks.ts`)
 
-For users who already created Auras with the old short IDs (which exist in
-their localStorage but never made it to the cloud), the local playback path
-still works in the same browser session. We do not migrate them — they will
-recreate or re-save Auras with the new UUIDs. No destructive change.
+Extend `Track`:
+```text
+audioFeatures?: AudioFeatures           // full normalized object
+detectedMoods?: string[]
+userSelectedMoods?: string[]
+densityScore?: number
+densityLabel?: string
+brightnessScore?: number
+warmthScore?: number
+darknessScore?: number
+aggressionScore?: number
+textureKeywords?: string[]
+generatedColorPalette?: AuraPalette
+finalColorPalette?: AuraPalette
+paletteWasEdited?: boolean
+vibeSettings?: { vibeNote; moodTags; densityPreference; updatedAt }
+paletteSettings?: { paletteName; colors; wasEdited; updatedAt }
+mediaSettings?: { volume; muted }
+```
 
-## Files to change
+`hydrate()` backfills from existing fields so old tracks keep working.
 
-- `src/lib/tracks.ts` — UUID-based `makeId()`.
-- `src/lib/auracle.ts` — same UUID-based `makeId()`.
-- `src/routes/create.tsx` — surface cloud-save errors via toast.
-- `src/routes/aura.$id.tsx` — cloud fallback for `audioUrl`.
+## 11. Cloud sync (`src/lib/cloudAura.ts`)
 
-No database migration, no Storage policy changes, no schema changes.
+Extend `updateAuraVibe` (or add `updateAuraProfile`) to also persist palette colors, palette name, density label, vibe settings, and mood tags into the existing `auras.extra` jsonb (no schema migration needed). `getPublicAura` already returns `extra` — read from it on hydrate.
 
-## Acceptance
+## 12. Files to add / change
 
-- Uploading an audio file results in a successful `POST /rest/v1/auras`
-  (no more 22P02 UUID error in console).
-- After page refresh on `/aura/{id}`, the uploaded audio still plays.
-- Saved Farm Auras play without re-uploading.
-- Public AuraLinks for public Auras play the uploaded audio on any device.
-- If the DB write ever fails, the user sees a clear toast instead of a
-  silent broken player.
+New:
+- `src/components/EditVibeDialog.tsx`
+- `src/components/EditPaletteDialog.tsx`
+- `src/components/VolumeControl.tsx` (small subcomponent)
+
+Edit:
+- `src/lib/audioFeatures.ts` — extended features
+- `src/lib/moodDetect.ts` — weighted picker
+- `src/lib/aura.ts` — density label, color engine rules, expanded banks, texture keywords, audioFeatures input on `generateAura`
+- `src/lib/tracks.ts` — Track model + hydrate
+- `src/lib/cloudAura.ts` — extra fields
+- `src/components/AuraProfileCard.tsx` — new fields, Edit buttons
+- `src/components/AudioUploadPlayer.tsx` — volume control
+- `src/routes/aura.$id.tsx` — caption, dialog wiring
+- `src/routes/aura.$id.influence.tsx` — pass audioFeatures into generateAura, expose density preference
+
+## Acceptance map (from brief)
+
+1–16 covered above. Ecosystem (Aura, Aurascope, Farm, AuraLink, Auracle) untouched structurally — only the per-Aura profile gets richer.
+
+## Out of scope
+
+- No new audio libraries (Meyda/Essentia). All analysis stays in raw Web Audio.
+- No tempo detection beyond a stub (`estimatedTempo` will be null in v1).
+- No backend schema migration — everything new fits in `auras.extra` jsonb.
