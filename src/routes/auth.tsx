@@ -148,6 +148,15 @@ function AuthPage() {
                 />
               </div>
             </label>
+            <label className="flex items-center gap-2 px-1 pt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 accent-foreground/80 rounded"
+              />
+              <span className="text-xs text-muted-foreground">Remember me on this device</span>
+            </label>
             <button
               type="submit"
               disabled={busy}
