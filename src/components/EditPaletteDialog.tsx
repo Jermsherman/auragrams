@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Trash2, RotateCcw, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import type { AuraPalette } from "@/lib/aura";
 
@@ -20,6 +20,7 @@ type Props = {
   generatedColors?: AuraPalette;
   initialName?: string;
   onSave: (next: AuraPalette, name: string) => void;
+  onShuffle?: () => { colors: AuraPalette; name: string } | null;
 };
 
 const KEYS: (keyof Omit<AuraPalette, "swatches">)[] = [
@@ -53,6 +54,7 @@ export function EditPaletteDialog({
   generatedColors,
   initialName,
   onSave,
+  onShuffle,
 }: Props) {
   const [palette, setPalette] = useState<AuraPalette>(initialColors);
   const [name, setName] = useState(initialName ?? "Custom Palette");
@@ -177,7 +179,22 @@ export function EditPaletteDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 flex-wrap">
+          {onShuffle && (
+            <button
+              onClick={() => {
+                const r = onShuffle();
+                if (r) {
+                  setPalette(r.colors);
+                  setName(r.name);
+                  toast.message("Palette shuffled");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10"
+            >
+              <Shuffle className="h-3.5 w-3.5" /> Shuffle
+            </button>
+          )}
           {generatedColors && (
             <button
               onClick={reset}

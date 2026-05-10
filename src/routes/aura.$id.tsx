@@ -13,7 +13,7 @@ import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette, Shuffle } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
 import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
@@ -161,6 +161,27 @@ function AuraPage() {
     nav({ to: "/farm" });
   };
 
+  const shufflePalette = () => {
+    if (!track) return null;
+    const gen = generateAura({
+      id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      title: track.title,
+      artist: track.artist,
+      moods: track.moods,
+      detectedKey: track.detectedKey ?? null,
+      pitchCenter: track.pitchCenter ?? null,
+      energyOverride: track.energy,
+      sourceType: track.sourceType,
+      userColorInfluence: track.userColorInfluence,
+    });
+    updateTrack(track.id, { colors: gen.colors, paletteName: gen.paletteName });
+    setTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
+    if (saved) {
+      saveAuraFromTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
+    }
+    return { colors: gen.colors, name: gen.paletteName };
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <AuraAtmosphere personality={p} />
@@ -302,6 +323,18 @@ function AuraPage() {
           >
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
+          {track.colors && (
+            <button
+              onClick={() => {
+                const r = shufflePalette();
+                if (r) toast.success("Palette shuffled");
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+              title="Reroll palette colors"
+            >
+              <Shuffle className="h-3.5 w-3.5" /> Shuffle
+            </button>
+          )}
           {saved && track.colors && (
             <button
               onClick={() => setPaletteOpen(true)}
@@ -328,6 +361,20 @@ function AuraPage() {
             onSave={(next, name) => {
               updateTrack(track.id, { colors: next, paletteName: name });
               setTrack({ ...track, colors: next, paletteName: name });
+            }}
+            onShuffle={() => {
+              const gen = generateAura({
+                id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+                title: track.title,
+                artist: track.artist,
+                moods: track.moods,
+                detectedKey: track.detectedKey ?? null,
+                pitchCenter: track.pitchCenter ?? null,
+                energyOverride: track.energy,
+                sourceType: track.sourceType,
+                userColorInfluence: track.userColorInfluence,
+              });
+              return { colors: gen.colors, name: gen.paletteName };
             }}
           />
         )}
