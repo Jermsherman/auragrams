@@ -199,10 +199,11 @@ function InfluencePage() {
             <Sparkles className="h-3 w-3" /> Influence Aura
           </div>
           <h1 className="mt-3 font-display text-3xl sm:text-4xl tracking-tight">
-            <span className="text-aura-gradient">Shape the vibe</span>
+            <span className="text-aura-gradient">Bend this Aura toward you</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Guide the mood, color, and public identity of this Aura. Auragram blends your direction with the sound.
+            Your moods, colors, and notes carry real weight — Auragram pulls the palette,
+            glow, and vibe toward your direction while keeping the song's core identity.
           </p>
         </div>
 
@@ -327,7 +328,7 @@ function InfluencePage() {
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-full h-11 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Save Influence
+              Apply Influence
             </button>
           </div>
         </div>
