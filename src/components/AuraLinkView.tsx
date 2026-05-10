@@ -23,6 +23,7 @@ type Props = {
 };
 
 export function AuraLinkView({ page, auras, showLogo = true, className }: Props) {
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const theme = resolveTheme(page.theme);
   const featured = auras.find((a) => a.id === (page.featuredAuraId ?? page.selectedAuraIds[0]));
 
@@ -145,56 +146,20 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
         {showAuras && auraEntries.length > 0 && (
           <div className="mt-8 w-full space-y-3">
             <div className="text-[10px] uppercase tracking-[0.28em] opacity-70 text-left px-1">
-              <Sparkles className="inline h-3 w-3 mr-1.5 -mt-0.5" /> Featured Auras
+              <Sparkles className="inline h-3 w-3 mr-1.5 -mt-0.5" />{" "}
+              {auraEntries.length === 1 ? "Featured Aura" : "Featured Auras"}
             </div>
             {auraEntries.map((a) => (
-              <Link
+              <AuraLinkAuraCard
                 key={a.id}
-                to="/aura/$id"
-                params={{ id: a.id }}
-                className="group block w-full rounded-2xl p-3 border border-foreground/15 hover:border-foreground/35 transition-all hover:-translate-y-0.5"
-                style={{
-                  background: theme.buttonBg,
-                  boxShadow: theme.glow,
-                  color: theme.accent,
-                }}
-              >
-                <div className="flex items-center gap-3 text-left">
-                  <Aurascope
-                    aura={{
-                      id: a.id,
-                      palette: a.palette,
-                      seed: a.seed,
-                      auraName: a.auraName,
-                      colors: a.colors,
-                    }}
-                    size="mini"
-                    mode="minimal"
-                    showLabel={false}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs uppercase tracking-[0.22em] opacity-70 truncate">
-                      {a.auraName}
-                    </div>
-                    <div className="text-sm font-medium truncate">
-                      {a.trackTitle}
-                    </div>
-                    {a.moodTags?.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {a.moodTags.slice(0, 3).map((m) => (
-                          <span
-                            key={m}
-                            className="rounded-full border border-foreground/20 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] opacity-80"
-                          >
-                            {m}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 opacity-70 group-hover:opacity-100 shrink-0" />
-                </div>
-              </Link>
+                aura={a}
+                variant={auraEntries.length === 1 ? "hero" : "list"}
+                themeAccent={theme.accent}
+                themeButtonBg={theme.buttonBg}
+                themeGlow={theme.glow}
+                playingId={playingId}
+                onPlayingChange={setPlayingId}
+              />
             ))}
           </div>
         )}
