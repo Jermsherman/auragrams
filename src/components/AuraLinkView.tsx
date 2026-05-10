@@ -6,8 +6,9 @@ import { ExternalLink, ArrowUpRight, Sparkles } from "lucide-react";
 import { Aurascope } from "./Aurascope";
 import { Logo } from "./Logo";
 import {
-  THEMES,
+  resolveTheme,
   platformLabel,
+  socialPlatformLabel,
   type AuraLinkPage,
 } from "@/lib/auralink";
 import type { SavedAura } from "@/lib/farm";
@@ -20,14 +21,25 @@ type Props = {
 };
 
 export function AuraLinkView({ page, auras, showLogo = true, className }: Props) {
-  const theme = THEMES[page.theme];
-  const featured = auras.find((a) => a.id === page.selectedAuraIds[0]);
+  const theme = resolveTheme(page.theme);
+  const featured = auras.find((a) => a.id === (page.featuredAuraId ?? page.selectedAuraIds[0]));
 
   // Sort items by order, derive aura links from selectedAuraIds in order
   const auraEntries = page.selectedAuraIds
     .map((id) => auras.find((a) => a.id === id))
     .filter(Boolean) as SavedAura[];
-  const linkEntries = [...page.links].sort((a, b) => a.order - b.order);
+
+  // Combine streaming + custom links into a single ordered list (back-compat
+  // with v1 single-array `links` is handled by migratePage on read).
+  const streamingEntries = [...(page.streamingLinks ?? [])].sort((a, b) => a.order - b.order);
+  const customEntries = [...(page.customLinks ?? [])].sort((a, b) => a.order - b.order);
+  const socialEntries = [...(page.socialLinks ?? [])].sort((a, b) => a.order - b.order);
+  const linkEntries = [
+    ...streamingEntries.map((l) => ({ id: l.id, kind: "streaming" as const, label: l.label, url: l.url, platformName: l.platformName })),
+    ...customEntries.map((l) => ({ id: l.id, kind: "custom" as const, label: l.label, url: l.url, platformName: undefined })),
+  ];
+  void socialPlatformLabel;
+  void socialEntries;
 
   const showStreamingLinks = page.mode !== "auras";
   const showAuras = page.mode !== "streaming_links";
