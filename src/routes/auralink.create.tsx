@@ -19,16 +19,18 @@ import { Aurascope } from "@/components/Aurascope";
 import { useAuth } from "@/hooks/useAuth";
 import {
   PLATFORMS,
+  SOCIAL_PLATFORMS,
   THEME_LIST,
   DEFAULT_CUSTOM_THEME,
   ensureUniqueSlug,
-  getAuraLinks,
   newAuraLinkId,
   saveAuraLink,
   slugify,
-  type AuraLinkLink,
+  type AuraLinkCustomLink,
   type AuraLinkMode,
   type AuraLinkPage,
+  type AuraLinkSocialLink,
+  type AuraLinkStreamingLink,
   type AuraLinkTheme,
   type AuraLinkThemePreset,
 } from "@/lib/auralink";
@@ -89,8 +91,11 @@ function BuilderPage() {
     theme === "custom"
       ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom" }
       : theme;
-  const [links, setLinks] = useState<AuraLinkLink[]>([]);
+  const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
+  const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
+  const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
+  const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
   const [showPreview, setShowPreview] = useState(false);
 
