@@ -444,20 +444,24 @@ function buildPalette(
     secondary = engineSecondary;
     accent = engineAccent;
   } else {
-    // ~50% engine / 35% user / 15% energy variation
-    primary = mixHex(enginePrimary, userSeeds[0], 0.42);
+    // Strong influence: ~30% engine / 70% user when guided.
+    // First seed dominates primary, second seed (if present) owns secondary,
+    // last seed owns accent so the glow visibly pulls toward user color.
+    primary = mixHex(enginePrimary, userSeeds[0], 0.7);
     secondary = userSeeds.length >= 2
-      ? mixHex(engineSecondary, userSeeds[1], 0.45)
-      : shiftHue(engineSecondary, ((seed >>> 5) % 21) - 10);
+      ? mixHex(engineSecondary, userSeeds[1], 0.7)
+      : mixHex(engineSecondary, userSeeds[0], 0.45);
     accent = userSeeds[userSeeds.length - 1];
   }
 
   const shadow = darken(primary, 0.55);
-  const glow = lighten(shiftHue(accent, ((seed>>>17)%30)-15), 0.18);
+  // When influenced, keep glow truer to the user's color (less hue drift).
+  const glowHueDrift = userSeeds.length ? ((seed >>> 17) % 12) - 6 : ((seed >>> 17) % 30) - 15;
+  const glow = lighten(shiftHue(accent, glowHueDrift), 0.18);
   const particle = lighten(shiftHue(accent, 30), 0.25);
 
   const swatchSeeds = userSeeds.length
-    ? [primary, secondary, accent, ...userSeeds, lighten(primary,0.18), glow]
+    ? [primary, secondary, accent, ...userSeeds, lighten(accent, 0.18), glow]
     : [primary, secondary, accent, lighten(primary,0.18), darken(secondary,0.2), glow];
   const swatches = Array.from(new Set(swatchSeeds.map((s) => s.toLowerCase())))
     .map((lc) => swatchSeeds.find((s) => s.toLowerCase() === lc)!)
