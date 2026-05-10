@@ -117,24 +117,36 @@ function BuilderPage() {
       profileImageUrl: profileImageUrl || undefined,
       mode,
       selectedAuraIds,
-      links,
-      streamingLinks: [],
-      socialLinks: [],
-      customLinks: [],
+      featuredAuraId,
+      streamingLinks,
+      socialLinks,
+      customLinks,
       theme: themeValue,
       visibility: "public",
     }),
-    [title, artistName, computedSlug, description, profileImageUrl, mode, selectedAuraIds, links, theme, customTheme],
+    [
+      title,
+      artistName,
+      computedSlug,
+      description,
+      profileImageUrl,
+      mode,
+      selectedAuraIds,
+      featuredAuraId,
+      streamingLinks,
+      socialLinks,
+      customLinks,
+      theme,
+      customTheme,
+    ],
   );
 
-  // ----- Link helpers -----
+  // ----- Streaming link helpers -----
   const addStreamingLink = () => {
-    const id = uid();
-    setLinks((prev) => [
+    setStreamingLinks((prev) => [
       ...prev,
       {
-        id,
-        type: "streaming",
+        id: uid(),
         platformName: "spotify",
         label: "Spotify",
         url: "",
@@ -142,29 +154,16 @@ function BuilderPage() {
       },
     ]);
   };
-  const addCustomLink = () => {
-    const id = uid();
-    setLinks((prev) => [
-      ...prev,
-      {
-        id,
-        type: "custom",
-        label: "",
-        url: "",
-        order: prev.length,
-      },
-    ]);
+  const updateStreamingLink = (id: string, patch: Partial<AuraLinkStreamingLink>) => {
+    setStreamingLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   };
-  const updateLink = (id: string, patch: Partial<AuraLinkLink>) => {
-    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  };
-  const removeLink = (id: string) => {
-    setLinks((prev) =>
+  const removeStreamingLink = (id: string) => {
+    setStreamingLinks((prev) =>
       prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
     );
   };
-  const moveLink = (id: string, dir: -1 | 1) => {
-    setLinks((prev) => {
+  const moveStreamingLink = (id: string, dir: -1 | 1) => {
+    setStreamingLinks((prev) => {
       const idx = prev.findIndex((l) => l.id === id);
       if (idx < 0) return prev;
       const next = [...prev];
@@ -175,10 +174,53 @@ function BuilderPage() {
     });
   };
 
+  // ----- Social link helpers -----
+  const addSocialLink = () => {
+    setSocialLinks((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        platformName: "instagram",
+        label: "Instagram",
+        url: "",
+        order: prev.length,
+      },
+    ]);
+  };
+  const updateSocialLink = (id: string, patch: Partial<AuraLinkSocialLink>) => {
+    setSocialLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  };
+  const removeSocialLink = (id: string) => {
+    setSocialLinks((prev) =>
+      prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
+    );
+  };
+
+  // ----- Custom link helpers -----
+  const addCustomLink = () => {
+    setCustomLinks((prev) => [
+      ...prev,
+      { id: uid(), label: "", url: "", order: prev.length },
+    ]);
+  };
+  const updateCustomLink = (id: string, patch: Partial<AuraLinkCustomLink>) => {
+    setCustomLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  };
+  const removeCustomLink = (id: string) => {
+    setCustomLinks((prev) =>
+      prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
+    );
+  };
+
   const toggleAura = (id: string) => {
     setSelectedAuraIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+    setFeaturedAuraId((cur) => {
+      if (cur === id) return undefined;
+      // If we just selected the only Aura, feature it.
+      return cur;
+    });
   };
   const moveAura = (id: string, dir: -1 | 1) => {
     setSelectedAuraIds((prev) => {
@@ -210,6 +252,8 @@ function BuilderPage() {
     }
   };
 
+  const totalLinks = streamingLinks.length + socialLinks.length + customLinks.length;
+
   // Validation
   const canPublish =
     !uploadingCover &&
@@ -217,8 +261,8 @@ function BuilderPage() {
     (mode === "auras"
       ? selectedAuraIds.length > 0
       : mode === "streaming_links"
-        ? links.length > 0
-        : selectedAuraIds.length > 0 || links.length > 0);
+        ? totalLinks > 0
+        : selectedAuraIds.length > 0 || totalLinks > 0);
 
   const publish = () => {
     if (uploadingCover) {
@@ -242,10 +286,13 @@ function BuilderPage() {
       profileImageUrl: profileImageUrl || undefined,
       mode,
       selectedAuraIds,
-      links: links.map((l, i) => ({ ...l, order: i })),
-      streamingLinks: [],
-      socialLinks: [],
-      customLinks: [],
+      featuredAuraId:
+        featuredAuraId && selectedAuraIds.includes(featuredAuraId)
+          ? featuredAuraId
+          : selectedAuraIds[0],
+      streamingLinks: streamingLinks.map((l, i) => ({ ...l, order: i })),
+      socialLinks: socialLinks.map((l, i) => ({ ...l, order: i })),
+      customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
       theme: themeValue,
       visibility: "public",
     };
