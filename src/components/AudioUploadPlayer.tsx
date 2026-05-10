@@ -323,31 +323,8 @@ export function AudioUploadPlayer({
     a.currentTime = Number(e.target.value);
   };
 
-  // Apply volume + muted to the underlying element reactively.
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    a.volume = volume;
-    a.muted = muted;
-  }, [volume, muted, src]);
-
-  const onVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = Math.max(0, Math.min(1, Number(e.target.value) / 100));
-    setVolume(v);
-    if (v > 0 && muted) setMuted(false);
-    try { localStorage.setItem(VOLUME_KEY, String(v)); } catch { /* noop */ }
-  };
-  const toggleMute = () => {
-    setMuted((m) => {
-      const next = !m;
-      try { localStorage.setItem(MUTED_KEY, next ? "1" : "0"); } catch { /* noop */ }
-      return next;
-    });
-  };
-
   const stops = getPersonality(palette).stops;
   const pct = duration ? (time / duration) * 100 : 0;
-  const VolIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div className="w-full max-w-md mx-auto select-none">
