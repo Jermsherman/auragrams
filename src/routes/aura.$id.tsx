@@ -161,6 +161,27 @@ function AuraPage() {
     nav({ to: "/farm" });
   };
 
+  const shufflePalette = () => {
+    if (!track) return null;
+    const gen = generateAura({
+      id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      title: track.title,
+      artist: track.artist,
+      moods: track.moods,
+      detectedKey: track.detectedKey ?? null,
+      pitchCenter: track.pitchCenter ?? null,
+      energyOverride: track.energy,
+      sourceType: track.sourceType,
+      userColorInfluence: track.userColorInfluence,
+    });
+    updateTrack(track.id, { colors: gen.colors, paletteName: gen.paletteName });
+    setTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
+    if (saved) {
+      saveAuraFromTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
+    }
+    return { colors: gen.colors, name: gen.paletteName };
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <AuraAtmosphere personality={p} />
