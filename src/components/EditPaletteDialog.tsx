@@ -54,6 +54,7 @@ export function EditPaletteDialog({
   generatedColors,
   initialName,
   onSave,
+  onShuffle,
 }: Props) {
   const [palette, setPalette] = useState<AuraPalette>(initialColors);
   const [name, setName] = useState(initialName ?? "Custom Palette");
