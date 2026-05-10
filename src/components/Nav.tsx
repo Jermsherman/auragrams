@@ -16,7 +16,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           {user && (
             <>
               <Link
-                to="/auralink/create"
+                to="/auralink"
                 activeProps={{ className: "text-foreground" }}
                 inactiveProps={{ className: "text-muted-foreground" }}
                 className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"

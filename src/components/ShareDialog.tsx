@@ -10,7 +10,6 @@ import {
   Bookmark,
   BookmarkCheck,
   ExternalLink,
-  Wand2,
   Link2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -250,15 +249,6 @@ export function ShareDialog({
                 <Link2 className="h-3.5 w-3.5" /> Build new AuraLink
               </Link>
             </div>
-
-            <Link
-              to="/aura/$id/influence"
-              params={{ id: track.id }}
-              onClick={() => setOpen(false)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border/60 h-11 text-xs uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-            >
-              <Wand2 className="h-3.5 w-3.5" /> Influence Aura
-            </Link>
           </div>
         </DialogContent>
       </Dialog>

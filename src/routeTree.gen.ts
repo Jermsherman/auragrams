@@ -15,6 +15,7 @@ import { Route as FarmRouteImport } from './routes/farm'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuralinkRouteImport } from './routes/auralink'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsArtistsRouteImport } from './routes/settings.artists'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
@@ -55,6 +56,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuralinkRoute = AuralinkRouteImport.update({
+  id: '/auralink',
+  path: '/auralink',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -71,9 +77,9 @@ const LSlugRoute = LSlugRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuralinkCreateRoute = AuralinkCreateRouteImport.update({
-  id: '/auralink/create',
-  path: '/auralink/create',
-  getParentRoute: () => rootRouteImport,
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => AuralinkRoute,
 } as any)
 const AuracleCreateRoute = AuracleCreateRouteImport.update({
   id: '/auracle/create',
@@ -103,6 +109,7 @@ const AuraIdInfluenceRoute = AuraIdInfluenceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/faq': typeof FaqRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/faq': typeof FaqRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/faq': typeof FaqRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auralink'
     | '/auth'
     | '/create'
     | '/faq'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auralink'
     | '/auth'
     | '/create'
     | '/faq'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auralink'
     | '/auth'
     | '/create'
     | '/faq'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuralinkRoute: typeof AuralinkRouteWithChildren
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
   FaqRoute: typeof FaqRoute
@@ -219,7 +232,6 @@ export interface RootRouteChildren {
   AuraIdRoute: typeof AuraIdRouteWithChildren
   AuracleIdRoute: typeof AuracleIdRoute
   AuracleCreateRoute: typeof AuracleCreateRoute
-  AuralinkCreateRoute: typeof AuralinkCreateRoute
   LSlugRoute: typeof LSlugRoute
   SettingsArtistsRoute: typeof SettingsArtistsRoute
 }
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auralink': {
+      id: '/auralink'
+      path: '/auralink'
+      fullPath: '/auralink'
+      preLoaderRoute: typeof AuralinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -291,10 +310,10 @@ declare module '@tanstack/react-router' {
     }
     '/auralink/create': {
       id: '/auralink/create'
-      path: '/auralink/create'
+      path: '/create'
       fullPath: '/auralink/create'
       preLoaderRoute: typeof AuralinkCreateRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuralinkRoute
     }
     '/auracle/create': {
       id: '/auracle/create'
@@ -334,6 +353,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuralinkRouteChildren {
+  AuralinkCreateRoute: typeof AuralinkCreateRoute
+}
+
+const AuralinkRouteChildren: AuralinkRouteChildren = {
+  AuralinkCreateRoute: AuralinkCreateRoute,
+}
+
+const AuralinkRouteWithChildren = AuralinkRoute._addFileChildren(
+  AuralinkRouteChildren,
+)
+
 interface AuraIdRouteChildren {
   AuraIdInfluenceRoute: typeof AuraIdInfluenceRoute
 }
@@ -347,6 +378,7 @@ const AuraIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuralinkRoute: AuralinkRouteWithChildren,
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
   FaqRoute: FaqRoute,
@@ -357,7 +389,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuraIdRoute: AuraIdRouteWithChildren,
   AuracleIdRoute: AuracleIdRoute,
   AuracleCreateRoute: AuracleCreateRoute,
-  AuralinkCreateRoute: AuralinkCreateRoute,
   LSlugRoute: LSlugRoute,
   SettingsArtistsRoute: SettingsArtistsRoute,
 }

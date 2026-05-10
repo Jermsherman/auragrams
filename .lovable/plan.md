@@ -1,30 +1,44 @@
-## Add "Shuffle Palette" to every Aura
+## Make AuraLink playable + add a Links library
 
-Give artists a one-tap way to reroll an Aura's color palette while keeping the song's identity (title, moods, key, energy, influence) intact.
+Three connected fixes:
 
-### Behavior
+### 1. Inline mini-player on AuraLink (the "wow moment")
 
-- New **Shuffle** action sits next to **Edit Palette** on the Aura page (`/aura/$id`) and inside the **Edit Palette** dialog.
-- One click → a fresh color palette + new palette name. Aurascope updates live; the moods, vibe text, key, and density stay unchanged.
-- Each click produces a different result (uses a new random seed each time).
-- Persisted via `updateTrack` so it survives reload and syncs into the Farm.
-- Toast: "Palette shuffled."
+`src/components/AuraLinkView.tsx` — replace the static Aura cards with playable cards.
 
-### Where it appears
+- New `AuraLinkAuraCard` component (in same file or `src/components/AuraLinkAuraCard.tsx`):
+  - Renders the Aurascope at top, animated/reactive.
+  - Below it: a single row with **Play / Pause** button, **progress bar** (clickable to scrub), elapsed / duration.
+  - Below that: **"Open Aura"** button (routes to `/aura/$id`).
+  - Card body itself stays clickable → navigates to the Aura page (but Play and Open Aura buttons stop propagation so they don't navigate when clicked).
+- Audio source: `aura.audioPublicUrl` (when present). If the Aura has no playable audio, hide the player row and show only the "Open Aura" button.
+- Single shared `<audio>` element per AuraLink page (lifted into `AuraLinkView`) so playing one card pauses the others. Implemented with a small local context or a simple `useState({ playingId, audioRef })` pattern.
+- Wire a Web Audio `AnalyserNode` from the shared `<audio>` to feed `Aurascope`'s `audioAnalysisData` so the visualizer truly reacts to the playing track.
+- When the AuraLink has only **one** Aura, render the card in a larger "hero" variant: Aurascope is bigger, the player sits prominently right under it. When there are multiple, render compact cards in a list.
 
-1. **Aura page (`src/routes/aura.$id.tsx`)** — small `Shuffle` button beside `Edit Palette` in the secondary action row. Visible whenever the Aura has colors (saved or fresh).
-2. **EditPaletteDialog (`src/components/EditPaletteDialog.tsx`)** — a `Shuffle` button in the dialog footer, next to `Reset`. Lets users reroll inside the editor and then keep tweaking before saving.
-3. **Influence page** preview — already regenerates on every change, so nothing new there; the shuffle action is reserved for the Aura page where users normally view their finished Aura.
+### 2. "Your Links" library
 
-### Technical notes
+`src/routes/auralink.tsx` — new route at `/auralink` that lists every AuraLink the user has built (read via `getAuraLinks()`).
 
-- Reuses existing `generateAura()` with the track's current moods, detectedKey, pitchCenter, energy, sourceType, and userColorInfluence, but with a fresh `id` seed (`track.id + "-shuffle-" + Date.now()`) so palette + paletteName change while everything else stays consistent.
-- Updates `track.colors` and `track.paletteName` only — does not touch `vibeDescription`, `auraName`, `moods`, or `density`.
-- In `EditPaletteDialog`, shuffle replaces the in-dialog draft state (so the user sees it before saving). Existing `Reset` still restores the originally generated palette.
+- Each row: thumbnail (profile image or featured Aura), title, slug, link count, theme swatch, last updated.
+- Actions per row: **Open** (public `/l/$slug`), **Edit** (currently edit isn't implemented; for now this opens public view in a new tab — note for future), **Copy link**, **Delete**.
+- Header: "Your AuraLinks" + a primary **+ New AuraLink** button → `/auralink/create`.
+- Empty state: encourages first AuraLink with a CTA to `/auralink/create`.
+- `src/components/Nav.tsx`: change the `AuraLink` nav item to route to `/auralink` (the library) instead of `/auralink/create` directly. The library is the new home; "create" remains accessible via the CTA.
 
-### Files touched
+### 3. Remove "Influence Aura" from Share dialog
 
-- `src/routes/aura.$id.tsx` — add Shuffle button + handler.
-- `src/components/EditPaletteDialog.tsx` — accept optional `onShuffle` prop, render Shuffle button in footer.
+`src/components/ShareDialog.tsx` — delete the dashed "Influence Aura" link block (lines ~254–261) and its unused `Wand2` import. "Influence Aura" already lives on the Aura page itself, where it makes sense; removing it from the Share dialog keeps that dialog focused on sharing.
 
-No new dependencies, no DB migration, no schema changes.
+### Files
+
+**New:**
+- `src/routes/auralink.tsx` (library list page)
+- `src/components/AuraLinkAuraCard.tsx` (shared playable card + mini-player)
+
+**Edited:**
+- `src/components/AuraLinkView.tsx` (use new card; lift shared audio + analyser; hero layout when single Aura)
+- `src/components/Nav.tsx` (AuraLink link → `/auralink`)
+- `src/components/ShareDialog.tsx` (remove Influence Aura block)
+
+No data-model changes, no migrations.
