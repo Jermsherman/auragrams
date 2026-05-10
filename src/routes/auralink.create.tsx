@@ -435,61 +435,50 @@ function BuilderPage() {
               </div>
             </Section>
 
-            {/* Links block */}
+            {/* Streaming links */}
             {(mode === "streaming_links" || mode === "mixed") && (
               <Section
-                title="Links"
+                title="Streaming Links"
                 action={
-                  <div className="flex gap-2">
-                    <button onClick={addStreamingLink} className="btn-ghost">
-                      <Plus className="h-3.5 w-3.5" /> Add Streaming Link
-                    </button>
-                    <button onClick={addCustomLink} className="btn-ghost">
-                      <Plus className="h-3.5 w-3.5" /> Add Custom Link
-                    </button>
-                  </div>
+                  <button onClick={addStreamingLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add platform
+                  </button>
                 }
               >
-                {links.length === 0 ? (
+                {streamingLinks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and
-                    more.
+                    Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, Tidal,
+                    and more.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {links.map((l, i) => (
+                    {streamingLinks.map((l, i) => (
                       <div
                         key={l.id}
                         className="rounded-2xl border border-border/60 bg-background/30 p-3 space-y-2"
                       >
                         <div className="flex items-center gap-2">
-                          {l.type === "streaming" ? (
-                            <select
-                              value={l.platformName}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                updateLink(l.id, {
-                                  platformName: v,
-                                  label:
-                                    PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
-                                });
-                              }}
-                              className="input-base !h-9 !w-auto"
-                            >
-                              {PLATFORMS.map((p) => (
-                                <option key={p.key} value={p.key}>
-                                  {p.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground px-2">
-                              Custom
-                            </span>
-                          )}
+                          <select
+                            value={l.platformName}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              updateStreamingLink(l.id, {
+                                platformName: v,
+                                label:
+                                  PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
+                              });
+                            }}
+                            className="input-base !h-9 !w-auto"
+                          >
+                            {PLATFORMS.map((p) => (
+                              <option key={p.key} value={p.key}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
                           <span className="ml-auto flex items-center gap-1">
                             <button
-                              onClick={() => moveLink(l.id, -1)}
+                              onClick={() => moveStreamingLink(l.id, -1)}
                               disabled={i === 0}
                               className="icon-btn"
                               aria-label="Move up"
@@ -497,15 +486,15 @@ function BuilderPage() {
                               <ArrowUp className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => moveLink(l.id, 1)}
-                              disabled={i === links.length - 1}
+                              onClick={() => moveStreamingLink(l.id, 1)}
+                              disabled={i === streamingLinks.length - 1}
                               className="icon-btn"
                               aria-label="Move down"
                             >
                               <ArrowDown className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => removeLink(l.id)}
+                              onClick={() => removeStreamingLink(l.id)}
                               className="icon-btn"
                               aria-label="Remove"
                             >
@@ -515,18 +504,16 @@ function BuilderPage() {
                         </div>
                         <input
                           value={l.label}
-                          onChange={(e) => updateLink(l.id, { label: e.target.value })}
+                          onChange={(e) => updateStreamingLink(l.id, { label: e.target.value })}
                           placeholder="Display label"
                           className="input-base"
                         />
                         <input
-                          value={l.url ?? ""}
-                          onChange={(e) => updateLink(l.id, { url: e.target.value })}
+                          value={l.url}
+                          onChange={(e) => updateStreamingLink(l.id, { url: e.target.value })}
                           placeholder={
-                            l.type === "streaming"
-                              ? PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
-                                "https://…"
-                              : "https://…"
+                            PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
+                            "https://…"
                           }
                           spellCheck={false}
                           className="input-base"
@@ -537,6 +524,120 @@ function BuilderPage() {
                 )}
               </Section>
             )}
+
+            {/* Social links */}
+            {(mode === "streaming_links" || mode === "mixed") && (
+              <Section
+                title="Social Links"
+                action={
+                  <button onClick={addSocialLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add social
+                  </button>
+                }
+              >
+                {socialLinks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Add Instagram, TikTok, X, YouTube, Threads, and more.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {socialLinks.map((l) => (
+                      <div
+                        key={l.id}
+                        className="rounded-2xl border border-border/60 bg-background/30 p-3 flex items-center gap-2"
+                      >
+                        <select
+                          value={l.platformName}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updateSocialLink(l.id, {
+                              platformName: v,
+                              label:
+                                SOCIAL_PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
+                            });
+                          }}
+                          className="input-base !h-9 !w-auto"
+                        >
+                          {SOCIAL_PLATFORMS.map((p) => (
+                            <option key={p.key} value={p.key}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={l.url}
+                          onChange={(e) => updateSocialLink(l.id, { url: e.target.value })}
+                          placeholder={
+                            SOCIAL_PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
+                            "https://…"
+                          }
+                          spellCheck={false}
+                          className="input-base flex-1"
+                        />
+                        <button
+                          onClick={() => removeSocialLink(l.id)}
+                          className="icon-btn"
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
+
+            {/* Custom links */}
+            {(mode === "streaming_links" || mode === "mixed") && (
+              <Section
+                title="Custom Links"
+                action={
+                  <button onClick={addCustomLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add custom
+                  </button>
+                }
+              >
+                {customLinks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Anything else — merch, tickets, presaves, websites.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {customLinks.map((l) => (
+                      <div
+                        key={l.id}
+                        className="rounded-2xl border border-border/60 bg-background/30 p-3 space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={l.label}
+                            onChange={(e) => updateCustomLink(l.id, { label: e.target.value })}
+                            placeholder="Label (e.g. Merch)"
+                            className="input-base flex-1"
+                          />
+                          <button
+                            onClick={() => removeCustomLink(l.id)}
+                            className="icon-btn"
+                            aria-label="Remove"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          value={l.url}
+                          onChange={(e) => updateCustomLink(l.id, { url: e.target.value })}
+                          placeholder="https://…"
+                          spellCheck={false}
+                          className="input-base"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
+
 
             {/* Auras block */}
             {(mode === "auras" || mode === "mixed") && (
