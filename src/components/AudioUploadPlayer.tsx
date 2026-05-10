@@ -73,17 +73,6 @@ export function AudioUploadPlayer({
   const [audioReady, setAudioReady] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
-  // Volume state — persisted across sessions.
-  const [volume, setVolume] = useState<number>(() => {
-    if (typeof window === "undefined") return 0.85;
-    const v = parseFloat(localStorage.getItem(VOLUME_KEY) ?? "");
-    return isFinite(v) && v >= 0 && v <= 1 ? v : 0.85;
-  });
-  const [muted, setMuted] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(MUTED_KEY) === "1";
-  });
-
   // --- Web Audio graph (built lazily on first Play) ---
   const ctxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
