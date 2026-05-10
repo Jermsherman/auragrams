@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   PLATFORMS,
   THEME_LIST,
+  DEFAULT_CUSTOM_THEME,
   ensureUniqueSlug,
   getAuraLinks,
   newAuraLinkId,
@@ -28,6 +29,7 @@ import {
   type AuraLinkLink,
   type AuraLinkMode,
   type AuraLinkPage,
+  type AuraLinkTheme,
   type AuraLinkThemePreset,
 } from "@/lib/auralink";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
@@ -80,6 +82,13 @@ function BuilderPage() {
   const [profileImageUrl, setProfileImageUrl] = useState<string>("");
   const [slug, setSlug] = useState("");
   const [theme, setTheme] = useState<AuraLinkThemePreset>("midnight");
+  const [customTheme, setCustomTheme] = useState<AuraLinkTheme>({
+    ...DEFAULT_CUSTOM_THEME,
+  });
+  const themeValue: AuraLinkTheme | AuraLinkThemePreset =
+    theme === "custom"
+      ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom" }
+      : theme;
   const [links, setLinks] = useState<AuraLinkLink[]>([]);
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
 
