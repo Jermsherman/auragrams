@@ -30,6 +30,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("auragram_remember_me") !== "0";
+  });
 
   const after = async () => {
     // Decide where to send the user
@@ -53,6 +57,11 @@ function AuthPage() {
     if (!email || !password) return;
     setBusy(true);
     try {
+      // Persist the remember-me preference; consumed by app boot to
+      // optionally sign out on tab close when unchecked.
+      try {
+        localStorage.setItem("auragram_remember_me", remember ? "1" : "0");
+      } catch { /* noop */ }
       if (tab === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -70,21 +79,6 @@ function AuthPage() {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg);
     } finally {
-      setBusy(false);
-    }
-  };
-
-  const onGoogle = async () => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin + (search.redirect ? `/auth?redirect=${encodeURIComponent(search.redirect)}` : "/auth") },
-      });
-      if (error) throw error;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Google sign-in failed";
-      toast.error(msg);
       setBusy(false);
     }
   };
