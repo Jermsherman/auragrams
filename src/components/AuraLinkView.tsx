@@ -41,8 +41,6 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
     ...streamingEntries.map((l) => ({ id: l.id, kind: "streaming" as const, label: l.label, url: l.url, platformName: l.platformName })),
     ...customEntries.map((l) => ({ id: l.id, kind: "custom" as const, label: l.label, url: l.url, platformName: undefined })),
   ];
-  void socialPlatformLabel;
-  void socialEntries;
 
   const showStreamingLinks = page.mode !== "auras";
   const showAuras = page.mode !== "streaming_links";
@@ -110,6 +108,25 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
         )}
         {page.description && (
           <p className="mt-3 text-sm opacity-75 max-w-xs">{page.description}</p>
+        )}
+
+        {/* Social links — compact pill row */}
+        {showStreamingLinks && socialEntries.length > 0 && (
+          <div className="mt-6 w-full flex flex-wrap justify-center gap-2">
+            {socialEntries.map((s) => (
+              <a
+                key={s.id}
+                href={s.url || "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full px-3 h-8 text-[11px] border border-foreground/15 hover:border-foreground/35 transition-colors"
+                style={{ background: theme.buttonBg, color: theme.accent }}
+                title={socialPlatformLabel(s.platformName)}
+              >
+                <span className="opacity-90">{socialPlatformLabel(s.platformName)}</span>
+              </a>
+            ))}
+          </div>
         )}
 
         {/* Streaming + custom buttons */}

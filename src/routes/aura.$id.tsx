@@ -19,6 +19,7 @@ import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
+import { InfluenceAuraDialog } from "@/components/InfluenceAuraDialog";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -71,6 +72,7 @@ function AuraPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [influenceOpen, setInfluenceOpen] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
@@ -309,14 +311,13 @@ function AuraPage() {
 
         {/* Secondary actions */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <Link
-            to="/aura/$id/influence"
-            params={{ id: track.id }}
+          <button
+            onClick={() => setInfluenceOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
-            title="Reshape mood, color, and vibe"
+            title="Reshape mood, color, vibe, and identity"
           >
-            <Wand2 className="h-3.5 w-3.5" /> Influence Aura
-          </Link>
+            <Wand2 className="h-3.5 w-3.5" /> Edit Aura Details
+          </button>
           <button
             onClick={() => setAuracleOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
@@ -378,6 +379,13 @@ function AuraPage() {
             }}
           />
         )}
+
+        <InfluenceAuraDialog
+          track={track}
+          open={influenceOpen}
+          onOpenChange={setInfluenceOpen}
+          onApplied={(next) => setTrack(next)}
+        />
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (

@@ -19,16 +19,18 @@ import { Aurascope } from "@/components/Aurascope";
 import { useAuth } from "@/hooks/useAuth";
 import {
   PLATFORMS,
+  SOCIAL_PLATFORMS,
   THEME_LIST,
   DEFAULT_CUSTOM_THEME,
   ensureUniqueSlug,
-  getAuraLinks,
   newAuraLinkId,
   saveAuraLink,
   slugify,
-  type AuraLinkLink,
+  type AuraLinkCustomLink,
   type AuraLinkMode,
   type AuraLinkPage,
+  type AuraLinkSocialLink,
+  type AuraLinkStreamingLink,
   type AuraLinkTheme,
   type AuraLinkThemePreset,
 } from "@/lib/auralink";
@@ -89,8 +91,11 @@ function BuilderPage() {
     theme === "custom"
       ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom" }
       : theme;
-  const [links, setLinks] = useState<AuraLinkLink[]>([]);
+  const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
+  const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
+  const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
+  const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
   const [showPreview, setShowPreview] = useState(false);
 
@@ -112,24 +117,36 @@ function BuilderPage() {
       profileImageUrl: profileImageUrl || undefined,
       mode,
       selectedAuraIds,
-      links,
-      streamingLinks: [],
-      socialLinks: [],
-      customLinks: [],
+      featuredAuraId,
+      streamingLinks,
+      socialLinks,
+      customLinks,
       theme: themeValue,
       visibility: "public",
     }),
-    [title, artistName, computedSlug, description, profileImageUrl, mode, selectedAuraIds, links, theme, customTheme],
+    [
+      title,
+      artistName,
+      computedSlug,
+      description,
+      profileImageUrl,
+      mode,
+      selectedAuraIds,
+      featuredAuraId,
+      streamingLinks,
+      socialLinks,
+      customLinks,
+      theme,
+      customTheme,
+    ],
   );
 
-  // ----- Link helpers -----
+  // ----- Streaming link helpers -----
   const addStreamingLink = () => {
-    const id = uid();
-    setLinks((prev) => [
+    setStreamingLinks((prev) => [
       ...prev,
       {
-        id,
-        type: "streaming",
+        id: uid(),
         platformName: "spotify",
         label: "Spotify",
         url: "",
@@ -137,29 +154,16 @@ function BuilderPage() {
       },
     ]);
   };
-  const addCustomLink = () => {
-    const id = uid();
-    setLinks((prev) => [
-      ...prev,
-      {
-        id,
-        type: "custom",
-        label: "",
-        url: "",
-        order: prev.length,
-      },
-    ]);
+  const updateStreamingLink = (id: string, patch: Partial<AuraLinkStreamingLink>) => {
+    setStreamingLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   };
-  const updateLink = (id: string, patch: Partial<AuraLinkLink>) => {
-    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  };
-  const removeLink = (id: string) => {
-    setLinks((prev) =>
+  const removeStreamingLink = (id: string) => {
+    setStreamingLinks((prev) =>
       prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
     );
   };
-  const moveLink = (id: string, dir: -1 | 1) => {
-    setLinks((prev) => {
+  const moveStreamingLink = (id: string, dir: -1 | 1) => {
+    setStreamingLinks((prev) => {
       const idx = prev.findIndex((l) => l.id === id);
       if (idx < 0) return prev;
       const next = [...prev];
@@ -170,10 +174,53 @@ function BuilderPage() {
     });
   };
 
+  // ----- Social link helpers -----
+  const addSocialLink = () => {
+    setSocialLinks((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        platformName: "instagram",
+        label: "Instagram",
+        url: "",
+        order: prev.length,
+      },
+    ]);
+  };
+  const updateSocialLink = (id: string, patch: Partial<AuraLinkSocialLink>) => {
+    setSocialLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  };
+  const removeSocialLink = (id: string) => {
+    setSocialLinks((prev) =>
+      prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
+    );
+  };
+
+  // ----- Custom link helpers -----
+  const addCustomLink = () => {
+    setCustomLinks((prev) => [
+      ...prev,
+      { id: uid(), label: "", url: "", order: prev.length },
+    ]);
+  };
+  const updateCustomLink = (id: string, patch: Partial<AuraLinkCustomLink>) => {
+    setCustomLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  };
+  const removeCustomLink = (id: string) => {
+    setCustomLinks((prev) =>
+      prev.filter((l) => l.id !== id).map((l, i) => ({ ...l, order: i })),
+    );
+  };
+
   const toggleAura = (id: string) => {
     setSelectedAuraIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+    setFeaturedAuraId((cur) => {
+      if (cur === id) return undefined;
+      // If we just selected the only Aura, feature it.
+      return cur;
+    });
   };
   const moveAura = (id: string, dir: -1 | 1) => {
     setSelectedAuraIds((prev) => {
@@ -205,6 +252,8 @@ function BuilderPage() {
     }
   };
 
+  const totalLinks = streamingLinks.length + socialLinks.length + customLinks.length;
+
   // Validation
   const canPublish =
     !uploadingCover &&
@@ -212,8 +261,8 @@ function BuilderPage() {
     (mode === "auras"
       ? selectedAuraIds.length > 0
       : mode === "streaming_links"
-        ? links.length > 0
-        : selectedAuraIds.length > 0 || links.length > 0);
+        ? totalLinks > 0
+        : selectedAuraIds.length > 0 || totalLinks > 0);
 
   const publish = () => {
     if (uploadingCover) {
@@ -237,10 +286,13 @@ function BuilderPage() {
       profileImageUrl: profileImageUrl || undefined,
       mode,
       selectedAuraIds,
-      links: links.map((l, i) => ({ ...l, order: i })),
-      streamingLinks: [],
-      socialLinks: [],
-      customLinks: [],
+      featuredAuraId:
+        featuredAuraId && selectedAuraIds.includes(featuredAuraId)
+          ? featuredAuraId
+          : selectedAuraIds[0],
+      streamingLinks: streamingLinks.map((l, i) => ({ ...l, order: i })),
+      socialLinks: socialLinks.map((l, i) => ({ ...l, order: i })),
+      customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
       theme: themeValue,
       visibility: "public",
     };
@@ -383,61 +435,50 @@ function BuilderPage() {
               </div>
             </Section>
 
-            {/* Links block */}
+            {/* Streaming links */}
             {(mode === "streaming_links" || mode === "mixed") && (
               <Section
-                title="Links"
+                title="Streaming Links"
                 action={
-                  <div className="flex gap-2">
-                    <button onClick={addStreamingLink} className="btn-ghost">
-                      <Plus className="h-3.5 w-3.5" /> Add Streaming Link
-                    </button>
-                    <button onClick={addCustomLink} className="btn-ghost">
-                      <Plus className="h-3.5 w-3.5" /> Add Custom Link
-                    </button>
-                  </div>
+                  <button onClick={addStreamingLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add platform
+                  </button>
                 }
               >
-                {links.length === 0 ? (
+                {streamingLinks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and
-                    more.
+                    Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, Tidal,
+                    and more.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {links.map((l, i) => (
+                    {streamingLinks.map((l, i) => (
                       <div
                         key={l.id}
                         className="rounded-2xl border border-border/60 bg-background/30 p-3 space-y-2"
                       >
                         <div className="flex items-center gap-2">
-                          {l.type === "streaming" ? (
-                            <select
-                              value={l.platformName}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                updateLink(l.id, {
-                                  platformName: v,
-                                  label:
-                                    PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
-                                });
-                              }}
-                              className="input-base !h-9 !w-auto"
-                            >
-                              {PLATFORMS.map((p) => (
-                                <option key={p.key} value={p.key}>
-                                  {p.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground px-2">
-                              Custom
-                            </span>
-                          )}
+                          <select
+                            value={l.platformName}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              updateStreamingLink(l.id, {
+                                platformName: v,
+                                label:
+                                  PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
+                              });
+                            }}
+                            className="input-base !h-9 !w-auto"
+                          >
+                            {PLATFORMS.map((p) => (
+                              <option key={p.key} value={p.key}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
                           <span className="ml-auto flex items-center gap-1">
                             <button
-                              onClick={() => moveLink(l.id, -1)}
+                              onClick={() => moveStreamingLink(l.id, -1)}
                               disabled={i === 0}
                               className="icon-btn"
                               aria-label="Move up"
@@ -445,15 +486,15 @@ function BuilderPage() {
                               <ArrowUp className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => moveLink(l.id, 1)}
-                              disabled={i === links.length - 1}
+                              onClick={() => moveStreamingLink(l.id, 1)}
+                              disabled={i === streamingLinks.length - 1}
                               className="icon-btn"
                               aria-label="Move down"
                             >
                               <ArrowDown className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => removeLink(l.id)}
+                              onClick={() => removeStreamingLink(l.id)}
                               className="icon-btn"
                               aria-label="Remove"
                             >
@@ -463,18 +504,16 @@ function BuilderPage() {
                         </div>
                         <input
                           value={l.label}
-                          onChange={(e) => updateLink(l.id, { label: e.target.value })}
+                          onChange={(e) => updateStreamingLink(l.id, { label: e.target.value })}
                           placeholder="Display label"
                           className="input-base"
                         />
                         <input
-                          value={l.url ?? ""}
-                          onChange={(e) => updateLink(l.id, { url: e.target.value })}
+                          value={l.url}
+                          onChange={(e) => updateStreamingLink(l.id, { url: e.target.value })}
                           placeholder={
-                            l.type === "streaming"
-                              ? PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
-                                "https://…"
-                              : "https://…"
+                            PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
+                            "https://…"
                           }
                           spellCheck={false}
                           className="input-base"
@@ -485,6 +524,120 @@ function BuilderPage() {
                 )}
               </Section>
             )}
+
+            {/* Social links */}
+            {(mode === "streaming_links" || mode === "mixed") && (
+              <Section
+                title="Social Links"
+                action={
+                  <button onClick={addSocialLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add social
+                  </button>
+                }
+              >
+                {socialLinks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Add Instagram, TikTok, X, YouTube, Threads, and more.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {socialLinks.map((l) => (
+                      <div
+                        key={l.id}
+                        className="rounded-2xl border border-border/60 bg-background/30 p-3 flex items-center gap-2"
+                      >
+                        <select
+                          value={l.platformName}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updateSocialLink(l.id, {
+                              platformName: v,
+                              label:
+                                SOCIAL_PLATFORMS.find((p) => p.key === v)?.label ?? l.label,
+                            });
+                          }}
+                          className="input-base !h-9 !w-auto"
+                        >
+                          {SOCIAL_PLATFORMS.map((p) => (
+                            <option key={p.key} value={p.key}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={l.url}
+                          onChange={(e) => updateSocialLink(l.id, { url: e.target.value })}
+                          placeholder={
+                            SOCIAL_PLATFORMS.find((p) => p.key === l.platformName)?.hint ??
+                            "https://…"
+                          }
+                          spellCheck={false}
+                          className="input-base flex-1"
+                        />
+                        <button
+                          onClick={() => removeSocialLink(l.id)}
+                          className="icon-btn"
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
+
+            {/* Custom links */}
+            {(mode === "streaming_links" || mode === "mixed") && (
+              <Section
+                title="Custom Links"
+                action={
+                  <button onClick={addCustomLink} className="btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Add custom
+                  </button>
+                }
+              >
+                {customLinks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Anything else — merch, tickets, presaves, websites.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {customLinks.map((l) => (
+                      <div
+                        key={l.id}
+                        className="rounded-2xl border border-border/60 bg-background/30 p-3 space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={l.label}
+                            onChange={(e) => updateCustomLink(l.id, { label: e.target.value })}
+                            placeholder="Label (e.g. Merch)"
+                            className="input-base flex-1"
+                          />
+                          <button
+                            onClick={() => removeCustomLink(l.id)}
+                            className="icon-btn"
+                            aria-label="Remove"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          value={l.url}
+                          onChange={(e) => updateCustomLink(l.id, { url: e.target.value })}
+                          placeholder="https://…"
+                          spellCheck={false}
+                          className="input-base"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
+
 
             {/* Auras block */}
             {(mode === "auras" || mode === "mixed") && (
@@ -581,6 +734,23 @@ function BuilderPage() {
                                     — {a.auraName}
                                   </span>
                                 </span>
+                                <button
+                                  onClick={() =>
+                                    setFeaturedAuraId(featuredAuraId === id ? undefined : id)
+                                  }
+                                  className={
+                                    "rounded-full px-2 h-7 text-[10px] uppercase tracking-[0.2em] transition-colors " +
+                                    ((featuredAuraId ?? selectedAuraIds[0]) === id
+                                      ? "bg-aura-gradient text-primary-foreground"
+                                      : "border border-border/60 text-muted-foreground hover:text-foreground")
+                                  }
+                                  aria-label="Feature this Aura"
+                                  title="Feature this Aura on the AuraLink"
+                                >
+                                  {(featuredAuraId ?? selectedAuraIds[0]) === id
+                                    ? "Featured"
+                                    : "Feature"}
+                                </button>
                                 <button
                                   onClick={() => moveAura(id, -1)}
                                   disabled={i === 0}

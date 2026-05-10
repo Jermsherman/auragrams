@@ -1,44 +1,53 @@
-## Make AuraLink playable + add a Links library
+# Fixes: AuraLink Builder, Influence Modal, Remove Volume
 
-Three connected fixes:
+## 1. Fix AuraLink Builder (Linktree parity)
 
-### 1. Inline mini-player on AuraLink (the "wow moment")
+The builder (`src/routes/auralink.create.tsx`) and live preview are out of sync with the new `AuraLinkView` data shape:
 
-`src/components/AuraLinkView.tsx` — replace the static Aura cards with playable cards.
+- Builder saves links into the legacy `links` array and writes empty `streamingLinks`/`customLinks`/`socialLinks`. The public page works only because of read-time migration, but the **live preview is empty** and **social links are missing entirely**.
+- No social links section, no featured-aura selection, and the layout feels like an afterthought next to the "aura" side.
 
-- New `AuraLinkAuraCard` component (in same file or `src/components/AuraLinkAuraCard.tsx`):
-  - Renders the Aurascope at top, animated/reactive.
-  - Below it: a single row with **Play / Pause** button, **progress bar** (clickable to scrub), elapsed / duration.
-  - Below that: **"Open Aura"** button (routes to `/aura/$id`).
-  - Card body itself stays clickable → navigates to the Aura page (but Play and Open Aura buttons stop propagation so they don't navigate when clicked).
-- Audio source: `aura.audioPublicUrl` (when present). If the Aura has no playable audio, hide the player row and show only the "Open Aura" button.
-- Single shared `<audio>` element per AuraLink page (lifted into `AuraLinkView`) so playing one card pauses the others. Implemented with a small local context or a simple `useState({ playingId, audioRef })` pattern.
-- Wire a Web Audio `AnalyserNode` from the shared `<audio>` to feed `Aurascope`'s `audioAnalysisData` so the visualizer truly reacts to the playing track.
-- When the AuraLink has only **one** Aura, render the card in a larger "hero" variant: Aurascope is bigger, the player sits prominently right under it. When there are multiple, render compact cards in a list.
+**Changes (`src/routes/auralink.create.tsx`):**
+- Replace single `links` state with three states: `streamingLinks`, `customLinks`, `socialLinks` (typed to match `AuraLinkPage`).
+- Add a **Social Links** section (Instagram, TikTok, YouTube, X, Threads, etc.) using `SOCIAL_PLATFORMS` from `@/lib/auralink`.
+- Section ordering for stronger Linktree feel: Mode → Identity → **Streaming** → **Social** → **Custom** → Auras → Theme.
+- Add **Featured Aura** picker (sets `featuredAuraId`) when ≥1 Aura is selected.
+- `previewPage` and `publish()` write the three split arrays directly (drop legacy `links`).
+- Update `canPublish` to count all three arrays.
 
-### 2. "Your Links" library
+**Changes (`src/components/AuraLinkView.tsx`):**
+- Render social links as a compact icon row (small pill buttons) above streaming buttons, matching Linktree-style hierarchy.
+- Keep the existing playable Aura mini-player intact.
 
-`src/routes/auralink.tsx` — new route at `/auralink` that lists every AuraLink the user has built (read via `getAuraLinks()`).
+## 2. Influence Aura → Modal
 
-- Each row: thumbnail (profile image or featured Aura), title, slug, link count, theme swatch, last updated.
-- Actions per row: **Open** (public `/l/$slug`), **Edit** (currently edit isn't implemented; for now this opens public view in a new tab — note for future), **Copy link**, **Delete**.
-- Header: "Your AuraLinks" + a primary **+ New AuraLink** button → `/auralink/create`.
-- Empty state: encourages first AuraLink with a CTA to `/auralink/create`.
-- `src/components/Nav.tsx`: change the `AuraLink` nav item to route to `/auralink` (the library) instead of `/auralink/create` directly. The library is the new home; "create" remains accessible via the CTA.
+Convert `Influence Aura` from a full route into an in-place dialog that opens from the Aura page's "Influence Aura" button (and from the just-generated state).
 
-### 3. Remove "Influence Aura" from Share dialog
+**Changes:**
+- New `src/components/InfluenceAuraDialog.tsx` — wraps the existing controls (MoodPicker, ColorInfluence, Vibe Note, IdentitySelector, live preview) inside a `Dialog` from `@/components/ui/dialog`. Same save logic as the current route page (writes track, saves to Farm/cloud).
+- `src/routes/aura.$id.tsx`: replace the `<Link to="/aura/$id/influence">` button with a button that opens `InfluenceAuraDialog`. Remove that link instance.
+- `src/routes/generating.tsx` (or wherever the post-generate CTA lives): if it links to `/aura/$id/influence`, swap to opening the dialog on the Aura page (or pass a `?influence=1` query that auto-opens the dialog on mount).
+- Keep `src/routes/aura.$id.influence.tsx` as a thin redirect to `/aura/$id?influence=1` so any existing share links still work. (No breaking deletes.)
 
-`src/components/ShareDialog.tsx` — delete the dashed "Influence Aura" link block (lines ~254–261) and its unused `Wand2` import. "Influence Aura" already lives on the Aura page itself, where it makes sense; removing it from the Share dialog keeps that dialog focused on sharing.
+## 3. Remove Volume Controls
 
-### Files
+Strip every volume UI from playback components.
 
-**New:**
-- `src/routes/auralink.tsx` (library list page)
-- `src/components/AuraLinkAuraCard.tsx` (shared playable card + mini-player)
+**Changes (`src/components/AudioUploadPlayer.tsx`):**
+- Remove `Volume2`, `VolumeX`, `Volume1` imports, `VOLUME_KEY` constant, `volume`/`muted` state, the persistence effect, `onVolumeChange`, `VolIcon`, and the entire "Volume row" JSX block.
+- Leave the underlying `<audio>` element's default volume (1.0) — no `a.volume = ...` assignment.
+- Internal `metricsRef.current.volume` (audio analyser RMS) **stays** — it drives Aurascope reactivity and is not user-facing volume.
+
+No volume controls exist elsewhere; `AuraLinkAuraCard` and `OrbVisual` already have none.
+
+## Files
 
 **Edited:**
-- `src/components/AuraLinkView.tsx` (use new card; lift shared audio + analyser; hero layout when single Aura)
-- `src/components/Nav.tsx` (AuraLink link → `/auralink`)
-- `src/components/ShareDialog.tsx` (remove Influence Aura block)
+- `src/routes/auralink.create.tsx`
+- `src/components/AuraLinkView.tsx`
+- `src/routes/aura.$id.tsx`
+- `src/routes/aura.$id.influence.tsx` (becomes a redirect)
+- `src/components/AudioUploadPlayer.tsx`
 
-No data-model changes, no migrations.
+**New:**
+- `src/components/InfluenceAuraDialog.tsx`
