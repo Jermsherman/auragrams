@@ -292,6 +292,7 @@ function AuraPage() {
             to="/aura/$id/influence"
             params={{ id: track.id }}
             className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+            title="Reshape mood, color, and vibe"
           >
             <Wand2 className="h-3.5 w-3.5" /> Influence Aura
           </Link>
