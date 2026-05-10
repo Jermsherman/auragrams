@@ -1,16 +1,17 @@
 // AuraLink page data model + localStorage persistence.
-// Structured so it can migrate to a Supabase `auralinks` table later
-// without changing call sites.
+// Music-first link page builder: streaming links, social links, custom
+// links, selected Auras, and a themed look (preset or custom).
 
 export type AuraLinkMode = "streaming_links" | "auras" | "mixed";
-export type AuraLinkTheme =
+export type AuraLinkThemePreset =
   | "midnight"
   | "sunset"
   | "ocean"
   | "velvet"
-  | "minimal";
+  | "minimal"
+  | "custom";
 
-export type AuraLinkLinkType = "streaming" | "custom" | "aura";
+export type AuraLinkLinkType = "streaming" | "custom" | "aura" | "social";
 
 export type AuraLinkLink = {
   id: string;
@@ -24,6 +25,42 @@ export type AuraLinkLink = {
   isFeatured?: boolean;
 };
 
+export type AuraLinkStreamingLink = {
+  id: string;
+  platformName: string; // key from PLATFORMS
+  label: string;
+  url: string;
+  order: number;
+  isFeatured?: boolean;
+};
+
+export type AuraLinkSocialLink = {
+  id: string;
+  platformName: string; // key from SOCIAL_PLATFORMS
+  label: string;
+  url: string;
+  order: number;
+};
+
+export type AuraLinkCustomLink = {
+  id: string;
+  label: string;
+  url: string;
+  order: number;
+};
+
+export type AuraLinkTheme = {
+  name: string;
+  mode: "preset" | "custom";
+  preset?: AuraLinkThemePreset;
+  // Either preset is set, or these custom fields are used:
+  backgroundColor?: string;
+  primaryAccent?: string;
+  secondaryAccent?: string;
+  buttonColor?: string;
+  glowColor?: string;
+};
+
 export type AuraLinkPage = {
   id: string;
   userId?: string;
@@ -35,9 +72,21 @@ export type AuraLinkPage = {
   description?: string;
   profileImageUrl?: string;
   mode: AuraLinkMode;
+
   selectedAuraIds: string[];
-  links: AuraLinkLink[];
-  theme: AuraLinkTheme;
+  featuredAuraId?: string;
+
+  // New shape — split by purpose.
+  streamingLinks: AuraLinkStreamingLink[];
+  socialLinks: AuraLinkSocialLink[];
+  customLinks: AuraLinkCustomLink[];
+
+  /** @deprecated kept for backward compatibility with v1 pages. */
+  links?: AuraLinkLink[];
+
+  // Theme can be a string (legacy preset key) or full theme object.
+  theme: AuraLinkTheme | AuraLinkThemePreset;
+
   visibility: "public" | "unlisted";
   publicUrl?: string;
 };
@@ -47,7 +96,13 @@ const KEY = "auragram_auralinks";
 function read(): Record<string, AuraLinkPage> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "{}");
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
+    // Migrate legacy entries on read.
+    const out: Record<string, AuraLinkPage> = {};
+    for (const id of Object.keys(raw)) {
+      out[id] = migratePage(raw[id]);
+    }
+    return out;
   } catch {
     return {};
   }
@@ -64,6 +119,40 @@ function write(map: Record<string, AuraLinkPage>) {
     }
     throw e as Error;
   }
+}
+
+/** Coerce legacy {links: [...]} pages into the split shape. */
+export function migratePage(p: AuraLinkPage): AuraLinkPage {
+  const next: AuraLinkPage = {
+    ...p,
+    streamingLinks: p.streamingLinks ?? [],
+    socialLinks: p.socialLinks ?? [],
+    customLinks: p.customLinks ?? [],
+  };
+  if ((!next.streamingLinks.length && !next.customLinks.length) && Array.isArray(p.links)) {
+    let i = 0;
+    let j = 0;
+    for (const l of p.links) {
+      if (l.type === "streaming") {
+        next.streamingLinks.push({
+          id: l.id,
+          platformName: l.platformName ?? "other",
+          label: l.label,
+          url: l.url ?? "",
+          order: i++,
+          isFeatured: l.isFeatured,
+        });
+      } else if (l.type === "custom") {
+        next.customLinks.push({
+          id: l.id,
+          label: l.label,
+          url: l.url ?? "",
+          order: j++,
+        });
+      }
+    }
+  }
+  return next;
 }
 
 export function getAuraLinks(): AuraLinkPage[] {
@@ -140,7 +229,7 @@ export function newAuraLinkId(): string {
   );
 }
 
-// ------- Platform catalog -------
+// ------- Streaming platform catalog -------
 export type PlatformDef = {
   key: string;
   label: string;
@@ -161,10 +250,10 @@ export const PLATFORMS: PlatformDef[] = [
   { key: "pandora", label: "Pandora", hint: "https://pandora.com/…" },
   { key: "boomplay", label: "Boomplay", hint: "https://boomplay.com/…" },
   { key: "audius", label: "Audius", hint: "https://audius.co/…" },
+  { key: "presave", label: "Presave" },
   { key: "website", label: "Website" },
   { key: "merch", label: "Merch" },
   { key: "tickets", label: "Tickets" },
-  { key: "presave", label: "Presave" },
   { key: "other", label: "Other" },
 ];
 
@@ -173,17 +262,44 @@ export function platformLabel(key?: string): string {
   return PLATFORMS.find((p) => p.key === key)?.label ?? key;
 }
 
+// ------- Social platform catalog -------
+export type SocialPlatformDef = {
+  key: string;
+  label: string;
+  hint?: string;
+};
+
+export const SOCIAL_PLATFORMS: SocialPlatformDef[] = [
+  { key: "instagram", label: "Instagram", hint: "https://instagram.com/…" },
+  { key: "tiktok", label: "TikTok", hint: "https://tiktok.com/@…" },
+  { key: "youtube", label: "YouTube", hint: "https://youtube.com/…" },
+  { key: "x", label: "X / Twitter", hint: "https://x.com/…" },
+  { key: "facebook", label: "Facebook", hint: "https://facebook.com/…" },
+  { key: "threads", label: "Threads", hint: "https://threads.net/@…" },
+  { key: "twitch", label: "Twitch", hint: "https://twitch.tv/…" },
+  { key: "discord", label: "Discord", hint: "https://discord.gg/…" },
+  { key: "snapchat", label: "Snapchat", hint: "https://snapchat.com/add/…" },
+  { key: "website", label: "Website", hint: "https://…" },
+  { key: "email", label: "Email", hint: "you@domain.com" },
+  { key: "other", label: "Other" },
+];
+
+export function socialPlatformLabel(key?: string): string {
+  if (!key) return "Social";
+  return SOCIAL_PLATFORMS.find((p) => p.key === key)?.label ?? key;
+}
+
 // ------- Themes -------
 export type ThemeDef = {
-  key: AuraLinkTheme;
+  key: AuraLinkThemePreset;
   name: string;
-  bg: string; // CSS background
-  accent: string; // primary text/accent color
+  bg: string;
+  accent: string;
   buttonBg: string;
   glow: string;
 };
 
-export const THEMES: Record<AuraLinkTheme, ThemeDef> = {
+export const PRESET_THEMES: Record<Exclude<AuraLinkThemePreset, "custom">, ThemeDef> = {
   midnight: {
     key: "midnight",
     name: "Midnight Glass",
@@ -226,10 +342,49 @@ export const THEMES: Record<AuraLinkTheme, ThemeDef> = {
   },
 };
 
+/** Backward-compatible map (some older imports use THEMES[key]). */
+export const THEMES = {
+  ...PRESET_THEMES,
+} as Record<string, ThemeDef>;
+
 export const THEME_LIST: ThemeDef[] = [
-  THEMES.midnight,
-  THEMES.sunset,
-  THEMES.ocean,
-  THEMES.velvet,
-  THEMES.minimal,
+  PRESET_THEMES.midnight,
+  PRESET_THEMES.sunset,
+  PRESET_THEMES.ocean,
+  PRESET_THEMES.velvet,
+  PRESET_THEMES.minimal,
 ];
+
+export const DEFAULT_CUSTOM_THEME: AuraLinkTheme = {
+  name: "Custom",
+  mode: "custom",
+  backgroundColor: "#0F0A1A",
+  primaryAccent: "#E0AAFF",
+  secondaryAccent: "#7C8AFF",
+  buttonColor: "#1A1430",
+  glowColor: "#A86BC8",
+};
+
+/** Resolve any theme value (legacy preset string or full object) into a ThemeDef. */
+export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef {
+  if (!t) return PRESET_THEMES.midnight;
+  if (typeof t === "string") {
+    return PRESET_THEMES[t as keyof typeof PRESET_THEMES] ?? PRESET_THEMES.midnight;
+  }
+  if (t.mode === "preset" && t.preset && t.preset !== "custom") {
+    return PRESET_THEMES[t.preset] ?? PRESET_THEMES.midnight;
+  }
+  // Custom theme: build a ThemeDef from the user's colors.
+  const bg = t.backgroundColor || DEFAULT_CUSTOM_THEME.backgroundColor!;
+  const accent = t.primaryAccent || DEFAULT_CUSTOM_THEME.primaryAccent!;
+  const button = t.buttonColor || DEFAULT_CUSTOM_THEME.buttonColor!;
+  const glow = t.glowColor || DEFAULT_CUSTOM_THEME.glowColor!;
+  return {
+    key: "custom",
+    name: t.name || "Custom",
+    bg: `radial-gradient(ellipse at top, ${accent}33 0%, ${bg} 65%, ${bg} 100%)`,
+    accent,
+    buttonBg: `${button}B3`,
+    glow: `0 0 50px -10px ${glow}AA`,
+  };
+}

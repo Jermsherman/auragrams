@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, AlertCircle } from "lucide-react";
+import { Play, Pause, AlertCircle, Volume2, VolumeX, Volume1 } from "lucide-react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { getPersonality } from "@/lib/aura";
+
+const VOLUME_KEY = "auragram_player_volume";
+const MUTED_KEY = "auragram_player_muted";
 
 /**
  * AudioUploadPlayer
@@ -72,6 +75,17 @@ export function AudioUploadPlayer({
   const [duration, setDuration] = useState(0);
   const [audioReady, setAudioReady] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  // Volume state — persisted across sessions.
+  const [volume, setVolume] = useState<number>(() => {
+    if (typeof window === "undefined") return 0.85;
+    const v = parseFloat(localStorage.getItem(VOLUME_KEY) ?? "");
+    return isFinite(v) && v >= 0 && v <= 1 ? v : 0.85;
+  });
+  const [muted, setMuted] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(MUTED_KEY) === "1";
+  });
 
   // --- Web Audio graph (built lazily on first Play) ---
   const ctxRef = useRef<AudioContext | null>(null);
@@ -323,8 +337,31 @@ export function AudioUploadPlayer({
     a.currentTime = Number(e.target.value);
   };
 
+  // Apply volume + muted to the underlying element reactively.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = volume;
+    a.muted = muted;
+  }, [volume, muted, src]);
+
+  const onVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = Math.max(0, Math.min(1, Number(e.target.value) / 100));
+    setVolume(v);
+    if (v > 0 && muted) setMuted(false);
+    try { localStorage.setItem(VOLUME_KEY, String(v)); } catch { /* noop */ }
+  };
+  const toggleMute = () => {
+    setMuted((m) => {
+      const next = !m;
+      try { localStorage.setItem(MUTED_KEY, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  };
+
   const stops = getPersonality(palette).stops;
   const pct = duration ? (time / duration) * 100 : 0;
+  const VolIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div className="w-full max-w-md mx-auto select-none">
@@ -376,11 +413,31 @@ export function AudioUploadPlayer({
         </div>
       </div>
 
-      {fileMeta && (
-        <p className="mt-3 text-[11px] text-muted-foreground truncate">
-          <span className="text-foreground/80">{fileMeta.name}</span> · {fileMeta.type || "audio"} · {fmtBytes(fileMeta.size)}
-        </p>
-      )}
+      {/* Volume row */}
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          onClick={toggleMute}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="grid place-items-center h-9 w-9 rounded-full glass hover:bg-foreground/10 transition-colors text-foreground/80"
+        >
+          <VolIcon className="h-4 w-4" />
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={Math.round((muted ? 0 : volume) * 100)}
+          onChange={onVolumeChange}
+          aria-label="Volume"
+          className="flex-1 h-1 accent-foreground/70 cursor-pointer"
+        />
+        <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">
+          {muted ? 0 : Math.round(volume * 100)}
+        </span>
+      </div>
+
+
 
       {lastError && (
         <div

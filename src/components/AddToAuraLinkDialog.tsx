@@ -76,7 +76,7 @@ export function AddToAuraLinkDialog({
                 <div className="text-sm font-medium truncate">{p.title}</div>
                 <div className="text-[11px] text-muted-foreground truncate">
                   /l/{p.handleSlug} · {p.selectedAuraIds.length} Auras ·{" "}
-                  {p.links.length} links
+                  {(p.streamingLinks?.length ?? 0) + (p.customLinks?.length ?? 0) + (p.socialLinks?.length ?? 0)} links
                 </div>
               </button>
             ))
