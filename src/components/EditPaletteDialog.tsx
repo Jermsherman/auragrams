@@ -20,6 +20,7 @@ type Props = {
   generatedColors?: AuraPalette;
   initialName?: string;
   onSave: (next: AuraPalette, name: string) => void;
+  onShuffle?: () => { colors: AuraPalette; name: string } | null;
 };
 
 const KEYS: (keyof Omit<AuraPalette, "swatches">)[] = [
