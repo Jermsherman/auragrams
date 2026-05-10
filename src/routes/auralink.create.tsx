@@ -119,7 +119,7 @@ function BuilderPage() {
       theme: themeValue,
       visibility: "public",
     }),
-    [title, artistName, computedSlug, description, profileImageUrl, mode, selectedAuraIds, links, theme],
+    [title, artistName, computedSlug, description, profileImageUrl, mode, selectedAuraIds, links, theme, customTheme],
   );
 
   // ----- Link helpers -----
