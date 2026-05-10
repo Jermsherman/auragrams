@@ -617,15 +617,15 @@ function BuilderPage() {
 
             {/* Theme */}
             <Section title="Choose a vibe">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {THEME_LIST.map((t) => (
                   <button
                     key={t.key}
                     onClick={() => setTheme(t.key)}
                     className={
-                      "rounded-xl p-3 border text-left transition-all " +
+                      "rounded-xl p-3 border text-left transition-all min-h-[64px] " +
                       (theme === t.key
-                        ? "border-foreground/30 ring-1 ring-foreground/20"
+                        ? "border-foreground/40 ring-2 ring-foreground/30"
                         : "border-border/60 hover:border-foreground/20")
                     }
                     style={{ background: t.bg }}
@@ -638,8 +638,81 @@ function BuilderPage() {
                     </div>
                   </button>
                 ))}
+                {/* Custom tile */}
+                <button
+                  onClick={() => setTheme("custom")}
+                  className={
+                    "rounded-xl p-3 border text-left transition-all min-h-[64px] relative overflow-hidden " +
+                    (theme === "custom"
+                      ? "border-foreground/40 ring-2 ring-foreground/30"
+                      : "border-border/60 hover:border-foreground/20")
+                  }
+                  style={{
+                    background: `radial-gradient(ellipse at top, ${customTheme.primaryAccent}33 0%, ${customTheme.backgroundColor} 65%, ${customTheme.backgroundColor} 100%)`,
+                  }}
+                >
+                  <div
+                    className="text-[11px] uppercase tracking-[0.22em]"
+                    style={{ color: customTheme.primaryAccent }}
+                  >
+                    Custom
+                  </div>
+                  <div className="mt-1.5 flex gap-1">
+                    {[
+                      customTheme.backgroundColor,
+                      customTheme.primaryAccent,
+                      customTheme.secondaryAccent,
+                      customTheme.glowColor,
+                    ].map((c, i) => (
+                      <span
+                        key={i}
+                        className="h-2.5 w-2.5 rounded-full ring-1 ring-foreground/20"
+                        style={{ background: c }}
+                      />
+                    ))}
+                  </div>
+                </button>
               </div>
+
+              {theme === "custom" && (
+                <div className="mt-4 rounded-2xl glass-strong p-4 space-y-3">
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                    Build your custom vibe
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: "backgroundColor", label: "Background" },
+                      { key: "primaryAccent", label: "Primary accent" },
+                      { key: "secondaryAccent", label: "Secondary accent" },
+                      { key: "buttonColor", label: "Button" },
+                      { key: "glowColor", label: "Glow" },
+                    ].map((f) => (
+                      <label key={f.key} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="color"
+                          value={(customTheme as Record<string, string | undefined>)[f.key] ?? "#1a1430"}
+                          onChange={(e) =>
+                            setCustomTheme((c) => ({ ...c, [f.key]: e.target.value }))
+                          }
+                          className="h-8 w-8 rounded-md border border-border/50 bg-transparent cursor-pointer"
+                        />
+                        <span>{f.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={customTheme.name}
+                    onChange={(e) =>
+                      setCustomTheme((c) => ({ ...c, name: e.target.value.slice(0, 32) }))
+                    }
+                    placeholder="Name this vibe (optional)"
+                    className="w-full rounded-lg bg-background/40 border border-border/60 px-3 h-9 text-sm outline-none focus:border-foreground/25"
+                  />
+                </div>
+              )}
             </Section>
+
 
             {/* Footer actions */}
             <div className="sticky bottom-3 mt-10 flex flex-wrap gap-2 z-20">
