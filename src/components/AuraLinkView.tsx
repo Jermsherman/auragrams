@@ -1,10 +1,12 @@
 // Public-facing AuraLink renderer. Used by both the builder live preview
 // and the public /l/$slug page.
 
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, ArrowUpRight, Sparkles } from "lucide-react";
+import { ExternalLink, Sparkles } from "lucide-react";
 import { Aurascope } from "./Aurascope";
 import { Logo } from "./Logo";
+import { AuraLinkAuraCard } from "./AuraLinkAuraCard";
 import {
   resolveTheme,
   platformLabel,
