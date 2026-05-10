@@ -41,8 +41,6 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
     ...streamingEntries.map((l) => ({ id: l.id, kind: "streaming" as const, label: l.label, url: l.url, platformName: l.platformName })),
     ...customEntries.map((l) => ({ id: l.id, kind: "custom" as const, label: l.label, url: l.url, platformName: undefined })),
   ];
-  void socialPlatformLabel;
-  void socialEntries;
 
   const showStreamingLinks = page.mode !== "auras";
   const showAuras = page.mode !== "streaming_links";
