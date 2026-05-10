@@ -15,7 +15,7 @@ import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
-import { updateAuraVibe, getPublicAura } from "@/lib/cloud Aura".replace(" Aura","Aura");
+import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
