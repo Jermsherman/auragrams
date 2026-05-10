@@ -127,7 +127,7 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
               >
                 <span className="flex items-center gap-3 min-w-0">
                   <span className="text-[10px] uppercase tracking-[0.24em] opacity-70 shrink-0">
-                    {l.type === "streaming"
+                    {l.kind === "streaming"
                       ? platformLabel(l.platformName)
                       : "Link"}
                   </span>
