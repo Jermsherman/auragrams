@@ -437,10 +437,7 @@ export function AudioUploadPlayer({
         </span>
       </div>
 
-      {/* Generic, brand-friendly caption — never expose the file name. */}
-      <p className="mt-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80 text-center">
-        Aurascope reacting to audio
-      </p>
+
 
       {lastError && (
         <div
