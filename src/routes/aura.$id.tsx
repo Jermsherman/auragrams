@@ -317,6 +317,19 @@ function AuraPage() {
           open={auracleOpen}
           onOpenChange={setAuracleOpen}
         />
+        {track.colors && (
+          <EditPaletteDialog
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            initialColors={track.colors}
+            generatedColors={track.colors}
+            initialName={track.paletteName}
+            onSave={(next, name) => {
+              updateTrack(track.id, { colors: next, paletteName: name });
+              setTrack({ ...track, colors: next, paletteName: name });
+            }}
+          />
+        )}
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (
