@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, AlertCircle, Volume2, VolumeX, Volume1 } from "lucide-react";
+import { Play, Pause, AlertCircle } from "lucide-react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { getPersonality } from "@/lib/aura";
-
-const VOLUME_KEY = "auragram_player_volume";
-const MUTED_KEY = "auragram_player_muted";
 
 /**
  * AudioUploadPlayer
