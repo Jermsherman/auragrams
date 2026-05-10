@@ -735,6 +735,23 @@ function BuilderPage() {
                                   </span>
                                 </span>
                                 <button
+                                  onClick={() =>
+                                    setFeaturedAuraId(featuredAuraId === id ? undefined : id)
+                                  }
+                                  className={
+                                    "rounded-full px-2 h-7 text-[10px] uppercase tracking-[0.2em] transition-colors " +
+                                    ((featuredAuraId ?? selectedAuraIds[0]) === id
+                                      ? "bg-aura-gradient text-primary-foreground"
+                                      : "border border-border/60 text-muted-foreground hover:text-foreground")
+                                  }
+                                  aria-label="Feature this Aura"
+                                  title="Feature this Aura on the AuraLink"
+                                >
+                                  {(featuredAuraId ?? selectedAuraIds[0]) === id
+                                    ? "Featured"
+                                    : "Feature"}
+                                </button>
+                                <button
                                   onClick={() => moveAura(id, -1)}
                                   disabled={i === 0}
                                   className="icon-btn"
