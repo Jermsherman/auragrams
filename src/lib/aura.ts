@@ -529,7 +529,50 @@ const MAJOR_BIAS_KEY = new Set<MoodKey>(["warm","euphoric","coastal","energetic"
 
 export type MusicalKey = string;
 export type TempoBand = "Slow" | "Mid" | "Fast";
-export type Density = "Sparse" | "Lush" | "Dense";
+// Extended density vocabulary; legacy values still accepted as strings.
+export type Density = string;
+export const DENSITY_LABELS = [
+  "Sparse", "Airy", "Light", "Open", "Balanced", "Full", "Dense", "Heavy", "Saturated", "Layered", "Overgrown",
+] as const;
+export type DensityLabel = (typeof DENSITY_LABELS)[number];
+
+/** Map a 0..1 density score to a poetic label. */
+export function densityLabelFromScore(score: number): DensityLabel {
+  const s = Math.max(0, Math.min(1, score));
+  if (s < 0.12) return "Sparse";
+  if (s < 0.22) return "Airy";
+  if (s < 0.32) return "Light";
+  if (s < 0.42) return "Open";
+  if (s < 0.55) return "Balanced";
+  if (s < 0.66) return "Full";
+  if (s < 0.76) return "Dense";
+  if (s < 0.84) return "Heavy";
+  if (s < 0.90) return "Saturated";
+  if (s < 0.96) return "Layered";
+  return "Overgrown";
+}
+
+/** Texture keywords pulled from selected moods + density character. */
+const TEXTURE_BANK_BY_DENSITY: Record<string, string[]> = {
+  low:  ["mist", "glass", "air", "pearl", "frost", "silk"],
+  mid:  ["velvet", "silk", "haze", "candlelight", "amber", "dust"],
+  high: ["smoke", "ember", "static", "ash", "neon", "grain"],
+};
+export function textureKeywordsFor(moods: string[], densityScore?: number, seed = 0): string[] {
+  const out = new Set<string>();
+  for (const m of moods) {
+    const t = MOOD_TRAITS[m];
+    if (!t) continue;
+    out.add(t.texture);
+  }
+  const bucket = densityScore == null
+    ? "mid"
+    : densityScore < 0.35 ? "low" : densityScore > 0.65 ? "high" : "mid";
+  const bank = TEXTURE_BANK_BY_DENSITY[bucket];
+  out.add(bank[seed % bank.length]);
+  out.add(bank[(seed >>> 3) % bank.length]);
+  return Array.from(out).slice(0, 4);
+}
 
 export function energyFor(seedKey: string, moods: string[]): number {
   const base = 35 + (hash(seedKey) % 60);
