@@ -1,57 +1,63 @@
+# Smarter Aura, Vibe, and Palette Naming
+
+## Problem
+
+In `src/lib/aura.ts`:
+- `paletteName()` picks two random words from `COLOR_WORDS` × `TEX_WORDS` regardless of the actual palette swatches — so a green palette can be tagged "Violet Drift".
+- `auraNameFor()` is similarly random across small banks (~40 names) and ignores the palette's true hue family.
+- `vibeDescription` is one long sentence template, and the user has no real way to fine-tune it — "Edit the vibe" just replaces it, "Generate the vibe" rerolls it.
+
 ## Goal
 
-The full AuraLink builder already exists at `/auralink/create` (modes, identity, streaming/social/custom links, Aura selection, featured Aura, theme presets + custom colors, live preview, publish). The problem is that `/auralink` currently shows a *library*, so the "Linktree aspect" feels missing. We'll consolidate so `/auralink` *is* the builder again (matching the older working build), keep the library visible alongside it, polish the featured-Aura UI, and make Farm tiles inside the builder showcase each Aura's unique color palette.
+1. Palette name reflects the real dominant hue(s) in `colors.swatches` (green → "Verdant …", not "Violet …").
+2. Aura name draws from a much larger, mood + hue-aware space so names feel intentional and varied.
+3. Vibe is 2–3 tight sentences; users can write/paste their own seed phrase that the generator *fine-tunes* rather than overwrites.
 
-No existing builder feature is removed. All current routes/components stay functional.
+## Plan
 
----
+### 1. Hue-aware palette naming (`src/lib/aura.ts`)
 
-## 1. Route consolidation
+- Add `hexToHsl()` helper.
+- Add a `HUE_FAMILIES` table keyed by hue range + lightness/saturation buckets, each with:
+  - `colorWords` (e.g. red → `["Crimson","Ember","Rose","Garnet","Scarlet"]`, green → `["Verdant","Jade","Moss","Emerald","Chartreuse"]`, etc. — covering red, orange, amber/gold, yellow, chartreuse, green, teal, cyan, blue, indigo, violet, magenta, pink, neutral/grey, near-black, near-white).
+  - Saturation/lightness modifiers (`Pale`, `Dusty`, `Neon`, `Deep`, `Smoked`, `Glass`, `Velvet`).
+- New `paletteName(colors, seed, moods, kp)`:
+  1. Compute dominant hue family from `colors.primary` + `colors.accent` weighted average (skip near-grey swatches by saturation threshold).
+  2. If two distinct families dominate, build a two-tone name (e.g. "Ember & Jade Drift").
+  3. Otherwise build `${modifier?} ${colorWord} ${textureWord}` where `textureWord` is still from `TEX_WORDS` but seeded so the same palette is stable.
+  4. Keep the curated `PALETTE_NAME_BANK` only as a fallback when hue is ambiguous (very low saturation across the board → use "Ash/Pearl/Onyx + texture" forms).
 
-- Make `/auralink` render the builder UI (move `BuilderPage` from `auralink.create.tsx` into `auralink.tsx`).
-- Keep `/auralink/create` as a thin route that re-exports the same component (back-compat for any inbound link / `Nav.tsx`).
-- Move the existing library list to a new section *inside* the builder page (top strip: "Your AuraLinks" — chips for each saved page with edit / open / delete, plus a "+ New" reset action). No separate `/auralink/library` route needed; this restores the single-page builder feel from the older build.
-- Update `Nav.tsx` so the "AuraLink" tab → `/auralink` (already does) and `RootComponent`/redirects unchanged.
+### 2. Bigger, more intentional aura names
 
-## 2. Edit existing AuraLink
+- Expand `AURA_NAME_BANK` and the pattern banks by ~3×, grouped by mood family (warm, blue, green, dark, dreamy, electric, etc.).
+- Pull the hue family from step 1 into `auraNameFor()` so the `PATTERN_A_COLOR` slot is chosen from the family's color words instead of the global list. Result: a green-palette Playful track yields "Jade Bounce", "Verdant Halo", "Chartreuse Mirage" — not "Violet Tide".
+- Keep musical-key & mood-mode biasing (minor → moodier nouns, major → brighter nouns) by splitting `PATTERN_A_NOUN` / `PATTERN_B_TEX` into minor/major-leaning sub-banks.
+- Keep the `RECENT_BLOCK` dedupe; widen it slightly so repeats are rarer.
 
-- Builder accepts `?id=<auraLinkId>` search param. On mount, if present, hydrate all form state from `getAuraLink(id)` (title, artist, slug, description, image, mode, links, selectedAuraIds, featuredAuraId, theme/customTheme).
-- `publish()` becomes "save": if editing, call `updateAuraLink(id, …)`; otherwise create new via `saveAuraLink`. Toast copy switches between "Published" / "Updated".
-- Add a "New AuraLink" button that resets state + clears the `id` query param.
+### 3. Condensed, editable vibe
 
-## 3. Featured-Aura UI polish
+- Change `generateDescriptions()` to return a `vibe` of **2–3 sentences** built from three pieces:
+  1. Scene sentence (existing `VIBE_FRAMES` + `SCENE_BANK_*`, kept short).
+  2. Color/motion sentence drawn from `personality.phrases` + the new hue family words.
+  3. Optional closing line keyed by tempo + density (already available on `AuraProfile`).
+- Add a new exported `refineVibe(userSeed: string, opts)` that:
+  - If `userSeed` is empty → returns the fully generated 2–3 sentence vibe (current "Generate the vibe" behavior, just longer-form).
+  - If `userSeed` is non-empty → keeps the user's wording as sentence 1 (lightly cleaned: trim, ensure trailing punctuation, cap length ~140 chars) and *appends* one generator sentence that matches mood + hue + tempo. This is the "fine tune" behavior.
+- Wire `InfluenceAuraDialog.tsx` so the "Vibe note" textarea passes its value into `refineVibe` via the preview's `generateAura` call (extend `generateAura` input with `vibeSeed?: string`, plumbed into `generateDescriptions`). The "Generate the vibe" / "Edit the vibe" buttons on the Aura page continue to work; "Edit" now means "seed the generator", not "fully replace".
+- Keep `track.influenceSettings.vibeNote` as the persisted user seed so re-opening the dialog shows what they typed.
 
-Inside the builder Auras section (order list):
-- Replace the plain "Feature / Featured" pill with a card-style row: small Aurascope thumbnail on the left, track + Aura name, and a star-icon toggle on the right. When featured, the whole row gets a soft aura-gradient ring and the star fills with the gradient.
-- Add a clear "Featured" header chip above the order list ("⭐ This Aura plays on your AuraLink hero").
+### 4. Backward compatibility
 
-In `AuraLinkView` (already renders featured as hero):
-- When `featuredAuraId` resolves, add a subtle glow ring tinted by that Aura's palette around the hero Aurascope and a tiny "Featured" caption underneath the title.
+- All existing `AuraProfile` fields remain. `vibeDescription` stays a string (just longer). No data migration needed.
+- Existing saved Auras keep their stored `paletteName` / `auraName` / `vibeDescription` — the new logic only runs on regenerate/influence.
 
-## 4. Farm tiles showcase Aura colors
+## Technical Notes
 
-In the builder's selectable Aura grid (currently flat dark tiles):
-- Tint each tile's background using `getPersonality(aura.palette).atmosphere` (same approach as `AuraFarmCard.tsx`), with a soft radial gradient from the top.
-- Add a thin colored bar / dot row showing the Aura's top 3 colors (`aura.colors`) to make each tile visually unique even before the orb renders.
-- Selected state: bump ring color to the Aura's primary color instead of a generic foreground tint.
+- All work stays in `src/lib/aura.ts` plus a small prop addition in `src/components/InfluenceAuraDialog.tsx` (pass `vibeSeed` into the preview `generateAura`).
+- No backend, schema, or route changes.
+- Pure functions remain pure and deterministic per seed + inputs.
 
-## 5. Preserve everything else
+## Files
 
-- Streaming/social/custom links logic, theme picker (Midnight Glass, Sunset Pulse, Ocean Glow, Velvet Neon, Aurora Drift, Ember Smoke, Emerald Hour, Rose Quartz, Onyx Bloom, Minimal Dark) + Custom color theme — untouched.
-- `AuraLinkAuraCard` mini-player (play/pause + progress, Aurascope reacts, no volume control) — untouched.
-- `AuraLinkView` public renderer at `/l/$slug` — untouched aside from the small featured-glow polish in §3.
-- Aura Farm, creation flow, Influence dialog, Aurascope, audio playback — untouched.
-
----
-
-## Technical notes
-
-**Files edited**
-- `src/routes/auralink.tsx` — becomes the builder. Includes a top "Your AuraLinks" strip (reuses `getAuraLinks`, `deleteAuraLink`, `resolveTheme`) and hydrates from `?id=` for editing.
-- `src/routes/auralink.create.tsx` — slimmed to `export { Route }` style wrapper that mounts the same `BuilderPage` component (moved into a shared file, e.g. `src/components/AuraLinkBuilder.tsx`).
-- `src/components/AuraLinkBuilder.tsx` *(new)* — extracted builder so both routes use it.
-- `src/components/AuraLinkView.tsx` — small featured-Aura glow polish only.
-
-**No data-model changes**: `AuraLinkPage`, `THEME_LIST`, `PRESET_THEMES`, `DEFAULT_CUSTOM_THEME`, `migratePage` all stay as-is. `localStorage` key `auragram_auralinks` unchanged, so existing user data keeps working.
-
-**No backend changes**: pages still persist to `localStorage` via `saveAuraLink` / `updateAuraLink` / `deleteAuraLink`.
+- Edit `src/lib/aura.ts` (hue helpers, new `paletteName`, expanded `auraNameFor`, refactored `generateDescriptions`, `vibeSeed` on `generateAura`).
+- Edit `src/components/InfluenceAuraDialog.tsx` (thread the vibe note into the preview generator).
