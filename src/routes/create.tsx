@@ -27,7 +27,7 @@ import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
 import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { OrbVisual } from "@/components/OrbVisual";
-import { Aurascope } from "@/components/Aurascope";
+
 import { ColorInfluence } from "@/components/ColorInfluence";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
 import { saveAuraFromTrack } from "@/lib/farm";
