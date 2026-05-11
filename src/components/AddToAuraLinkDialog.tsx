@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Dialog,
@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  getAuraLinks,
+  listMyAuraLinks,
   updateAuraLink,
-  type AuraLinkPage,
-} from "@/lib/auralink";
+} from "@/lib/auralinkService";
+import type { AuraLinkPage } from "@/lib/auralink";
 import type { SavedAura } from "@/lib/farm";
 
 export function AddToAuraLinkDialog({
@@ -25,25 +26,50 @@ export function AddToAuraLinkDialog({
   open: boolean;
   onOpenChange: (b: boolean) => void;
 }) {
-  const [tick, setTick] = useState(0);
-  const pages = useMemo<AuraLinkPage[]>(
-    () => (open ? getAuraLinks() : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open, tick],
-  );
+  const { profile } = useAuth();
+  const [pages, setPages] = useState<AuraLinkPage[] | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const addToPage = (p: AuraLinkPage) => {
+  useEffect(() => {
+    if (!open || !profile?.id) return;
+    let cancelled = false;
+    setPages(null);
+    listMyAuraLinks(profile.id)
+      .then((rows) => {
+        if (!cancelled) setPages(rows);
+      })
+      .catch((e) => {
+        console.error(e);
+        if (!cancelled) setPages([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, profile?.id]);
+
+  const addToPage = async (p: AuraLinkPage) => {
+    if (!profile?.id) {
+      toast.error("You need to sign in to do that.");
+      return;
+    }
     if (p.selectedAuraIds.includes(aura.id)) {
       toast.info("Aura already in this AuraLink.");
       return;
     }
-    updateAuraLink(p.id, {
-      selectedAuraIds: [...p.selectedAuraIds, aura.id],
-      mode: p.mode === "streaming_links" ? "mixed" : p.mode,
-    });
-    setTick((t) => t + 1);
-    toast.success(`Added to ${p.title}`);
-    onOpenChange(false);
+    setBusy(true);
+    try {
+      await updateAuraLink(p.id, profile.id, {
+        selectedAuraIds: [...p.selectedAuraIds, aura.id],
+        mode: p.mode === "streaming_links" ? "mixed" : p.mode,
+      });
+      toast.success(`Added to ${p.title}`);
+      onOpenChange(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not add to AuraLink. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -59,7 +85,11 @@ export function AddToAuraLinkDialog({
         </DialogHeader>
 
         <div className="space-y-2 pt-2">
-          {pages.length === 0 ? (
+          {pages === null ? (
+            <div className="rounded-2xl border border-border/60 bg-background/30 p-5 text-center text-xs text-muted-foreground">
+              Loading your AuraLinks…
+            </div>
+          ) : pages.length === 0 ? (
             <div className="rounded-2xl border border-border/60 bg-background/30 p-5 text-center">
               <h3 className="font-display text-lg">No AuraLinks yet.</h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -71,7 +101,8 @@ export function AddToAuraLinkDialog({
               <button
                 key={p.id}
                 onClick={() => addToPage(p)}
-                className="w-full text-left rounded-2xl border border-border/60 bg-background/30 px-4 py-3 hover:bg-foreground/5 transition-colors"
+                disabled={busy}
+                className="w-full text-left rounded-2xl border border-border/60 bg-background/30 px-4 py-3 hover:bg-foreground/5 transition-colors disabled:opacity-60"
               >
                 <div className="text-sm font-medium truncate">{p.title}</div>
                 <div className="text-[11px] text-muted-foreground truncate">

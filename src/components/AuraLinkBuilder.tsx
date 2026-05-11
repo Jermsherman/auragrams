@@ -27,13 +27,6 @@ import {
   SOCIAL_PLATFORMS,
   THEME_LIST,
   DEFAULT_CUSTOM_THEME,
-  ensureUniqueSlug,
-  newAuraLinkId,
-  saveAuraLink,
-  updateAuraLink,
-  deleteAuraLink,
-  getAuraLink,
-  getAuraLinks,
   resolveTheme,
   slugify,
   type AuraLinkCustomLink,
@@ -44,8 +37,29 @@ import {
   type AuraLinkTheme,
   type AuraLinkThemePreset,
 } from "@/lib/auralink";
-import { getSavedAuras, type SavedAura } from "@/lib/farm";
+import {
+  listMyAuraLinks,
+  getAuraLinkById,
+  saveAuraLink,
+  updateAuraLink,
+  deleteAuraLink,
+  ensureUniqueSlug,
+} from "@/lib/auralinkService";
+import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
+
+function newAuraLinkId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return (crypto as Crypto).randomUUID();
+  }
+  // Fallback (RFC4122-ish) — only used if crypto.randomUUID isn't available.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -57,10 +71,37 @@ export function AuraLinkBuilder() {
 
   const [auras, setAuras] = useState<SavedAura[]>([]);
   const [savedLinks, setSavedLinks] = useState<AuraLinkPage[]>([]);
+
+  const refreshSaved = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
+      const rows = await listMyAuraLinks(profile.id);
+      setSavedLinks(rows);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [profile?.id]);
+
   useEffect(() => {
-    setAuras(getSavedAuras());
-    setSavedLinks(getAuraLinks());
-  }, []);
+    if (!profile?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [auraRows, linkRows] = await Promise.all([
+          listMyAuras(profile.id),
+          listMyAuraLinks(profile.id),
+        ]);
+        if (cancelled) return;
+        setAuras(auraRows.map(mapAuraRowToSaved));
+        setSavedLinks(linkRows);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -117,8 +158,8 @@ export function AuraLinkBuilder() {
   }, [profile]);
 
   // Load an existing AuraLink into the form for editing.
-  const loadForEdit = useCallback((id: string) => {
-    const p = getAuraLink(id);
+  const loadForEdit = useCallback(async (id: string) => {
+    const p = await getAuraLinkById(id);
     if (!p) {
       toast.error("AuraLink not found.");
       return;
@@ -347,7 +388,9 @@ export function AuraLinkBuilder() {
         ? totalLinks > 0
         : selectedAuraIds.length > 0 || totalLinks > 0);
 
-  const publish = () => {
+  const [publishing, setPublishing] = useState(false);
+
+  const publish = async () => {
     if (uploadingCover) {
       toast.error("Cover image is still uploading.");
       return;
@@ -356,61 +399,72 @@ export function AuraLinkBuilder() {
       toast.error("Add a title and at least one link or Aura.");
       return;
     }
-    const isEdit = !!editingId;
-    const finalSlug = isEdit
-      ? computedSlug
-      : ensureUniqueSlug(computedSlug);
-    const id = isEdit ? editingId! : newAuraLinkId();
-    const existing = isEdit ? getAuraLink(id) : null;
-    const page: AuraLinkPage = {
-      id,
-      createdAt: existing?.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
-      title: title.trim(),
-      artistName: artistName.trim(),
-      handleSlug: finalSlug,
-      description: description.trim() || undefined,
-      profileImageUrl: profileImageUrl || undefined,
-      mode,
-      selectedAuraIds,
-      featuredAuraId:
-        featuredAuraId && selectedAuraIds.includes(featuredAuraId)
-          ? featuredAuraId
-          : selectedAuraIds[0],
-      streamingLinks: streamingLinks.map((l, i) => ({ ...l, order: i })),
-      socialLinks: socialLinks.map((l, i) => ({ ...l, order: i })),
-      customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
-      theme: themeValue,
-      visibility: "public",
-      seoTitle: seoTitle.trim() || undefined,
-      seoDescription: seoDescription.trim() || undefined,
-      socialPreviewImage: socialPreviewImage || undefined,
-    };
-    try {
-      if (isEdit) {
-        updateAuraLink(id, page);
-      } else {
-        saveAuraLink(page);
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error(
-        e instanceof Error ? e.message : "Could not publish AuraLink.",
-      );
+    if (!profile?.id) {
+      toast.error("You need to sign in to do that.");
       return;
     }
-    setSavedLinks(getAuraLinks());
-    toast.success(isEdit ? "AuraLink updated." : "AuraLink published.");
-    navigate({ to: "/l/$slug", params: { slug: finalSlug } });
+    setPublishing(true);
+    const isEdit = !!editingId;
+    try {
+      const finalSlug = isEdit
+        ? computedSlug
+        : await ensureUniqueSlug(computedSlug);
+      const id = isEdit ? editingId! : newAuraLinkId();
+      const existing = isEdit ? await getAuraLinkById(id) : null;
+      const page: AuraLinkPage = {
+        id,
+        createdAt: existing?.createdAt ?? Date.now(),
+        updatedAt: Date.now(),
+        title: title.trim(),
+        artistName: artistName.trim(),
+        handleSlug: finalSlug,
+        description: description.trim() || undefined,
+        profileImageUrl: profileImageUrl || undefined,
+        mode,
+        selectedAuraIds,
+        featuredAuraId:
+          featuredAuraId && selectedAuraIds.includes(featuredAuraId)
+            ? featuredAuraId
+            : selectedAuraIds[0],
+        streamingLinks: streamingLinks.map((l, i) => ({ ...l, order: i })),
+        socialLinks: socialLinks.map((l, i) => ({ ...l, order: i })),
+        customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
+        theme: themeValue,
+        visibility: "public",
+        seoTitle: seoTitle.trim() || undefined,
+        seoDescription: seoDescription.trim() || undefined,
+        socialPreviewImage: socialPreviewImage || undefined,
+      };
+      if (isEdit) {
+        await updateAuraLink(id, profile.id, page);
+      } else {
+        await saveAuraLink(profile.id, page);
+      }
+      await refreshSaved();
+      toast.success(isEdit ? "AuraLink updated." : "AuraLink published.");
+      navigate({ to: "/l/$slug", params: { slug: finalSlug } });
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save AuraLink. Please try again.");
+    } finally {
+      setPublishing(false);
+    }
   };
 
-  const onDeleteSaved = (id: string, t: string) => {
+  const onDeleteSaved = async (id: string, t: string) => {
+    if (!profile?.id) return;
     if (!confirm(`Delete "${t || "Untitled AuraLink"}"?`)) return;
-    deleteAuraLink(id);
-    setSavedLinks(getAuraLinks());
-    if (editingId === id) resetForm();
-    toast.success("AuraLink deleted");
+    try {
+      await deleteAuraLink(id, profile.id);
+      await refreshSaved();
+      if (editingId === id) resetForm();
+      toast.success("AuraLink deleted");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not delete AuraLink. Please try again.");
+    }
   };
+
 
   const onCopySaved = async (s: string) => {
     try {
@@ -1262,10 +1316,10 @@ export function AuraLinkBuilder() {
               </button>
               <button
                 onClick={publish}
-                disabled={!canPublish}
+                disabled={!canPublish || publishing}
                 className="btn-primary ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Publish AuraLink
+                {publishing ? "Publishing AuraLink…" : editingId ? "Update AuraLink" : "Publish AuraLink"}
               </button>
             </div>
           </div>

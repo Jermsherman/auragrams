@@ -156,6 +156,68 @@ export async function deleteAura(id: string) {
   if (error) throw error;
 }
 
+export async function deleteAuraAudio(storagePath: string | null | undefined) {
+  if (!storagePath) return;
+  try {
+    await supabase.storage.from("auragram-audio").remove([storagePath]);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Translate a CloudAuraRow into the SavedAura shape used by Farm/AuraLink views. */
+export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura {
+  const visual = (row.visual_style ?? {}) as {
+    palette?: string;
+    seed?: number;
+    density?: string;
+    tempoBand?: string;
+    motionKeywords?: string[];
+  };
+  const extra = (row.extra ?? {}) as {
+    coverDataUrl?: string;
+    userColorInfluence?: import("./aura").UserColorInfluence;
+    colorGuided?: boolean;
+    influenceSettings?: import("./farm").SavedAura["influenceSettings"];
+  };
+  const anon = row.visibility_mode === "anonymous";
+  return {
+    id: row.id,
+    createdAt: new Date(row.created_at).getTime(),
+    trackTitle: row.track_title,
+    artistName: anon ? "" : (row.public_artist_name ?? ""),
+    artistHandle: anon ? "" : (row.public_handle ?? ""),
+    sourceType: (row.source_type as import("./farm").SourceType) ?? "upload",
+    platformName: row.platform_name ?? undefined,
+    platformUrl: row.platform_url ?? undefined,
+    embedUrl: row.embed_url ?? undefined,
+    moodTags: row.mood_tags ?? [],
+    auraName: row.aura_name ?? row.track_title,
+    auraDescription: row.aura_description ?? "",
+    energyLevel: Number(row.energy_level ?? 0.6),
+    palette: ((visual.palette ?? row.palette_name) as import("./aura").PaletteKey) ?? "amethyst",
+    seed: Number(visual.seed ?? 0),
+    coverDataUrl: extra.coverDataUrl,
+    musicalKey: row.detected_key ?? undefined,
+    tempoBand: visual.tempoBand,
+    density: visual.density,
+    paletteName: row.palette_name ?? undefined,
+    vibeDescription: row.vibe_description ?? undefined,
+    motionKeywords: visual.motionKeywords,
+    colors: (row.color_palette as import("./aura").AuraPalette | null) ?? undefined,
+    userColorInfluence: extra.userColorInfluence,
+    colorGuided: extra.colorGuided,
+    visibilityMode: row.visibility_mode,
+    influenceSettings: extra.influenceSettings,
+    audioStoragePath: row.audio_storage_path ?? undefined,
+    audioPublicUrl: row.audio_public_url ?? undefined,
+    audioFileName: row.audio_file_name ?? undefined,
+    audioMimeType: row.audio_mime_type ?? undefined,
+    audioSizeBytes: row.audio_size_bytes ?? undefined,
+    audioDurationSeconds: row.audio_duration_seconds ?? undefined,
+  };
+}
+
 export async function updateAuraVisibility(
   id: string,
   patch: { visibility_mode: VisibilityMode; artist_profile_id: string | null; public_artist_name: string | null; public_handle: string | null },
