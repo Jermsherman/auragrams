@@ -321,11 +321,15 @@ export function AuraLinkBuilder() {
       toast.error("Add a title and at least one link or Aura.");
       return;
     }
-    const finalSlug = ensureUniqueSlug(computedSlug);
-    const id = newAuraLinkId();
+    const isEdit = !!editingId;
+    const finalSlug = isEdit
+      ? computedSlug
+      : ensureUniqueSlug(computedSlug);
+    const id = isEdit ? editingId! : newAuraLinkId();
+    const existing = isEdit ? getAuraLink(id) : null;
     const page: AuraLinkPage = {
       id,
-      createdAt: Date.now(),
+      createdAt: existing?.createdAt ?? Date.now(),
       updatedAt: Date.now(),
       title: title.trim(),
       artistName: artistName.trim(),
@@ -345,7 +349,11 @@ export function AuraLinkBuilder() {
       visibility: "public",
     };
     try {
-      saveAuraLink(page);
+      if (isEdit) {
+        updateAuraLink(id, page);
+      } else {
+        saveAuraLink(page);
+      }
     } catch (e) {
       console.error(e);
       toast.error(
@@ -353,8 +361,26 @@ export function AuraLinkBuilder() {
       );
       return;
     }
-    toast.success("AuraLink published.");
+    setSavedLinks(getAuraLinks());
+    toast.success(isEdit ? "AuraLink updated." : "AuraLink published.");
     navigate({ to: "/l/$slug", params: { slug: finalSlug } });
+  };
+
+  const onDeleteSaved = (id: string, t: string) => {
+    if (!confirm(`Delete "${t || "Untitled AuraLink"}"?`)) return;
+    deleteAuraLink(id);
+    setSavedLinks(getAuraLinks());
+    if (editingId === id) resetForm();
+    toast.success("AuraLink deleted");
+  };
+
+  const onCopySaved = async (s: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/l/${s}`);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy");
+    }
   };
 
   return (
