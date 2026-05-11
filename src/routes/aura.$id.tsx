@@ -306,24 +306,29 @@ function AuraPage() {
 
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {saved ? (
-            <button
-              onClick={() => toast.message("Already in your Farm")}
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
-            >
-              <BookmarkCheck className="h-4 w-4" /> Saved in Farm
-            </button>
-          ) : (
-            <button
-              onClick={handleSave}
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
-            >
-              <Bookmark className="h-4 w-4" /> Save to Farm
-            </button>
-          )}
+          {isOwner ? (
+            saved ? (
+              <button
+                onClick={() => toast.message("Already in your Farm")}
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
+              >
+                <BookmarkCheck className="h-4 w-4" /> Saved in Farm
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                <Bookmark className="h-4 w-4" /> Save to Farm
+              </button>
+            )
+          ) : null}
           <button
             onClick={() => setShareOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+            className={
+              (isOwner ? "" : "col-span-2 sm:col-span-2 ") +
+              "inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+            }
           >
             <Share2 className="h-4 w-4" /> Share AuraLink
           </button>
@@ -335,7 +340,8 @@ function AuraPage() {
           </button>
         </div>
 
-        {/* Secondary actions */}
+        {/* Secondary actions — owner only */}
+        {isOwner && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <button
             onClick={() => setInfluenceOpen(true)}
