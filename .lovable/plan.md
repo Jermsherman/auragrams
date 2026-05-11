@@ -1,53 +1,57 @@
-# Fixes: AuraLink Builder, Influence Modal, Remove Volume
+## Goal
 
-## 1. Fix AuraLink Builder (Linktree parity)
+The full AuraLink builder already exists at `/auralink/create` (modes, identity, streaming/social/custom links, Aura selection, featured Aura, theme presets + custom colors, live preview, publish). The problem is that `/auralink` currently shows a *library*, so the "Linktree aspect" feels missing. We'll consolidate so `/auralink` *is* the builder again (matching the older working build), keep the library visible alongside it, polish the featured-Aura UI, and make Farm tiles inside the builder showcase each Aura's unique color palette.
 
-The builder (`src/routes/auralink.create.tsx`) and live preview are out of sync with the new `AuraLinkView` data shape:
+No existing builder feature is removed. All current routes/components stay functional.
 
-- Builder saves links into the legacy `links` array and writes empty `streamingLinks`/`customLinks`/`socialLinks`. The public page works only because of read-time migration, but the **live preview is empty** and **social links are missing entirely**.
-- No social links section, no featured-aura selection, and the layout feels like an afterthought next to the "aura" side.
+---
 
-**Changes (`src/routes/auralink.create.tsx`):**
-- Replace single `links` state with three states: `streamingLinks`, `customLinks`, `socialLinks` (typed to match `AuraLinkPage`).
-- Add a **Social Links** section (Instagram, TikTok, YouTube, X, Threads, etc.) using `SOCIAL_PLATFORMS` from `@/lib/auralink`.
-- Section ordering for stronger Linktree feel: Mode → Identity → **Streaming** → **Social** → **Custom** → Auras → Theme.
-- Add **Featured Aura** picker (sets `featuredAuraId`) when ≥1 Aura is selected.
-- `previewPage` and `publish()` write the three split arrays directly (drop legacy `links`).
-- Update `canPublish` to count all three arrays.
+## 1. Route consolidation
 
-**Changes (`src/components/AuraLinkView.tsx`):**
-- Render social links as a compact icon row (small pill buttons) above streaming buttons, matching Linktree-style hierarchy.
-- Keep the existing playable Aura mini-player intact.
+- Make `/auralink` render the builder UI (move `BuilderPage` from `auralink.create.tsx` into `auralink.tsx`).
+- Keep `/auralink/create` as a thin route that re-exports the same component (back-compat for any inbound link / `Nav.tsx`).
+- Move the existing library list to a new section *inside* the builder page (top strip: "Your AuraLinks" — chips for each saved page with edit / open / delete, plus a "+ New" reset action). No separate `/auralink/library` route needed; this restores the single-page builder feel from the older build.
+- Update `Nav.tsx` so the "AuraLink" tab → `/auralink` (already does) and `RootComponent`/redirects unchanged.
 
-## 2. Influence Aura → Modal
+## 2. Edit existing AuraLink
 
-Convert `Influence Aura` from a full route into an in-place dialog that opens from the Aura page's "Influence Aura" button (and from the just-generated state).
+- Builder accepts `?id=<auraLinkId>` search param. On mount, if present, hydrate all form state from `getAuraLink(id)` (title, artist, slug, description, image, mode, links, selectedAuraIds, featuredAuraId, theme/customTheme).
+- `publish()` becomes "save": if editing, call `updateAuraLink(id, …)`; otherwise create new via `saveAuraLink`. Toast copy switches between "Published" / "Updated".
+- Add a "New AuraLink" button that resets state + clears the `id` query param.
 
-**Changes:**
-- New `src/components/InfluenceAuraDialog.tsx` — wraps the existing controls (MoodPicker, ColorInfluence, Vibe Note, IdentitySelector, live preview) inside a `Dialog` from `@/components/ui/dialog`. Same save logic as the current route page (writes track, saves to Farm/cloud).
-- `src/routes/aura.$id.tsx`: replace the `<Link to="/aura/$id/influence">` button with a button that opens `InfluenceAuraDialog`. Remove that link instance.
-- `src/routes/generating.tsx` (or wherever the post-generate CTA lives): if it links to `/aura/$id/influence`, swap to opening the dialog on the Aura page (or pass a `?influence=1` query that auto-opens the dialog on mount).
-- Keep `src/routes/aura.$id.influence.tsx` as a thin redirect to `/aura/$id?influence=1` so any existing share links still work. (No breaking deletes.)
+## 3. Featured-Aura UI polish
 
-## 3. Remove Volume Controls
+Inside the builder Auras section (order list):
+- Replace the plain "Feature / Featured" pill with a card-style row: small Aurascope thumbnail on the left, track + Aura name, and a star-icon toggle on the right. When featured, the whole row gets a soft aura-gradient ring and the star fills with the gradient.
+- Add a clear "Featured" header chip above the order list ("⭐ This Aura plays on your AuraLink hero").
 
-Strip every volume UI from playback components.
+In `AuraLinkView` (already renders featured as hero):
+- When `featuredAuraId` resolves, add a subtle glow ring tinted by that Aura's palette around the hero Aurascope and a tiny "Featured" caption underneath the title.
 
-**Changes (`src/components/AudioUploadPlayer.tsx`):**
-- Remove `Volume2`, `VolumeX`, `Volume1` imports, `VOLUME_KEY` constant, `volume`/`muted` state, the persistence effect, `onVolumeChange`, `VolIcon`, and the entire "Volume row" JSX block.
-- Leave the underlying `<audio>` element's default volume (1.0) — no `a.volume = ...` assignment.
-- Internal `metricsRef.current.volume` (audio analyser RMS) **stays** — it drives Aurascope reactivity and is not user-facing volume.
+## 4. Farm tiles showcase Aura colors
 
-No volume controls exist elsewhere; `AuraLinkAuraCard` and `OrbVisual` already have none.
+In the builder's selectable Aura grid (currently flat dark tiles):
+- Tint each tile's background using `getPersonality(aura.palette).atmosphere` (same approach as `AuraFarmCard.tsx`), with a soft radial gradient from the top.
+- Add a thin colored bar / dot row showing the Aura's top 3 colors (`aura.colors`) to make each tile visually unique even before the orb renders.
+- Selected state: bump ring color to the Aura's primary color instead of a generic foreground tint.
 
-## Files
+## 5. Preserve everything else
 
-**Edited:**
-- `src/routes/auralink.create.tsx`
-- `src/components/AuraLinkView.tsx`
-- `src/routes/aura.$id.tsx`
-- `src/routes/aura.$id.influence.tsx` (becomes a redirect)
-- `src/components/AudioUploadPlayer.tsx`
+- Streaming/social/custom links logic, theme picker (Midnight Glass, Sunset Pulse, Ocean Glow, Velvet Neon, Aurora Drift, Ember Smoke, Emerald Hour, Rose Quartz, Onyx Bloom, Minimal Dark) + Custom color theme — untouched.
+- `AuraLinkAuraCard` mini-player (play/pause + progress, Aurascope reacts, no volume control) — untouched.
+- `AuraLinkView` public renderer at `/l/$slug` — untouched aside from the small featured-glow polish in §3.
+- Aura Farm, creation flow, Influence dialog, Aurascope, audio playback — untouched.
 
-**New:**
-- `src/components/InfluenceAuraDialog.tsx`
+---
+
+## Technical notes
+
+**Files edited**
+- `src/routes/auralink.tsx` — becomes the builder. Includes a top "Your AuraLinks" strip (reuses `getAuraLinks`, `deleteAuraLink`, `resolveTheme`) and hydrates from `?id=` for editing.
+- `src/routes/auralink.create.tsx` — slimmed to `export { Route }` style wrapper that mounts the same `BuilderPage` component (moved into a shared file, e.g. `src/components/AuraLinkBuilder.tsx`).
+- `src/components/AuraLinkBuilder.tsx` *(new)* — extracted builder so both routes use it.
+- `src/components/AuraLinkView.tsx` — small featured-Aura glow polish only.
+
+**No data-model changes**: `AuraLinkPage`, `THEME_LIST`, `PRESET_THEMES`, `DEFAULT_CUSTOM_THEME`, `migratePage` all stay as-is. `localStorage` key `auragram_auralinks` unchanged, so existing user data keeps working.
+
+**No backend changes**: pages still persist to `localStorage` via `saveAuraLink` / `updateAuraLink` / `deleteAuraLink`.
