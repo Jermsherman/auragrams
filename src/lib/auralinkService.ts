@@ -173,7 +173,7 @@ export async function updateAuraLink(
 
   const { data, error } = await supabase
     .from("auralinks")
-    .update(rp)
+    .update(rp as never)
     .eq("id", id)
     .eq("user_id", profileId)
     .select("*")
