@@ -30,14 +30,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Auragram" },
+      { name: "description", content: "A link sharing app for artists that brings your music to life" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Auragram" },
+      { property: "og:description", content: "A link sharing app for artists that brings your music to life" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Auragram" },
+      { name: "twitter:description", content: "A link sharing app for artists that brings your music to life" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3abea1ca-f15b-4023-89f1-26c5d8cb5781/id-preview-f234f117--986a65e0-86f3-4930-ae58-fc5efbc0fe45.lovable.app-1778468463397.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3abea1ca-f15b-4023-89f1-26c5d8cb5781/id-preview-f234f117--986a65e0-86f3-4930-ae58-fc5efbc0fe45.lovable.app-1778468463397.png" },
     ],
     links: [
       {
