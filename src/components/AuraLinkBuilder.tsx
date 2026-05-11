@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -10,13 +10,18 @@ import {
   EyeOff,
   Check,
   Sparkles,
+  Star,
+  ExternalLink,
+  Copy,
+  FilePlus,
+  Pencil,
 } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
-import { RequireAuth } from "@/components/RequireAuth";
 import { AuraLinkView } from "@/components/AuraLinkView";
 import { Aurascope } from "@/components/Aurascope";
 import { useAuth } from "@/hooks/useAuth";
+import { getPersonality } from "@/lib/aura";
 import {
   PLATFORMS,
   SOCIAL_PLATFORMS,
@@ -25,6 +30,11 @@ import {
   ensureUniqueSlug,
   newAuraLinkId,
   saveAuraLink,
+  updateAuraLink,
+  deleteAuraLink,
+  getAuraLink,
+  getAuraLinks,
+  resolveTheme,
   slugify,
   type AuraLinkCustomLink,
   type AuraLinkMode,
@@ -37,42 +47,22 @@ import {
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 
-export const Route = createFileRoute("/auralink/create")({
-  head: () => ({
-    meta: [
-      { title: "Build AuraLink — Auragram" },
-      {
-        name: "description",
-        content:
-          "Create a music-first link page with streaming links, Auras, or both.",
-      },
-      { property: "og:title", content: "Build AuraLink — Auragram" },
-      {
-        property: "og:description",
-        content:
-          "Create a music-first link page with streaming links, Auras, or both.",
-      },
-    ],
-  }),
-  component: () => (
-    <RequireAuth>
-      <BuilderPage />
-    </RequireAuth>
-  ),
-});
-
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function BuilderPage() {
+export function AuraLinkBuilder() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [auras, setAuras] = useState<SavedAura[]>([]);
+  const [savedLinks, setSavedLinks] = useState<AuraLinkPage[]>([]);
   useEffect(() => {
     setAuras(getSavedAuras());
+    setSavedLinks(getAuraLinks());
   }, []);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form state
   const [mode, setMode] = useState<AuraLinkMode>("mixed");
