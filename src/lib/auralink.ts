@@ -94,6 +94,11 @@ export type AuraLinkPage = {
 
   visibility: "public" | "unlisted";
   publicUrl?: string;
+
+  // SEO & social sharing (optional — fall back to derived defaults).
+  seoTitle?: string;
+  seoDescription?: string;
+  socialPreviewImage?: string;
 };
 
 const KEY = "auragram_auralinks";
