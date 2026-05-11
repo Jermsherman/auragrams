@@ -1202,6 +1202,56 @@ export function AuraLinkBuilder() {
             </Section>
 
 
+            {/* SEO & sharing */}
+            <Section title="SEO & sharing">
+              <p className="text-xs text-muted-foreground mb-3">
+                How your AuraLink appears in search results, social previews, and link unfurls.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="SEO title" className="sm:col-span-2">
+                  <input
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    placeholder={`${(artistName || title || "Artist Name")} | AuraLink`}
+                    className="input-base"
+                  />
+                </Field>
+                <Field label="SEO description" className="sm:col-span-2">
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    placeholder={`Listen to ${artistName || title || "[Artist Name]"}, explore Auras, and find all official music links.`}
+                    rows={2}
+                    className="input-base min-h-[64px] py-2"
+                  />
+                </Field>
+                <Field label="Social preview image (optional)" className="sm:col-span-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => onSocialImage(e.target.files?.[0] ?? null)}
+                    className="block text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs"
+                  />
+                  {uploadingSocial && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploading…
+                    </div>
+                  )}
+                  {!uploadingSocial && socialPreviewImage && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img src={socialPreviewImage} alt="Social preview" className="h-12 w-12 rounded-md object-cover ring-1 ring-foreground/15" />
+                      <button
+                        onClick={() => setSocialPreviewImage("")}
+                        className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </Field>
+              </div>
+            </Section>
+
             {/* Footer actions */}
             <div className="sticky bottom-3 mt-10 flex flex-wrap gap-2 z-20">
               <button
