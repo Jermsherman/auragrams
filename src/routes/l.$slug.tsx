@@ -6,21 +6,60 @@ import { AuraLinkView } from "@/components/AuraLinkView";
 import { getAuraLinkBySlug, type AuraLinkPage } from "@/lib/auralink";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 
+type LoaderData = {
+  seoTitle: string;
+  seoDescription: string;
+  ogImage?: string;
+};
+
 export const Route = createFileRoute("/l/$slug")({
-  head: () => ({
-    meta: [
-      { title: "AuraLink — Auragram" },
-      {
-        name: "description",
-        content: "A music-first link page built on Auragram.",
-      },
-      { property: "og:title", content: "AuraLink — Auragram" },
-      {
-        property: "og:description",
-        content: "A music-first link page built on Auragram.",
-      },
-    ],
-  }),
+  // AuraLink data lives in localStorage, so on SSR/prerender we can't read
+  // the real page. Fall back to generic copy in that environment and let the
+  // client component re-render the real page after hydration.
+  loader: ({ params }): LoaderData => {
+    if (typeof window === "undefined") {
+      return {
+        seoTitle: "AuraLink — Auragram",
+        seoDescription:
+          "A music-first link page built on Auragram.",
+      };
+    }
+    const page = getAuraLinkBySlug(params.slug);
+    if (!page) {
+      return {
+        seoTitle: "AuraLink — Auragram",
+        seoDescription: "A music-first link page built on Auragram.",
+      };
+    }
+    const artist = page.artistName || page.title || "Artist";
+    return {
+      seoTitle: page.seoTitle || `${artist} | AuraLink`,
+      seoDescription:
+        page.seoDescription ||
+        `Listen to ${artist}, explore Auras, and find all official music links.`,
+      ogImage: page.socialPreviewImage || page.profileImageUrl,
+    };
+  },
+  head: ({ loaderData }) => {
+    const d = loaderData as LoaderData | undefined;
+    const title = d?.seoTitle ?? "AuraLink — Auragram";
+    const description = d?.seoDescription ?? "A music-first link page built on Auragram.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "profile" },
+      { name: "twitter:card", content: d?.ogImage ? "summary_large_image" : "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ];
+    if (d?.ogImage) {
+      meta.push({ property: "og:image", content: d.ogImage });
+      meta.push({ name: "twitter:image", content: d.ogImage });
+    }
+    return { meta };
+  },
   component: PublicAuraLink,
 });
 
