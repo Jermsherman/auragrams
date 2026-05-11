@@ -87,6 +87,12 @@ export function AuraLinkBuilder() {
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
   const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
+  // SEO & sharing
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [socialPreviewImage, setSocialPreviewImage] = useState<string>("");
+  const [uploadingSocial, setUploadingSocial] = useState(false);
+
   const [showPreview, setShowPreview] = useState(false);
 
   // Reset form to a blank slate (used by "New AuraLink").
@@ -105,6 +111,9 @@ export function AuraLinkBuilder() {
     setCustomLinks([]);
     setSelectedAuraIds([]);
     setFeaturedAuraId(undefined);
+    setSeoTitle("");
+    setSeoDescription("");
+    setSocialPreviewImage("");
   }, [profile]);
 
   // Load an existing AuraLink into the form for editing.
@@ -134,6 +143,9 @@ export function AuraLinkBuilder() {
     setCustomLinks(p.customLinks ?? []);
     setSelectedAuraIds(p.selectedAuraIds ?? []);
     setFeaturedAuraId(p.featuredAuraId);
+    setSeoTitle(p.seoTitle ?? "");
+    setSeoDescription(p.seoDescription ?? "");
+    setSocialPreviewImage(p.socialPreviewImage ?? "");
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -171,6 +183,9 @@ export function AuraLinkBuilder() {
       customLinks,
       theme: themeValue,
       visibility: "public",
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      socialPreviewImage: socialPreviewImage || undefined,
     }),
     [
       title,
@@ -186,6 +201,9 @@ export function AuraLinkBuilder() {
       customLinks,
       theme,
       customTheme,
+      seoTitle,
+      seoDescription,
+      socialPreviewImage,
     ],
   );
 
@@ -300,6 +318,23 @@ export function AuraLinkBuilder() {
     }
   };
 
+  const onSocialImage = async (file: File | null) => {
+    if (!file) return;
+    setUploadingSocial(true);
+    try {
+      const { uploadAuraLinkCover } = await import("@/lib/auralinkImages");
+      const url = await uploadAuraLinkCover(file);
+      setSocialPreviewImage(url);
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "Could not upload preview image.",
+      );
+    } finally {
+      setUploadingSocial(false);
+    }
+  };
+
   const totalLinks = streamingLinks.length + socialLinks.length + customLinks.length;
 
   // Validation
@@ -347,6 +382,9 @@ export function AuraLinkBuilder() {
       customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
       theme: themeValue,
       visibility: "public",
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      socialPreviewImage: socialPreviewImage || undefined,
     };
     try {
       if (isEdit) {
@@ -398,7 +436,7 @@ export function AuraLinkBuilder() {
           <p className="mt-2 text-sm sm:text-base text-muted-foreground px-4">
             {editingId
               ? "Update your link page — changes save when you publish."
-              : "Create a music-first link page with streaming links, Auras, or both."}
+              : "Create a music-first link page with streaming links, social links, and Auras from your Farm."}
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <HelpLink hash="auralinks" label="What is an AuraLink?" />
@@ -1163,6 +1201,56 @@ export function AuraLinkBuilder() {
               )}
             </Section>
 
+
+            {/* SEO & sharing */}
+            <Section title="SEO & sharing">
+              <p className="text-xs text-muted-foreground mb-3">
+                How your AuraLink appears in search results, social previews, and link unfurls.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="SEO title" className="sm:col-span-2">
+                  <input
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    placeholder={`${(artistName || title || "Artist Name")} | AuraLink`}
+                    className="input-base"
+                  />
+                </Field>
+                <Field label="SEO description" className="sm:col-span-2">
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    placeholder={`Listen to ${artistName || title || "[Artist Name]"}, explore Auras, and find all official music links.`}
+                    rows={2}
+                    className="input-base min-h-[64px] py-2"
+                  />
+                </Field>
+                <Field label="Social preview image (optional)" className="sm:col-span-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => onSocialImage(e.target.files?.[0] ?? null)}
+                    className="block text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs"
+                  />
+                  {uploadingSocial && (
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                      Uploading…
+                    </div>
+                  )}
+                  {!uploadingSocial && socialPreviewImage && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img src={socialPreviewImage} alt="Social preview" className="h-12 w-12 rounded-md object-cover ring-1 ring-foreground/15" />
+                      <button
+                        onClick={() => setSocialPreviewImage("")}
+                        className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </Field>
+              </div>
+            </Section>
 
             {/* Footer actions */}
             <div className="sticky bottom-3 mt-10 flex flex-wrap gap-2 z-20">

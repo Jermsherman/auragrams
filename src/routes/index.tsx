@@ -59,7 +59,7 @@ function Index() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              Turn tracks into living Auras, save them to your Farm, and build AuraLinks that make your music instantly shareable.
+              Turn songs into living Auras, save them to your Farm, and build an AuraLink that brings your music, visuals, and socials into one shareable page.
             </p>
 
             <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
@@ -121,7 +121,7 @@ function Index() {
                 AuraLink is your <span className="text-aura-gradient">music-first link page.</span>
               </h2>
               <p className="mt-3 text-muted-foreground max-w-xl">
-                Group your streaming links, Auras, and releases into one living page built for bios, stories, DMs, and rollouts.
+                Add streaming links, social profiles, and playable Auras from your Farm into one page built for bios, stories, DMs, and rollouts.
               </p>
               <ul className="mt-6 grid sm:grid-cols-2 gap-2.5 text-sm text-foreground/85 max-w-xl">
                 <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and more.</li>
