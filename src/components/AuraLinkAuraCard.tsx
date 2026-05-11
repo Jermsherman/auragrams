@@ -126,8 +126,11 @@ export function AuraLinkAuraCard({
       className={containerCls}
       style={{ background: themeButtonBg, boxShadow: themeGlow, color: themeAccent }}
     >
-      {hasAudio && (
+      {aura.audioPublicUrl && !audioError && (
         <audio ref={audioRef} src={aura.audioPublicUrl} preload="metadata" crossOrigin="anonymous" />
+      )}
+      {audioError && (
+        <div className="text-[10px] uppercase tracking-[0.24em] opacity-60">Audio unavailable</div>
       )}
 
       {isHero ? (
