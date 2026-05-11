@@ -158,8 +158,8 @@ export function AuraLinkBuilder() {
   }, [profile]);
 
   // Load an existing AuraLink into the form for editing.
-  const loadForEdit = useCallback((id: string) => {
-    const p = getAuraLink(id);
+  const loadForEdit = useCallback(async (id: string) => {
+    const p = await getAuraLinkById(id);
     if (!p) {
       toast.error("AuraLink not found.");
       return;
