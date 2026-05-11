@@ -218,8 +218,8 @@ function AuraPage() {
         <Link to="/" className="hover:opacity-80 transition-opacity">
           <Logo />
         </Link>
-        <div className="flex items-center gap-2">
-          {saved ? (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {isOwner && (saved ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -232,9 +232,9 @@ function AuraPage() {
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this Aura from your Farm?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete this Aura?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This only removes it from your local collection.
+                    This removes the Aura from your Farm and your cloud library.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -251,8 +251,8 @@ function AuraPage() {
               <Bookmark className="h-4 w-4" />
               <span className="hidden sm:inline">Save to Farm</span>
             </button>
-          )}
-          {saved && (
+          ))}
+          {isOwner && saved && (
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full glass px-3 h-10 text-xs text-foreground/80">
               <BookmarkCheck className="h-3.5 w-3.5" /> Saved
             </span>
