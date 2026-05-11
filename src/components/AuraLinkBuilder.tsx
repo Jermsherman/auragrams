@@ -27,13 +27,6 @@ import {
   SOCIAL_PLATFORMS,
   THEME_LIST,
   DEFAULT_CUSTOM_THEME,
-  ensureUniqueSlug,
-  newAuraLinkId,
-  saveAuraLink,
-  updateAuraLink,
-  deleteAuraLink,
-  getAuraLink,
-  getAuraLinks,
   resolveTheme,
   slugify,
   type AuraLinkCustomLink,
@@ -44,8 +37,29 @@ import {
   type AuraLinkTheme,
   type AuraLinkThemePreset,
 } from "@/lib/auralink";
-import { getSavedAuras, type SavedAura } from "@/lib/farm";
+import {
+  listMyAuraLinks,
+  getAuraLinkById,
+  saveAuraLink,
+  updateAuraLink,
+  deleteAuraLink,
+  ensureUniqueSlug,
+} from "@/lib/auralinkService";
+import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
+
+function newAuraLinkId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return (crypto as Crypto).randomUUID();
+  }
+  // Fallback (RFC4122-ish) — only used if crypto.randomUUID isn't available.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
