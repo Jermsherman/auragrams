@@ -118,6 +118,78 @@ export type Database = {
           },
         ]
       }
+      auralinks: {
+        Row: {
+          artist_name: string
+          artist_profile_id: string | null
+          created_at: string
+          custom_links: Json
+          description: string | null
+          featured_aura_id: string | null
+          id: string
+          mode: string
+          profile_image_url: string | null
+          selected_aura_ids: Json
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          social_links: Json
+          social_preview_image: string | null
+          streaming_links: Json
+          theme: Json
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          artist_name?: string
+          artist_profile_id?: string | null
+          created_at?: string
+          custom_links?: Json
+          description?: string | null
+          featured_aura_id?: string | null
+          id?: string
+          mode?: string
+          profile_image_url?: string | null
+          selected_aura_ids?: Json
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          social_links?: Json
+          social_preview_image?: string | null
+          streaming_links?: Json
+          theme?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          artist_name?: string
+          artist_profile_id?: string | null
+          created_at?: string
+          custom_links?: Json
+          description?: string | null
+          featured_aura_id?: string | null
+          id?: string
+          mode?: string
+          profile_image_url?: string | null
+          selected_aura_ids?: Json
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          social_links?: Json
+          social_preview_image?: string | null
+          streaming_links?: Json
+          theme?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       auras: {
         Row: {
           artist_profile_id: string | null
