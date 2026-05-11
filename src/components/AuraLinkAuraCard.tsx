@@ -41,8 +41,9 @@ export function AuraLinkAuraCard({
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
+  const [audioError, setAudioError] = useState(false);
 
-  const hasAudio = !!aura.audioPublicUrl;
+  const hasAudio = !!aura.audioPublicUrl && !audioError;
   const isHero = variant === "hero";
 
   // Pause if another card starts playing.
@@ -69,17 +70,23 @@ export function AuraLinkAuraCard({
       setPlaying(false);
       onPlayingChange(null);
     };
+    const onError = () => {
+      setAudioError(true);
+      setPlaying(false);
+    };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onMeta);
     a.addEventListener("play", onPlay);
     a.addEventListener("pause", onPause);
     a.addEventListener("ended", onEnded);
+    a.addEventListener("error", onError);
     return () => {
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("loadedmetadata", onMeta);
       a.removeEventListener("play", onPlay);
       a.removeEventListener("pause", onPause);
       a.removeEventListener("ended", onEnded);
+      a.removeEventListener("error", onError);
     };
   }, [aura.id, aura.audioDurationSeconds, onPlayingChange]);
 
