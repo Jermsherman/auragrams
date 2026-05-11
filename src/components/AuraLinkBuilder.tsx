@@ -392,15 +392,154 @@ export function AuraLinkBuilder() {
             <Sparkles className="h-3 w-3" /> AuraLink
           </div>
           <h1 className="mt-3 font-display text-3xl sm:text-5xl tracking-tight">
-            Build <span className="text-aura-gradient">AuraLink.</span>
+            {editingId ? "Edit" : "Build"}{" "}
+            <span className="text-aura-gradient">AuraLink.</span>
           </h1>
           <p className="mt-2 text-sm sm:text-base text-muted-foreground px-4">
-            Create a music-first link page with streaming links, Auras, or both.
+            {editingId
+              ? "Update your link page — changes save when you publish."
+              : "Create a music-first link page with streaming links, Auras, or both."}
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center gap-2">
             <HelpLink hash="auralinks" label="What is an AuraLink?" />
+            {editingId && (
+              <button
+                onClick={resetForm}
+                className="inline-flex items-center gap-1.5 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <FilePlus className="h-3 w-3" /> New AuraLink
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Library strip — your saved AuraLinks */}
+        {savedLinks.length > 0 && (
+          <section className="mt-8">
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                  Your AuraLinks
+                </div>
+                <div className="font-display text-base">
+                  {savedLinks.length} saved
+                </div>
+              </div>
+              {editingId && (
+                <button
+                  onClick={resetForm}
+                  className="btn-ghost"
+                >
+                  <FilePlus className="h-3.5 w-3.5" /> New
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+              {savedLinks.map((p) => {
+                const t = resolveTheme(p.theme);
+                const isActive = editingId === p.id;
+                const featured =
+                  auras.find(
+                    (a) => a.id === (p.featuredAuraId ?? p.selectedAuraIds[0]),
+                  );
+                return (
+                  <div
+                    key={p.id}
+                    className={
+                      "group relative shrink-0 snap-start rounded-2xl border p-3 w-[220px] transition-all " +
+                      (isActive
+                        ? "border-foreground/40 ring-2 ring-foreground/30"
+                        : "border-border/60 hover:border-foreground/20")
+                    }
+                    style={{ background: t.bg }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="h-10 w-10 rounded-xl overflow-hidden grid place-items-center shrink-0"
+                        style={{ boxShadow: t.glow }}
+                      >
+                        {p.profileImageUrl ? (
+                          <img
+                            src={p.profileImageUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : featured ? (
+                          <Aurascope
+                            aura={{
+                              id: featured.id,
+                              palette: featured.palette,
+                              seed: featured.seed,
+                              auraName: featured.auraName,
+                              colors: featured.colors,
+                            }}
+                            size="mini"
+                            mode="minimal"
+                            showLabel={false}
+                          />
+                        ) : (
+                          <Sparkles
+                            className="h-4 w-4"
+                            style={{ color: t.accent }}
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 text-left">
+                        <div
+                          className="text-sm font-medium truncate"
+                          style={{ color: t.accent }}
+                        >
+                          {p.title || "Untitled"}
+                        </div>
+                        <div
+                          className="text-[10px] uppercase tracking-[0.2em] truncate opacity-70"
+                          style={{ color: t.accent }}
+                        >
+                          /l/{p.handleSlug}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-1">
+                      <button
+                        onClick={() => loadForEdit(p.id)}
+                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-full h-7 text-[10px] uppercase tracking-[0.22em] border border-foreground/20 hover:bg-foreground/10 transition-colors"
+                        style={{ color: t.accent }}
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </button>
+                      <button
+                        onClick={() => onCopySaved(p.handleSlug)}
+                        aria-label="Copy link"
+                        className="grid place-items-center h-7 w-7 rounded-full hover:bg-foreground/10"
+                        style={{ color: t.accent }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                      <a
+                        href={`/l/${p.handleSlug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Open"
+                        className="grid place-items-center h-7 w-7 rounded-full hover:bg-foreground/10"
+                        style={{ color: t.accent }}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <button
+                        onClick={() => onDeleteSaved(p.id, p.title)}
+                        aria-label="Delete"
+                        className="grid place-items-center h-7 w-7 rounded-full hover:bg-destructive/20 opacity-70 hover:opacity-100"
+                        style={{ color: t.accent }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Mobile preview toggle */}
         <div className="lg:hidden mt-8 flex justify-end">
