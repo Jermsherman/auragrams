@@ -143,6 +143,9 @@ export function AuraLinkBuilder() {
     setCustomLinks(p.customLinks ?? []);
     setSelectedAuraIds(p.selectedAuraIds ?? []);
     setFeaturedAuraId(p.featuredAuraId);
+    setSeoTitle(p.seoTitle ?? "");
+    setSeoDescription(p.seoDescription ?? "");
+    setSocialPreviewImage(p.socialPreviewImage ?? "");
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
