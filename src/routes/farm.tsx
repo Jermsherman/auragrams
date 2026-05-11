@@ -10,6 +10,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { getSavedAuracles, type Auracle } from "@/lib/auracle";
 import { HelpLink } from "@/components/HelpLink";
+import { useAuth } from "@/hooks/useAuth";
+import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
 
 export const Route = createFileRoute("/farm")({
   head: () => ({
@@ -32,14 +34,36 @@ export const Route = createFileRoute("/farm")({
 type Filter = "all" | "upload" | "platform_link" | "raw_recording";
 
 function FarmPage() {
+  const { profile } = useAuth();
   const [auras, setAuras] = useState<SavedAura[] | null>(null);
   const [auracles, setAuracles] = useState<Auracle[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
+    // Hydrate immediately from local cache to avoid empty flicker.
     setAuras(getSavedAuras());
     setAuracles(getSavedAuracles());
-  }, []);
+
+    if (!profile?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listMyAuras(profile.id);
+        if (cancelled) return;
+        const merged = new Map<string, SavedAura>();
+        for (const a of getSavedAuras()) merged.set(a.id, a);
+        for (const r of rows) merged.set(r.id, mapAuraRowToSaved(r));
+        setAuras(
+          Array.from(merged.values()).sort((a, b) => b.createdAt - a.createdAt),
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
 
   const removedAura = (id: string) =>
     setAuras((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
