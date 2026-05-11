@@ -377,6 +377,7 @@ function AuraPage() {
             </button>
           )}
         </div>
+        )}
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
         <AddToAuracleDialog
