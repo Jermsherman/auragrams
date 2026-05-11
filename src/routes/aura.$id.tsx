@@ -65,7 +65,9 @@ export const Route = createFileRoute("/aura/$id")({
 function AuraPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
+  const { profile } = useAuth();
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
+  const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -81,7 +83,7 @@ function AuraPage() {
   useEffect(() => {
     let cancelled = false;
     const t = getTrack(id);
-    setTrack(t);
+    setTrack(t ?? undefined);
     setSaved(isAuraSaved(id));
 
     // Priority: local public URL → session blob (just uploaded) → legacy data URL
@@ -98,17 +100,20 @@ function AuraPage() {
       }
     }
 
-    // Cloud fallback: hydrate audioPublicUrl (and basic track shell) from the
-    // server when the local cache doesn't have it (e.g. another device, or
-    // local cache cleared).
+    // Always attempt cloud hydration to learn ownership and fill missing fields.
     (async () => {
-      if (t?.audioPublicUrl) return;
       try {
         const row = await getPublicAura(id);
-        if (cancelled || !row?.audio_public_url) return;
-        setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        if (cancelled) return;
+        if (!row) {
+          if (!t) setTrack(null);
+          return;
+        }
+        setOwnerUserId(row.user_id);
+        if (row.audio_public_url) {
+          setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        }
         if (!t) {
-          // Build a minimal Track shell from the cloud row so the page renders.
           const shell = {
             id: row.id,
             title: row.track_title,
@@ -117,19 +122,29 @@ function AuraPage() {
             seed: 0,
             createdAt: new Date(row.created_at).getTime(),
             moods: row.mood_tags ?? [],
-            palette: (row.palette_name as Track["palette"]) ?? "amethyst",
+            palette: ((row.palette_name as Track["palette"]) ?? "amethyst"),
             auraName: row.aura_name ?? row.track_title,
             energy: Number(row.energy_level ?? 0.6),
             description: row.aura_description ?? "",
             hasLocalAudio: !!row.audio_storage_path,
             audioPublicUrl: row.audio_public_url ?? undefined,
             audioStoragePath: row.audio_storage_path ?? undefined,
+            audioFileName: row.audio_file_name ?? undefined,
+            audioMimeType: row.audio_mime_type ?? undefined,
+            audioSizeBytes: row.audio_size_bytes ?? undefined,
+            audioDurationSeconds: row.audio_duration_seconds ?? undefined,
             sourceType: (row.source_type as Track["sourceType"]) ?? "upload",
+            platformUrl: row.platform_url ?? undefined,
+            embedUrl: row.embed_url ?? undefined,
+            colors: (row.color_palette as Track["colors"]) ?? undefined,
+            paletteName: row.palette_name ?? undefined,
+            vibeDescription: row.vibe_description ?? undefined,
+            visibilityMode: row.visibility_mode,
           } as Track;
           setTrack(shell);
         }
       } catch {
-        /* ignore — local-only mode still works */
+        if (!t && !cancelled) setTrack(null);
       }
     })();
 
@@ -151,6 +166,7 @@ function AuraPage() {
   const p = getPersonality(track.palette);
   const isUpload = !!track.hasLocalAudio;
   const platformName = providerLabel(track.provider);
+  const isOwner = !!profile?.id && (ownerUserId === null || ownerUserId === profile.id);
 
   const handleSave = () => {
     saveAuraFromTrack(track);
@@ -158,8 +174,17 @@ function AuraPage() {
     toast.success("Aura added to your Farm.");
   };
 
-  const handleDelete = () => {
-    deleteAura(track.id);
+  const handleDelete = async () => {
+    if (isOwner) {
+      try {
+        await deleteAuraCloud(track.id);
+        await deleteAuraAudio(track.audioStoragePath);
+      } catch (e) {
+        console.error(e);
+        toast.error("Couldn't remove from cloud. Removed locally.");
+      }
+    }
+    deleteAuraLocal(track.id);
     toast.success("Aura deleted.");
     nav({ to: "/farm" });
   };
