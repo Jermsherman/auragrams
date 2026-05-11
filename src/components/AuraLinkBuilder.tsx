@@ -183,6 +183,9 @@ export function AuraLinkBuilder() {
       customLinks,
       theme: themeValue,
       visibility: "public",
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      socialPreviewImage: socialPreviewImage || undefined,
     }),
     [
       title,
@@ -198,6 +201,9 @@ export function AuraLinkBuilder() {
       customLinks,
       theme,
       customTheme,
+      seoTitle,
+      seoDescription,
+      socialPreviewImage,
     ],
   );
 
