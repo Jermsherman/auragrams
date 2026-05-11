@@ -702,20 +702,19 @@ function CreatePage() {
                 <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
 
                 <div className="flex items-center gap-4 pt-1">
-                  <Aurascope
-                    aura={{ palette: preview.palette, auraName: preview.auraName, profile: preview, colors: preview.colors }}
-                    size="mini"
-                    mode="minimal"
-                  />
+                  <div className="relative h-14 w-14 shrink-0 grid place-items-center">
+                    <div className="absolute inset-0 rounded-full bg-aura-gradient opacity-40 blur-xl animate-pulse" />
+                    <div className="relative h-10 w-10 rounded-full bg-aura-gradient opacity-80 animate-pulse" />
+                  </div>
                   <div className="min-w-0">
                     <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                       Your aura
                     </div>
-                    <div className="font-display text-base sm:text-lg truncate text-aura-gradient">
-                      {preview.auraName}
+                    <div className="font-display text-base sm:text-lg truncate text-muted-foreground italic">
+                      Unrevealed
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      Energy {preview.energy}%
+                      Generate to reveal name, palette &amp; energy
                     </div>
                   </div>
                 </div>
