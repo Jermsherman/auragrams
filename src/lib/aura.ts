@@ -1067,7 +1067,7 @@ export function generateAura(input: {
     keyConfidence: conf ?? undefined,
     pitchCenter: input.pitchCenter ?? undefined,
     sourceType: input.sourceType,
-    tempoBand: tempoBandFor(energy),
+    tempoBand,
     density: densityFor(seedKey, baseKey),
     colors,
     userColorInfluence: influence ?? undefined,
