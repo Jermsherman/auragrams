@@ -59,7 +59,7 @@ function Index() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              Turn tracks into living Auras, save them to your Farm, and build AuraLinks that make your music instantly shareable.
+              Turn songs into living Auras, save them to your Farm, and build an AuraLink that brings your music, visuals, and socials into one shareable page.
             </p>
 
             <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">

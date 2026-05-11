@@ -1,63 +1,45 @@
-# Smarter Aura, Vibe, and Palette Naming
+## What's already in place
 
-## Problem
+After auditing the codebase, the bulk of the AuraLink spec is already implemented and shipped:
 
-In `src/lib/aura.ts`:
-- `paletteName()` picks two random words from `COLOR_WORDS` × `TEX_WORDS` regardless of the actual palette swatches — so a green palette can be tagged "Violet Drift".
-- `auraNameFor()` is similarly random across small banks (~40 names) and ignores the palette's true hue family.
-- `vibeDescription` is one long sentence template, and the user has no real way to fine-tune it — "Edit the vibe" just replaces it, "Generate the vibe" rerolls it.
+- Homepage has dual CTAs (Create Aura / Build AuraLink) + an "AuraLink is your music-first link page" spotlight section.
+- `/auralink` and `/auralink/create` routes both render `AuraLinkBuilder` behind `RequireAuth`.
+- Builder covers: Basic Info (title, artist, slug, description, cover upload), Mode selector, Streaming Links (full PLATFORMS catalog incl. Spotify/Apple/SoundCloud/YouTube/YT Music/Bandcamp/Audiomack/Tidal/Deezer/Amazon/Pandora/Boomplay/Audius/Presave/Website/Merch/Tickets/Other), Social Links (full SOCIAL_PLATFORMS catalog), Custom Links, Auras-from-Farm picker with multi-select + reorder + featured, Theme picker (10 presets + Custom theme with bg/accent/button/glow), live preview, save/publish, library strip with Edit/Copy/Open/Delete.
+- Public `/l/$slug` page renders `AuraLinkView` with profile/featured Aurascope, title, artist, bio, social pill row, featured Aura, streaming + custom buttons, playable Aura cards, footer.
+- `AuraLinkAuraCard` plays audio inline, drives the Aurascope analyser, pauses siblings when another card plays, links to `/aura/$id`.
+- Farm cards already expose "Add to AuraLink" via `AddToAuraLinkDialog`.
+- Aura page `ShareDialog` already has Copy AuraLink, View Story Preview, Add to AuraLink, Build new AuraLink.
 
-## Goal
+So this patch is a focused polish pass on the few real gaps — not a rebuild.
 
-1. Palette name reflects the real dominant hue(s) in `colors.swatches` (green → "Verdant …", not "Violet …").
-2. Aura name draws from a much larger, mood + hue-aware space so names feel intentional and varied.
-3. Vibe is 2–3 tight sentences; users can write/paste their own seed phrase that the generator *fine-tunes* rather than overwrites.
+## Remaining gaps to close
 
-## Plan
+1. **Copy tweaks** (spec-exact wording)
+   - Homepage hero subheadline → "Turn songs into living Auras, save them to your Farm, and build an AuraLink that brings your music, visuals, and socials into one shareable page."
+   - Homepage spotlight subtitle → "Add streaming links, social profiles, and playable Auras from your Farm into one page built for bios, stories, DMs, and rollouts."
+   - Builder subtitle → "Create a music-first link page with streaming links, social links, and Auras from your Farm."
 
-### 1. Hue-aware palette naming (`src/lib/aura.ts`)
+2. **SEO fields on AuraLink**
+   - Extend `AuraLinkPage` in `src/lib/auralink.ts` with optional `seoTitle`, `seoDescription`, `socialPreviewImage`.
+   - Add a collapsible "SEO & sharing" section at the bottom of `AuraLinkBuilder` with three inputs + an image uploader (reuses `uploadAuraLinkCover` from `src/lib/auralinkImages.ts`). Show placeholder text with the spec defaults: `[Artist Name] | AuraLink` and `Listen to [Artist Name], explore Auras, and find all official music links.`
+   - Persist through `saveAuraLink` / `updateAuraLink` (no migration needed — fields are optional).
 
-- Add `hexToHsl()` helper.
-- Add a `HUE_FAMILIES` table keyed by hue range + lightness/saturation buckets, each with:
-  - `colorWords` (e.g. red → `["Crimson","Ember","Rose","Garnet","Scarlet"]`, green → `["Verdant","Jade","Moss","Emerald","Chartreuse"]`, etc. — covering red, orange, amber/gold, yellow, chartreuse, green, teal, cyan, blue, indigo, violet, magenta, pink, neutral/grey, near-black, near-white).
-  - Saturation/lightness modifiers (`Pale`, `Dusty`, `Neon`, `Deep`, `Smoked`, `Glass`, `Velvet`).
-- New `paletteName(colors, seed, moods, kp)`:
-  1. Compute dominant hue family from `colors.primary` + `colors.accent` weighted average (skip near-grey swatches by saturation threshold).
-  2. If two distinct families dominate, build a two-tone name (e.g. "Ember & Jade Drift").
-  3. Otherwise build `${modifier?} ${colorWord} ${textureWord}` where `textureWord` is still from `TEX_WORDS` but seeded so the same palette is stable.
-  4. Keep the curated `PALETTE_NAME_BANK` only as a fallback when hue is ambiguous (very low saturation across the board → use "Ash/Pearl/Onyx + texture" forms).
-
-### 2. Bigger, more intentional aura names
-
-- Expand `AURA_NAME_BANK` and the pattern banks by ~3×, grouped by mood family (warm, blue, green, dark, dreamy, electric, etc.).
-- Pull the hue family from step 1 into `auraNameFor()` so the `PATTERN_A_COLOR` slot is chosen from the family's color words instead of the global list. Result: a green-palette Playful track yields "Jade Bounce", "Verdant Halo", "Chartreuse Mirage" — not "Violet Tide".
-- Keep musical-key & mood-mode biasing (minor → moodier nouns, major → brighter nouns) by splitting `PATTERN_A_NOUN` / `PATTERN_B_TEX` into minor/major-leaning sub-banks.
-- Keep the `RECENT_BLOCK` dedupe; widen it slightly so repeats are rarer.
-
-### 3. Condensed, editable vibe
-
-- Change `generateDescriptions()` to return a `vibe` of **2–3 sentences** built from three pieces:
-  1. Scene sentence (existing `VIBE_FRAMES` + `SCENE_BANK_*`, kept short).
-  2. Color/motion sentence drawn from `personality.phrases` + the new hue family words.
-  3. Optional closing line keyed by tempo + density (already available on `AuraProfile`).
-- Add a new exported `refineVibe(userSeed: string, opts)` that:
-  - If `userSeed` is empty → returns the fully generated 2–3 sentence vibe (current "Generate the vibe" behavior, just longer-form).
-  - If `userSeed` is non-empty → keeps the user's wording as sentence 1 (lightly cleaned: trim, ensure trailing punctuation, cap length ~140 chars) and *appends* one generator sentence that matches mood + hue + tempo. This is the "fine tune" behavior.
-- Wire `InfluenceAuraDialog.tsx` so the "Vibe note" textarea passes its value into `refineVibe` via the preview's `generateAura` call (extend `generateAura` input with `vibeSeed?: string`, plumbed into `generateDescriptions`). The "Generate the vibe" / "Edit the vibe" buttons on the Aura page continue to work; "Edit" now means "seed the generator", not "fully replace".
-- Keep `track.influenceSettings.vibeNote` as the persisted user seed so re-opening the dialog shows what they typed.
-
-### 4. Backward compatibility
-
-- All existing `AuraProfile` fields remain. `vibeDescription` stays a string (just longer). No data migration needed.
-- Existing saved Auras keep their stored `paletteName` / `auraName` / `vibeDescription` — the new logic only runs on regenerate/influence.
-
-## Technical Notes
-
-- All work stays in `src/lib/aura.ts` plus a small prop addition in `src/components/InfluenceAuraDialog.tsx` (pass `vibeSeed` into the preview `generateAura`).
-- No backend, schema, or route changes.
-- Pure functions remain pure and deterministic per seed + inputs.
+3. **Dynamic public-page metadata** (`src/routes/l.$slug.tsx`)
+   - Add a `loader` that calls `getAuraLinkBySlug(params.slug)` and returns `{ page }` (or throws `notFound`).
+   - Add `head: ({ loaderData })` that emits `title`, `description`, `og:title`, `og:description`, `og:type=profile`, and `og:image`/`twitter:image` using:
+     - title → `page.seoTitle` ?? `\`${page.artistName || page.title} | AuraLink\``
+     - description → `page.seoDescription` ?? `\`Listen to ${page.artistName || page.title}, explore Auras, and find all official music links.\``
+     - image → `page.socialPreviewImage` ?? `page.profileImageUrl` (omit if neither exists).
+   - Keep component using the loader data so we don't double-fetch.
+   - Note: `getAuraLinkBySlug` reads `localStorage`, so guard the loader with `typeof window !== "undefined"` and fall back to a generic head on SSR/prerender (consistent with the rest of the localStorage-backed app).
 
 ## Files
 
-- Edit `src/lib/aura.ts` (hue helpers, new `paletteName`, expanded `auraNameFor`, refactored `generateDescriptions`, `vibeSeed` on `generateAura`).
-- Edit `src/components/InfluenceAuraDialog.tsx` (thread the vibe note into the preview generator).
+- **Edit** `src/routes/index.tsx` — two subhead copy strings.
+- **Edit** `src/components/AuraLinkBuilder.tsx` — header subtitle copy + new SEO section bound to three new state fields, threaded into `previewPage` and `publish`.
+- **Edit** `src/lib/auralink.ts` — add `seoTitle?`, `seoDescription?`, `socialPreviewImage?` to `AuraLinkPage`.
+- **Edit** `src/routes/l.$slug.tsx` — convert static head to dynamic head via loader/`useLoaderData`, with SSR-safe guard.
+
+## Out of scope (per user)
+
+No Fave 5, no extra social features, no MySpace-tier customization, no backend migration — localStorage stays the source of truth.
