@@ -178,7 +178,7 @@ export function AuraFarmCard({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={remove}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={remove} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
