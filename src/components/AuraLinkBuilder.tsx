@@ -71,10 +71,37 @@ export function AuraLinkBuilder() {
 
   const [auras, setAuras] = useState<SavedAura[]>([]);
   const [savedLinks, setSavedLinks] = useState<AuraLinkPage[]>([]);
+
+  const refreshSaved = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
+      const rows = await listMyAuraLinks(profile.id);
+      setSavedLinks(rows);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [profile?.id]);
+
   useEffect(() => {
-    setAuras(getSavedAuras());
-    setSavedLinks(getAuraLinks());
-  }, []);
+    if (!profile?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [auraRows, linkRows] = await Promise.all([
+          listMyAuras(profile.id),
+          listMyAuraLinks(profile.id),
+        ]);
+        if (cancelled) return;
+        setAuras(auraRows.map(mapAuraRowToSaved));
+        setSavedLinks(linkRows);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
