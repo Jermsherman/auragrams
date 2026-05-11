@@ -66,7 +66,18 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
 
       <div className="w-full max-w-md px-5 pt-6 pb-12 flex flex-col items-center text-center">
         {/* Hero visual */}
-        <div className="relative">
+        <div
+          className="relative rounded-full p-1.5"
+          style={
+            featured && !page.profileImageUrl
+              ? {
+                  background:
+                    "conic-gradient(from 180deg, oklch(0.75 0.2 310 / 0.45), oklch(0.7 0.2 220 / 0.35), oklch(0.85 0.18 60 / 0.4), oklch(0.75 0.2 310 / 0.45))",
+                  boxShadow: theme.glow,
+                }
+              : undefined
+          }
+        >
           {page.profileImageUrl ? (
             <img
               src={page.profileImageUrl}
@@ -96,6 +107,14 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
             />
           )}
         </div>
+        {featured && !page.profileImageUrl && (
+          <div
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-2.5 h-6 text-[9px] uppercase tracking-[0.28em] opacity-80"
+            style={{ color: theme.accent }}
+          >
+            <Sparkles className="h-2.5 w-2.5" /> Featured Aura
+          </div>
+        )}
 
         <h1
           className="mt-6 font-display text-3xl sm:text-4xl tracking-tight leading-tight"
