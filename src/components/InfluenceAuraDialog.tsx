@@ -103,7 +103,7 @@ export function InfluenceAuraDialog({ track, open, onOpenChange, onApplied }: Pr
   const handleSave = async () => {
     setSaving(true);
     try {
-      const finalVibe = vibeNote.trim() || preview.vibeDescription;
+      const finalVibe = preview.vibeDescription;
       const patch: Partial<Track> = {
         moods,
         userColorInfluence: influence,
