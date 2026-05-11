@@ -1316,10 +1316,10 @@ export function AuraLinkBuilder() {
               </button>
               <button
                 onClick={publish}
-                disabled={!canPublish}
+                disabled={!canPublish || publishing}
                 className="btn-primary ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Publish AuraLink
+                {publishing ? "Publishing AuraLink…" : editingId ? "Update AuraLink" : "Publish AuraLink"}
               </button>
             </div>
           </div>
