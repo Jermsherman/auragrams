@@ -882,9 +882,10 @@ export function AuraLinkBuilder() {
                       {auras.map((a) => {
                         const sel = selectedAuraIds.includes(a.id);
                         const p = getPersonality(a.palette);
-                        const swatches = (a.colors && a.colors.length > 0
-                          ? a.colors
-                          : [p.primary, p.secondary, p.accent]
+                        const swatches: string[] = (
+                          a.colors?.swatches && a.colors.swatches.length > 0
+                            ? a.colors.swatches
+                            : p.swatches
                         ).slice(0, 4);
                         return (
                           <button
