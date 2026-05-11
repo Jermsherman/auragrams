@@ -89,6 +89,64 @@ export function AuraLinkBuilder() {
 
   const [showPreview, setShowPreview] = useState(false);
 
+  // Reset form to a blank slate (used by "New AuraLink").
+  const resetForm = useCallback(() => {
+    setEditingId(null);
+    setMode("mixed");
+    setTitle("");
+    setArtistName(profile?.display_name ?? profile?.username ?? "");
+    setDescription("");
+    setProfileImageUrl("");
+    setSlug("");
+    setTheme("midnight");
+    setCustomTheme({ ...DEFAULT_CUSTOM_THEME });
+    setStreamingLinks([]);
+    setSocialLinks([]);
+    setCustomLinks([]);
+    setSelectedAuraIds([]);
+    setFeaturedAuraId(undefined);
+  }, [profile]);
+
+  // Load an existing AuraLink into the form for editing.
+  const loadForEdit = useCallback((id: string) => {
+    const p = getAuraLink(id);
+    if (!p) {
+      toast.error("AuraLink not found.");
+      return;
+    }
+    setEditingId(p.id);
+    setMode(p.mode);
+    setTitle(p.title);
+    setArtistName(p.artistName);
+    setDescription(p.description ?? "");
+    setProfileImageUrl(p.profileImageUrl ?? "");
+    setSlug(p.handleSlug);
+    if (typeof p.theme === "string") {
+      setTheme(p.theme);
+    } else if (p.theme.mode === "custom") {
+      setTheme("custom");
+      setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...p.theme });
+    } else {
+      setTheme((p.theme.preset ?? "midnight") as AuraLinkThemePreset);
+    }
+    setStreamingLinks(p.streamingLinks ?? []);
+    setSocialLinks(p.socialLinks ?? []);
+    setCustomLinks(p.customLinks ?? []);
+    setSelectedAuraIds(p.selectedAuraIds ?? []);
+    setFeaturedAuraId(p.featuredAuraId);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  // Hydrate from ?id=<auraLinkId> on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) loadForEdit(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // derived
   const computedSlug = useMemo(
     () => slug.trim() ? slugify(slug) : slugify(title || artistName || "auralink"),
