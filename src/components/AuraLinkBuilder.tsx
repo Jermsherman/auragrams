@@ -359,6 +359,9 @@ export function AuraLinkBuilder() {
       customLinks: customLinks.map((l, i) => ({ ...l, order: i })),
       theme: themeValue,
       visibility: "public",
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      socialPreviewImage: socialPreviewImage || undefined,
     };
     try {
       if (isEdit) {
