@@ -933,7 +933,7 @@ export function AuraLinkBuilder() {
                               </div>
                             </div>
                             <div className="mt-2 flex items-center gap-1">
-                              {swatches.map((c, ix) => (
+                              {swatches.map((c: string, ix: number) => (
                                 <span
                                   key={ix}
                                   className="h-2 flex-1 rounded-full ring-1 ring-foreground/15"
