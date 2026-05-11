@@ -1002,6 +1002,8 @@ export function generateAura(input: {
   keyConfidence?: number | null;
   sourceType?: SourceType;
   userColorInfluence?: UserColorInfluence | null;
+  /** Optional user-written seed for the vibe description — fine-tunes rather than replaces. */
+  vibeSeed?: string | null;
 }): AuraProfile {
   const baseKey = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
@@ -1022,19 +1024,23 @@ export function generateAura(input: {
   const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
 
   const colors = buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
+  const tempoBand = tempoBandFor(energy);
   const influence = input.userColorInfluence ?? null;
   const colorGuided = !!(influence && influence.mode !== "surprise" && (
     (influence.mode === "single" && influence.colors.length > 0) ||
     (influence.mode === "palette" && influence.colors.length > 0) ||
     (influence.mode === "description" && colorWordsToHex(influence.description).length > 0)
   ));
-  const desc = generateDescriptions({ seedKey, moods: input.moods, kp, baseKey });
+  const desc = generateDescriptions({
+    seedKey, moods: input.moods, kp, baseKey, colors, tempoBand,
+    vibeSeed: input.vibeSeed ?? undefined,
+  });
 
   const isRaw = input.sourceType === "raw_recording";
   const h = hash(`raw|${seedKey}|${input.moods.join(",")}`);
   const auraName = isRaw && (h % 10) < 7
     ? pick(RAW_NAME_BANK, h)
-    : auraNameFor(seedKey, input.moods, kp);
+    : auraNameFor(seedKey, input.moods, kp, colors);
 
   let description = desc.short;
   if (isRaw) {
@@ -1049,7 +1055,7 @@ export function generateAura(input: {
   return {
     palette: baseKey,
     auraName,
-    paletteName: paletteName(seed, input.moods, kp),
+    paletteName: paletteName(seed, input.moods, kp, colors),
     energy,
     description,
     vibeDescription: desc.vibe,
