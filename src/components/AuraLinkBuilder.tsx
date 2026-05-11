@@ -881,16 +881,28 @@ export function AuraLinkBuilder() {
                     <div className="grid sm:grid-cols-3 gap-3">
                       {auras.map((a) => {
                         const sel = selectedAuraIds.includes(a.id);
+                        const p = getPersonality(a.palette);
+                        const swatches = (a.colors && a.colors.length > 0
+                          ? a.colors
+                          : [p.primary, p.secondary, p.accent]
+                        ).slice(0, 4);
                         return (
                           <button
                             key={a.id}
                             onClick={() => toggleAura(a.id)}
                             className={
-                              "relative rounded-2xl p-3 border transition-all " +
+                              "relative rounded-2xl p-3 border transition-all overflow-hidden text-left " +
                               (sel
-                                ? "border-foreground/30 bg-aura-gradient/10 shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.8)]"
-                                : "border-border/60 bg-background/30 hover:bg-foreground/5")
+                                ? "border-foreground/40 ring-2 ring-foreground/30"
+                                : "border-border/60 hover:border-foreground/20")
                             }
+                            style={{
+                              backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
+                              backgroundColor: "oklch(0.12 0.02 280 / 0.6)",
+                              boxShadow: sel
+                                ? `0 0 30px -10px ${p.glow}`
+                                : undefined,
+                            }}
                           >
                             {sel && (
                               <span className="absolute top-2 right-2 inline-grid place-items-center h-5 w-5 rounded-full bg-aura-gradient text-primary-foreground">
@@ -919,6 +931,15 @@ export function AuraLinkBuilder() {
                                 </div>
                               </div>
                             </div>
+                            <div className="mt-2 flex items-center gap-1">
+                              {swatches.map((c, ix) => (
+                                <span
+                                  key={ix}
+                                  className="h-2 flex-1 rounded-full ring-1 ring-foreground/15"
+                                  style={{ background: c }}
+                                />
+                              ))}
+                            </div>
                           </button>
                         );
                       })}
@@ -926,43 +947,88 @@ export function AuraLinkBuilder() {
 
                     {selectedAuraIds.length > 0 && (
                       <div className="mt-4">
-                        <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-2">
-                          Order
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient/15 border border-foreground/15 px-2.5 h-6 text-[10px] uppercase tracking-[0.24em]">
+                            <Star className="h-3 w-3" />
+                            Featured plays on hero
+                          </div>
+                          <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                            · drag to reorder
+                          </div>
                         </div>
                         <div className="space-y-1.5">
                           {selectedAuraIds.map((id, i) => {
                             const a = auras.find((x) => x.id === id);
                             if (!a) return null;
+                            const p = getPersonality(a.palette);
+                            const isFeatured =
+                              (featuredAuraId ?? selectedAuraIds[0]) === id;
                             return (
                               <div
                                 key={id}
-                                className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/30 px-3 py-2"
+                                className={
+                                  "flex items-center gap-2 rounded-xl border px-3 py-2 transition-all " +
+                                  (isFeatured
+                                    ? "border-foreground/30 ring-1 ring-foreground/20"
+                                    : "border-border/60 bg-background/30")
+                                }
+                                style={
+                                  isFeatured
+                                    ? {
+                                        backgroundImage: `radial-gradient(circle at 0% 50%, ${p.atmosphere}, transparent 70%)`,
+                                        boxShadow: `0 0 24px -10px ${p.glow}`,
+                                      }
+                                    : undefined
+                                }
                               >
                                 <span className="text-xs text-muted-foreground w-5">
                                   {i + 1}.
                                 </span>
-                                <span className="flex-1 truncate text-sm">
-                                  {a.trackTitle}{" "}
-                                  <span className="text-muted-foreground">
-                                    — {a.auraName}
+                                <Aurascope
+                                  aura={{
+                                    id: a.id,
+                                    palette: a.palette,
+                                    seed: a.seed,
+                                    auraName: a.auraName,
+                                    colors: a.colors,
+                                  }}
+                                  size="mini"
+                                  mode="minimal"
+                                  showLabel={false}
+                                />
+                                <span className="flex-1 truncate text-sm min-w-0">
+                                  <span className="block truncate">
+                                    {a.trackTitle}
+                                  </span>
+                                  <span className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
+                                    {a.auraName}
                                   </span>
                                 </span>
                                 <button
                                   onClick={() =>
-                                    setFeaturedAuraId(featuredAuraId === id ? undefined : id)
+                                    setFeaturedAuraId(isFeatured ? undefined : id)
                                   }
                                   className={
-                                    "rounded-full px-2 h-7 text-[10px] uppercase tracking-[0.2em] transition-colors " +
-                                    ((featuredAuraId ?? selectedAuraIds[0]) === id
-                                      ? "bg-aura-gradient text-primary-foreground"
+                                    "grid place-items-center h-8 w-8 rounded-full transition-all " +
+                                    (isFeatured
+                                      ? "bg-aura-gradient text-primary-foreground shadow-[0_0_20px_-4px_oklch(0.7_0.2_310/0.9)]"
                                       : "border border-border/60 text-muted-foreground hover:text-foreground")
                                   }
-                                  aria-label="Feature this Aura"
-                                  title="Feature this Aura on the AuraLink"
+                                  aria-label={
+                                    isFeatured ? "Unfeature" : "Feature this Aura"
+                                  }
+                                  title={
+                                    isFeatured
+                                      ? "Featured on AuraLink hero"
+                                      : "Feature this Aura on the AuraLink hero"
+                                  }
                                 >
-                                  {(featuredAuraId ?? selectedAuraIds[0]) === id
-                                    ? "Featured"
-                                    : "Feature"}
+                                  <Star
+                                    className={
+                                      "h-3.5 w-3.5 " +
+                                      (isFeatured ? "fill-current" : "")
+                                    }
+                                  />
                                 </button>
                                 <button
                                   onClick={() => moveAura(id, -1)}
