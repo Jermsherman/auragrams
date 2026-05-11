@@ -4,7 +4,9 @@ import { Trash2, ArrowUpRight, Wand2, Sparkles, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Aurascope } from "./Aurascope";
 import { AddToAuraLinkDialog } from "./AddToAuraLinkDialog";
-import { deleteAura, type SavedAura } from "@/lib/farm";
+import { deleteAura as deleteAuraLocal, type SavedAura } from "@/lib/farm";
+import { deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura";
+import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
 import {
   AlertDialog,
@@ -25,8 +27,10 @@ export function AuraFarmCard({
   aura: SavedAura;
   onDeleted: (id: string) => void;
 }) {
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const p = getPersonality(aura.palette);
 
   const isRaw = aura.sourceType === "raw_recording";
@@ -36,11 +40,27 @@ export function AuraFarmCard({
       ? "Uploaded Audio"
       : aura.platformName ?? "External Link";
 
-  const remove = () => {
-    deleteAura(aura.id);
-    onDeleted(aura.id);
-    toast.success("Aura deleted.");
-    setOpen(false);
+  const isOwner = !!profile?.id && (!aura.userId || aura.userId === profile.id);
+
+  const remove = async () => {
+    setDeleting(true);
+    try {
+      if (isOwner) {
+        try {
+          await deleteAuraCloud(aura.id);
+          await deleteAuraAudio(aura.audioStoragePath);
+        } catch (e) {
+          console.error(e);
+          toast.error("Couldn't remove from cloud. Removed locally.");
+        }
+      }
+      deleteAuraLocal(aura.id);
+      onDeleted(aura.id);
+      toast.success("Aura deleted.");
+    } finally {
+      setDeleting(false);
+      setOpen(false);
+    }
   };
 
   return (
@@ -158,7 +178,7 @@ export function AuraFarmCard({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={remove}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={remove} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

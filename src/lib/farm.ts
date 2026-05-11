@@ -8,6 +8,8 @@ export type SourceType = "upload" | "platform_link" | "external_link" | "raw_rec
 
 export type SavedAura = {
   id: string;
+  /** Owner's profile id (when known from cloud). Used for owner gating. */
+  userId?: string;
   createdAt: number;
   trackTitle: string;
   artistName: string;

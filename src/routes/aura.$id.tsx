@@ -14,8 +14,9 @@ import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette, Shuffle } from "lucide-react";
-import { isAuraSaved, saveAuraFromTrack, deleteAura } from "@/lib/farm";
-import { updateAuraVibe, getPublicAura } from "@/lib/cloudAura";
+import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal } from "@/lib/farm";
+import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura";
+import { useAuth } from "@/hooks/useAuth";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
@@ -64,7 +65,9 @@ export const Route = createFileRoute("/aura/$id")({
 function AuraPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
+  const { profile } = useAuth();
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
+  const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -80,7 +83,7 @@ function AuraPage() {
   useEffect(() => {
     let cancelled = false;
     const t = getTrack(id);
-    setTrack(t);
+    setTrack(t ?? undefined);
     setSaved(isAuraSaved(id));
 
     // Priority: local public URL → session blob (just uploaded) → legacy data URL
@@ -97,17 +100,20 @@ function AuraPage() {
       }
     }
 
-    // Cloud fallback: hydrate audioPublicUrl (and basic track shell) from the
-    // server when the local cache doesn't have it (e.g. another device, or
-    // local cache cleared).
+    // Always attempt cloud hydration to learn ownership and fill missing fields.
     (async () => {
-      if (t?.audioPublicUrl) return;
       try {
         const row = await getPublicAura(id);
-        if (cancelled || !row?.audio_public_url) return;
-        setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        if (cancelled) return;
+        if (!row) {
+          if (!t) setTrack(null);
+          return;
+        }
+        setOwnerUserId(row.user_id);
+        if (row.audio_public_url) {
+          setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        }
         if (!t) {
-          // Build a minimal Track shell from the cloud row so the page renders.
           const shell = {
             id: row.id,
             title: row.track_title,
@@ -116,19 +122,29 @@ function AuraPage() {
             seed: 0,
             createdAt: new Date(row.created_at).getTime(),
             moods: row.mood_tags ?? [],
-            palette: (row.palette_name as Track["palette"]) ?? "amethyst",
+            palette: ((row.palette_name as Track["palette"]) ?? "amethyst"),
             auraName: row.aura_name ?? row.track_title,
             energy: Number(row.energy_level ?? 0.6),
             description: row.aura_description ?? "",
             hasLocalAudio: !!row.audio_storage_path,
             audioPublicUrl: row.audio_public_url ?? undefined,
             audioStoragePath: row.audio_storage_path ?? undefined,
+            audioFileName: row.audio_file_name ?? undefined,
+            audioMimeType: row.audio_mime_type ?? undefined,
+            audioSizeBytes: row.audio_size_bytes ?? undefined,
+            audioDurationSeconds: row.audio_duration_seconds ?? undefined,
             sourceType: (row.source_type as Track["sourceType"]) ?? "upload",
+            platformUrl: row.platform_url ?? undefined,
+            embedUrl: row.embed_url ?? undefined,
+            colors: (row.color_palette as Track["colors"]) ?? undefined,
+            paletteName: row.palette_name ?? undefined,
+            vibeDescription: row.vibe_description ?? undefined,
+            visibilityMode: row.visibility_mode,
           } as Track;
           setTrack(shell);
         }
       } catch {
-        /* ignore — local-only mode still works */
+        if (!t && !cancelled) setTrack(null);
       }
     })();
 
@@ -150,6 +166,7 @@ function AuraPage() {
   const p = getPersonality(track.palette);
   const isUpload = !!track.hasLocalAudio;
   const platformName = providerLabel(track.provider);
+  const isOwner = !!profile?.id && (ownerUserId === null || ownerUserId === profile.id);
 
   const handleSave = () => {
     saveAuraFromTrack(track);
@@ -157,8 +174,17 @@ function AuraPage() {
     toast.success("Aura added to your Farm.");
   };
 
-  const handleDelete = () => {
-    deleteAura(track.id);
+  const handleDelete = async () => {
+    if (isOwner) {
+      try {
+        await deleteAuraCloud(track.id);
+        await deleteAuraAudio(track.audioStoragePath);
+      } catch (e) {
+        console.error(e);
+        toast.error("Couldn't remove from cloud. Removed locally.");
+      }
+    }
+    deleteAuraLocal(track.id);
     toast.success("Aura deleted.");
     nav({ to: "/farm" });
   };
@@ -192,8 +218,8 @@ function AuraPage() {
         <Link to="/" className="hover:opacity-80 transition-opacity">
           <Logo />
         </Link>
-        <div className="flex items-center gap-2">
-          {saved ? (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {isOwner && (saved ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -206,9 +232,9 @@ function AuraPage() {
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this Aura from your Farm?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete this Aura?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This only removes it from your local collection.
+                    This removes the Aura from your Farm and your cloud library.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -225,8 +251,8 @@ function AuraPage() {
               <Bookmark className="h-4 w-4" />
               <span className="hidden sm:inline">Save to Farm</span>
             </button>
-          )}
-          {saved && (
+          ))}
+          {isOwner && saved && (
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full glass px-3 h-10 text-xs text-foreground/80">
               <BookmarkCheck className="h-3.5 w-3.5" /> Saved
             </span>
@@ -280,24 +306,29 @@ function AuraPage() {
 
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {saved ? (
-            <button
-              onClick={() => toast.message("Already in your Farm")}
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
-            >
-              <BookmarkCheck className="h-4 w-4" /> Saved in Farm
-            </button>
-          ) : (
-            <button
-              onClick={handleSave}
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
-            >
-              <Bookmark className="h-4 w-4" /> Save to Farm
-            </button>
-          )}
+          {isOwner ? (
+            saved ? (
+              <button
+                onClick={() => toast.message("Already in your Farm")}
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
+              >
+                <BookmarkCheck className="h-4 w-4" /> Saved in Farm
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+              >
+                <Bookmark className="h-4 w-4" /> Save to Farm
+              </button>
+            )
+          ) : null}
           <button
             onClick={() => setShareOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+            className={
+              (isOwner ? "" : "col-span-2 sm:col-span-2 ") +
+              "inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+            }
           >
             <Share2 className="h-4 w-4" /> Share AuraLink
           </button>
@@ -309,7 +340,8 @@ function AuraPage() {
           </button>
         </div>
 
-        {/* Secondary actions */}
+        {/* Secondary actions — owner only */}
+        {isOwner && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <button
             onClick={() => setInfluenceOpen(true)}
@@ -345,6 +377,7 @@ function AuraPage() {
             </button>
           )}
         </div>
+        )}
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
         <AddToAuracleDialog

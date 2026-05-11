@@ -183,6 +183,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
   const anon = row.visibility_mode === "anonymous";
   return {
     id: row.id,
+    userId: row.user_id,
     createdAt: new Date(row.created_at).getTime(),
     trackTitle: row.track_title,
     artistName: anon ? "" : (row.public_artist_name ?? ""),
