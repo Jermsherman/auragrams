@@ -318,6 +318,23 @@ export function AuraLinkBuilder() {
     }
   };
 
+  const onSocialImage = async (file: File | null) => {
+    if (!file) return;
+    setUploadingSocial(true);
+    try {
+      const { uploadAuraLinkCover } = await import("@/lib/auralinkImages");
+      const url = await uploadAuraLinkCover(file);
+      setSocialPreviewImage(url);
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "Could not upload preview image.",
+      );
+    } finally {
+      setUploadingSocial(false);
+    }
+  };
+
   const totalLinks = streamingLinks.length + socialLinks.length + customLinks.length;
 
   // Validation
