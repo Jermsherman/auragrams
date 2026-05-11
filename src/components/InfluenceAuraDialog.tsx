@@ -87,7 +87,7 @@ export function InfluenceAuraDialog({ track, open, onOpenChange, onApplied }: Pr
     [track, moods, influence, vibeNote],
   );
 
-  const previewVibe = vibeNote.trim() || preview.vibeDescription;
+  const previewVibe = preview.vibeDescription;
 
   const previewAura = {
     id: track.id,
