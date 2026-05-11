@@ -523,6 +523,7 @@ function AuraPage() {
                 energyOverride: track.energy,
                 sourceType: track.sourceType,
                 userColorInfluence: track.userColorInfluence,
+                vibeSeed: track.influenceSettings?.vibeNote ?? null,
               });
               const text = gen.vibeDescription;
               updateTrack(track.id, { vibeDescription: text });

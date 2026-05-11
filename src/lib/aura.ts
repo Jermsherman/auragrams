@@ -478,52 +478,223 @@ function hash(s: string): number {
 }
 function pick<T>(list: readonly T[], seed: number): T { return list[seed % list.length]; }
 
-const PALETTE_NAME_BANK = [
-  "Blue Hour Velvet","Neon Mourning","Dusk Tide","Amber Glass","Violet Salt",
-  "Moonlit Static","Coastal Ember","Ghostlight Bloom","Soft Electric Rain","Crimson Drift",
-  "Saltwater Echo","Pearl Fever","Velvet Gravity","Storm Halo","Golden Mourning",
-  "Ocean Memory","Afterglow Theory","Satin Weather","Ember Mercy","Silver Reverie",
-];
-const COLOR_WORDS = ["Velvet","Indigo","Amber","Crimson","Pearl","Neon","Ghost","Saltwater","Lunar","Golden","Silver","Violet","Coral","Onyx"];
-const TEX_WORDS = ["Static","Velvet","Glass","Ember","Tide","Halo","Drift","Mercy","Weather","Rain","Bloom","Reverie","Memory","Theory"];
-
-function paletteName(seed: number, moods: string[], kp: KeyProfile | null): string {
-  const h = hash(`pn|${seed}|${moods.join(",")}|${kp?.tonic ?? ""}`);
-  if ((h & 7) === 0) return pick(PALETTE_NAME_BANK, h >>> 3);
-  return `${pick(COLOR_WORDS, h)} ${pick(TEX_WORDS, h >>> 7)}`;
+// ----------------- hue family detection -----------------
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return { h, s, l };
 }
 
+export type HueFamilyKey =
+  | "red" | "ember" | "amber" | "gold" | "chartreuse" | "green" | "jade"
+  | "teal" | "cyan" | "blue" | "indigo" | "violet" | "magenta" | "rose"
+  | "neutral" | "pearl" | "onyx";
+
+type HueFamily = {
+  key: HueFamilyKey;
+  colorWords: string[];   // used in names (palette + aura)
+  pairNouns?: string[];   // poetic phrases (e.g. "Verdant Mist")
+};
+
+const HUE_FAMILIES: Record<HueFamilyKey, HueFamily> = {
+  red:        { key: "red",        colorWords: ["Crimson","Scarlet","Garnet","Ruby","Cinnabar"] },
+  ember:      { key: "ember",      colorWords: ["Ember","Rust","Sienna","Terracotta","Copper"] },
+  amber:      { key: "amber",      colorWords: ["Amber","Honey","Marigold","Saffron","Brass"] },
+  gold:       { key: "gold",       colorWords: ["Golden","Sunlit","Citrine","Topaz","Daffodil"] },
+  chartreuse: { key: "chartreuse", colorWords: ["Chartreuse","Lime","Citron","Spring","Pear"] },
+  green:      { key: "green",      colorWords: ["Verdant","Moss","Fern","Sage","Forest"] },
+  jade:       { key: "jade",       colorWords: ["Jade","Emerald","Mint","Seafoam","Pine"] },
+  teal:       { key: "teal",       colorWords: ["Teal","Aquamarine","Lagoon","Tide","Cerulean"] },
+  cyan:       { key: "cyan",       colorWords: ["Cyan","Glacier","Frost","Ice","Sky"] },
+  blue:       { key: "blue",       colorWords: ["Azure","Cobalt","Sapphire","Marine","Indigo"] },
+  indigo:     { key: "indigo",     colorWords: ["Indigo","Midnight","Twilight","Nocturne","Velvet"] },
+  violet:     { key: "violet",     colorWords: ["Violet","Amethyst","Iris","Lilac","Orchid"] },
+  magenta:    { key: "magenta",    colorWords: ["Magenta","Fuchsia","Neon","Plasma","Berry"] },
+  rose:       { key: "rose",       colorWords: ["Rose","Coral","Blush","Petal","Peach"] },
+  neutral:    { key: "neutral",    colorWords: ["Smoke","Ash","Slate","Linen","Dust"] },
+  pearl:      { key: "pearl",      colorWords: ["Pearl","Ivory","Alabaster","Cream","Snow"] },
+  onyx:       { key: "onyx",       colorWords: ["Onyx","Obsidian","Shadow","Charcoal","Raven"] },
+};
+
+function hueToFamily(h: number, s: number, l: number): HueFamilyKey {
+  if (s < 0.12) {
+    if (l > 0.78) return "pearl";
+    if (l < 0.22) return "onyx";
+    return "neutral";
+  }
+  if (h < 15) return "red";
+  if (h < 30) return "ember";
+  if (h < 45) return "amber";
+  if (h < 65) return "gold";
+  if (h < 85) return "chartreuse";
+  if (h < 145) return l < 0.5 ? "green" : "jade";
+  if (h < 175) return "jade";
+  if (h < 195) return "teal";
+  if (h < 210) return "cyan";
+  if (h < 240) return "blue";
+  if (h < 270) return "indigo";
+  if (h < 300) return "violet";
+  if (h < 330) return "magenta";
+  return "rose";
+}
+
+/** Returns the 1-2 most prominent hue families across the palette swatches. */
+function dominantHueFamilies(colors: AuraPalette): HueFamilyKey[] {
+  const samples = [colors.primary, colors.accent, colors.secondary, ...(colors.swatches ?? [])];
+  const tally: Partial<Record<HueFamilyKey, number>> = {};
+  let chromaticTotal = 0;
+  for (const hex of samples) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) continue;
+    const { h, s, l } = hexToHsl(hex);
+    const fam = hueToFamily(h, s, l);
+    // weight chromatic samples higher so a few greys don't dominate
+    const w = s < 0.15 ? 0.4 : 1;
+    if (s >= 0.15) chromaticTotal += 1;
+    tally[fam] = (tally[fam] ?? 0) + w;
+  }
+  const sorted = Object.entries(tally)
+    .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+    .map(([k]) => k as HueFamilyKey);
+  if (sorted.length === 0) return ["neutral"];
+  // If almost no chromatic samples, fall back to a neutral family
+  if (chromaticTotal <= 1) return [sorted[0]];
+  // Only return a second family if it's distinct enough
+  const out = [sorted[0]];
+  if (sorted[1] && (tally[sorted[1]] ?? 0) >= (tally[sorted[0]] ?? 0) * 0.55 && sorted[1] !== sorted[0]) {
+    out.push(sorted[1]);
+  }
+  return out;
+}
+
+// Modifier words tuned by saturation/lightness of the primary color.
+function paletteModifier(hex: string, seed: number): string | null {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+  const { s, l } = hexToHsl(hex);
+  const variants: string[] = [];
+  if (l > 0.75) variants.push("Pale", "Soft", "Glass");
+  else if (l < 0.28) variants.push("Deep", "Smoked", "Velvet");
+  else variants.push("Dusky", "Hazy", "Muted");
+  if (s > 0.7) variants.push("Neon", "Electric", "Radiant");
+  if (s < 0.25) variants.push("Faded", "Quiet");
+  // 55% chance to omit modifier for cleaner two-word names
+  if ((seed & 0xff) < 115) return null;
+  return variants[seed % variants.length];
+}
+
+const TEX_WORDS = ["Drift","Bloom","Halo","Tide","Mirage","Static","Glass","Velvet","Reverie","Weather","Mercy","Echo","Pressure","Rain","Memory","Voltage","Ember","Hush","Hour"];
+
+// Curated names reserved for low-saturation / ambiguous palettes only.
+const NEUTRAL_PALETTE_BANK = [
+  "Ash Mirror","Pearl Static","Slate Reverie","Linen Drift","Smoke Halo",
+  "Onyx Bloom","Obsidian Hour","Snowfield","Charcoal Glass","Ivory Tide",
+];
+
+function paletteName(
+  seed: number,
+  moods: string[],
+  kp: KeyProfile | null,
+  colors: AuraPalette,
+): string {
+  const families = dominantHueFamilies(colors);
+  const h = hash(`pn|${seed}|${moods.join(",")}|${kp?.tonic ?? ""}`);
+
+  // Ambiguous / mostly neutral palette: use the curated neutral bank or family color words
+  if (families[0] === "neutral" || families[0] === "pearl" || families[0] === "onyx") {
+    if ((h & 3) === 0) return pick(NEUTRAL_PALETTE_BANK, h >>> 5);
+    const fam = HUE_FAMILIES[families[0]];
+    return `${pick(fam.colorWords, h)} ${pick(TEX_WORDS, h >>> 7)}`;
+  }
+
+  // Two-tone palette name when two distinct families show up
+  if (families.length === 2) {
+    const a = pick(HUE_FAMILIES[families[0]].colorWords, h);
+    const b = pick(HUE_FAMILIES[families[1]].colorWords, h >>> 5);
+    if (a.toLowerCase() === b.toLowerCase()) {
+      return `${a} ${pick(TEX_WORDS, h >>> 9)}`;
+    }
+    // Roughly half the time: "Ember & Jade Drift"; otherwise "Ember Jade"
+    return (h & 1)
+      ? `${a} & ${b} ${pick(TEX_WORDS, h >>> 11)}`
+      : `${a} ${b}`;
+  }
+
+  // Single-family name with optional saturation/lightness modifier
+  const fam = HUE_FAMILIES[families[0]];
+  const colorWord = pick(fam.colorWords, h);
+  const texWord = pick(TEX_WORDS, h >>> 7);
+  const mod = paletteModifier(colors.primary, h >>> 13);
+  return mod ? `${mod} ${colorWord} ${texWord}` : `${colorWord} ${texWord}`;
+}
+
+// ----------------- aura naming -----------------
+// Curated names — kept as occasional flavor only.
 const AURA_NAME_BANK = [
   "Velvet Current","Blue Hour Bloom","Electric Reverie","Candlewave","Midnight Tide",
   "Golden Static","Dusk Mirage","Lunar Ember","Silver Echo","Soft Collapse",
-  "Ocean Memory","Neon Haze","Violet Mercy","Afterglow Theory","Slow Halo",
+  "Ocean Memory","Neon Haze","Afterglow Theory","Slow Halo",
   "Crimson Shore","Dream Pressure","Ghostlight Summer","Satin Weather","Moonlit Static",
   "Amber Distance","Glass Tide","Heavy Honey","Saltwater Echo","Night Bloom",
   "Tender Voltage","Hollow Sunset","Velvet Gravity","Celestial Ache","Radiant Fog",
   "Soft Thunder","Pearl Fever","Storm Halo","Electric Chapel","Blue Velvet Rain",
-  "Quiet Fire","Neon Prayer","Afterhours Bloom",
+  "Quiet Fire","Neon Prayer","Afterhours Bloom","Jade Mercy","Verdant Hour",
+  "Emerald Drift","Citrine Halo","Cobalt Sigh","Rose Voltage","Coral Memory",
+  "Sapphire Weather","Iris Static","Topaz Bloom","Moss Mirage","Fern Tide",
 ];
-const PATTERN_A_COLOR = ["Violet","Silver","Crimson","Amber","Coral","Ghostlight","Lunar","Indigo"];
-const PATTERN_A_NOUN  = ["Tide","Rain","Bloom","Halo","Drift","Echo","Static","Mirage","Embers"];
-const PATTERN_B_EMO   = ["Tender","Lonely","Quiet","Dream","Velvet","Restless","Hollow","Heavy"];
-const PATTERN_B_TEX   = ["Static","Velvet","Voltage","Pressure","Weather","Glass","Bloom"];
-const TIME_WORDS      = ["Midnight","Blue Hour","Afterglow","Dusk","Twilight","Nightfall"];
-const MOTION_WORDS    = ["Drift","Bloom","Tide","Halo","Mirage","Pulse"];
+const PATTERN_NOUN_MAJOR = [
+  "Bloom","Halo","Tide","Drift","Mirage","Reverie","Bloom","Rise","Hour","Dawn","Glow","Light",
+];
+const PATTERN_NOUN_MINOR = [
+  "Static","Echo","Pressure","Mercy","Weather","Shadow","Ache","Hush","Dusk","Rain","Voltage","Smoke",
+];
+const PATTERN_B_EMO_MAJOR = ["Tender","Quiet","Dream","Soft","Open","Radiant","Glowing","Buoyant"];
+const PATTERN_B_EMO_MINOR = ["Lonely","Hollow","Heavy","Restless","Tender","Velvet","Quiet","Haunted"];
+const PATTERN_B_TEX = ["Static","Velvet","Voltage","Pressure","Weather","Glass","Bloom","Halo","Mirror"];
+const TIME_WORDS = ["Midnight","Blue Hour","Afterglow","Dusk","Twilight","Nightfall","Dawn","Sunrise","Witch Hour"];
+const MOTION_WORDS = ["Drift","Bloom","Tide","Halo","Mirage","Pulse","Rise","Sway","Spiral"];
 
 const RECENT_BLOCK = new Set(["Coastal Drift","Quiet Drift","Dark Glow"]);
 
-export function auraNameFor(seedKey: string, moods: string[], kp?: KeyProfile | null): string {
+export function auraNameFor(
+  seedKey: string,
+  moods: string[],
+  kp?: KeyProfile | null,
+  colors?: AuraPalette | null,
+): string {
   const h = hash(`an|${seedKey}|${moods.join(",")}|${kp?.tonic ?? ""}`);
-  for (let i = 0; i < 4; i++) {
+  const isMinor = kp?.mode === "minor";
+  const families = colors ? dominantHueFamilies(colors) : ["violet" as HueFamilyKey];
+  const familyWords = HUE_FAMILIES[families[0]].colorWords;
+  const nounBank = isMinor ? PATTERN_NOUN_MINOR : PATTERN_NOUN_MAJOR;
+  const emoBank = isMinor ? PATTERN_B_EMO_MINOR : PATTERN_B_EMO_MAJOR;
+
+  for (let i = 0; i < 5; i++) {
     const r = (h >>> (i * 3)) & 7;
     let name = "";
-    if (r < 2) name = pick(AURA_NAME_BANK, h >>> (i+1));
-    else if (r < 4) name = `${pick(PATTERN_A_COLOR, h >>> 4)} ${pick(PATTERN_A_NOUN, h >>> 9)}`;
-    else if (r < 6) name = `${pick(PATTERN_B_EMO, h >>> 6)} ${pick(PATTERN_B_TEX, h >>> 11)}`;
-    else name = `${pick(TIME_WORDS, h >>> 8)} ${pick(MOTION_WORDS, h >>> 13)}`;
+    if (r === 0) {
+      // Occasional pull from curated bank
+      name = pick(AURA_NAME_BANK, h >>> (i + 1));
+    } else if (r < 4) {
+      // Hue-family color + mood-mode noun  (most common — guarantees palette match)
+      name = `${pick(familyWords, h >>> 4)} ${pick(nounBank, h >>> 9)}`;
+    } else if (r < 6) {
+      // Emotion + texture
+      name = `${pick(emoBank, h >>> 6)} ${pick(PATTERN_B_TEX, h >>> 11)}`;
+    } else {
+      // Time + motion (mood-agnostic flavor)
+      name = `${pick(TIME_WORDS, h >>> 8)} ${pick(MOTION_WORDS, h >>> 13)}`;
+    }
     if (!RECENT_BLOCK.has(name)) return name;
   }
-  return pick(AURA_NAME_BANK, h);
+  return `${pick(familyWords, h)} ${pick(nounBank, h >>> 9)}`;
 }
 
 // ----------------- vocabulary banks -----------------
@@ -637,18 +808,27 @@ const SHORT_TEMPLATES_MINOR = [
   "{Tone} weather of {colorPhrase}, {motionPhrase} beneath {edge}.",
   "A {tone} minor-key aura — {colorPhrase}, {motionPhrase}, {edge}.",
 ];
-const VIBE_FRAMES = [
-  "This track feels like {scene}.",
-  "It moves like {scene}, soft but impossible to ignore.",
-  "It plays like {scene} — close, deliberate, alive.",
-  "Sounds like {scene}, the kind that stays with you.",
+
+// Vibe is now 2-3 short sentences. Sentence 1 = scene, sentence 2 = color/motion,
+// sentence 3 (optional) = tempo/density coda.
+const VIBE_FRAMES_MAJOR = [
+  "Feels like {scene}.",
+  "Plays like {scene}.",
+  "Moves like {scene}.",
+];
+const VIBE_FRAMES_MINOR = [
+  "Feels like {scene}.",
+  "Sits inside {scene}.",
+  "Lingers like {scene}.",
 ];
 const SCENE_BANK_MINOR = [
-  "driving home under city lights with something unsaid still sitting in your chest",
-  "standing at the edge of a decision while the night gets louder than your thoughts",
+  "driving home under city lights with something unsaid in your chest",
+  "the edge of a decision while the night gets louder than your thoughts",
   "an old feeling coming back at the wrong time",
   "rain on a window you're not opening",
   "a memory you never fully left",
+  "the last cigarette of a long week",
+  "the room after everyone leaves",
 ];
 const SCENE_BANK_MAJOR = [
   "the first warm hour after a long week",
@@ -656,16 +836,56 @@ const SCENE_BANK_MAJOR = [
   "a road opening up just as the song hits",
   "a bright morning that owes you nothing and gives you everything",
   "walking back into a room that finally feels like yours",
+  "the moment a city skyline tips into gold",
+  "a quiet win you didn't tell anyone about",
+];
+
+const COLOR_SENTENCES_MAJOR = [
+  "{Color} air keeps moving in {motion}.",
+  "It glows in {color}, breathing through {motion}.",
+  "Light gathers in {color} and lifts on {motion}.",
+];
+const COLOR_SENTENCES_MINOR = [
+  "{Color} shadow drifts under {motion}.",
+  "It hangs in {color}, slow with {motion}.",
+  "{Color} weather pulls through {motion}.",
+];
+
+const TEMPO_CODAS_FAST = [
+  "It doesn't sit still.",
+  "It runs ahead of you.",
+  "It pulses faster than you expect.",
+];
+const TEMPO_CODAS_MID = [
+  "It moves at the speed of a long thought.",
+  "It keeps its own steady pulse.",
+];
+const TEMPO_CODAS_SLOW = [
+  "It takes its time.",
+  "It barely breathes.",
+  "It almost stops — and that's the point.",
 ];
 
 function fillTemplate(tmpl: string, parts: Record<string,string>): string {
   return tmpl.replace(/\{(\w+)\}/g, (_, k) => parts[k] ?? "");
 }
 
+function cleanSeed(s: string): string {
+  let t = s.trim().replace(/\s+/g, " ");
+  if (t.length > 180) t = t.slice(0, 177).replace(/[,\s]+\S*$/, "") + "…";
+  if (t && !/[.!?…]$/.test(t)) t += ".";
+  // Capitalize first letter for consistency.
+  if (t) t = t[0].toUpperCase() + t.slice(1);
+  return t;
+}
+
 export function generateDescriptions(opts: {
   seedKey: string; moods: string[]; kp: KeyProfile | null; baseKey: MoodKey;
+  colors?: AuraPalette | null;
+  tempoBand?: TempoBand;
+  vibeSeed?: string;
 }): { short: string; vibe: string; motionKeywords: string[] } {
-  const { seedKey, moods, kp, baseKey } = opts;
+  const { seedKey, moods, kp, baseKey, colors, tempoBand, vibeSeed } = opts;
   const h = hash(`desc|${seedKey}|${moods.join(",")}|${kp?.tonic ?? ""}|${kp?.mode ?? ""}`);
   const isMinor = kp?.mode === "minor" || (!kp && MINOR_BIAS_KEY.has(baseKey));
   const personality = PERSONALITIES[baseKey];
@@ -678,8 +898,46 @@ export function generateDescriptions(opts: {
     tone, Tone: tone[0].toUpperCase() + tone.slice(1),
     colorPhrase, motionPhrase, edge,
   });
+
+  // --- new 2-3 sentence vibe ---
+  // Hue-family color word for sentence 2 (so green palette → "Verdant" not "Violet")
+  let hueColorWord = pick(personality.phrases.color, h >>> 3);
+  if (colors) {
+    const fams = dominantHueFamilies(colors);
+    if (fams[0] && fams[0] !== "neutral") {
+      hueColorWord = pick(HUE_FAMILIES[fams[0]].colorWords, h >>> 4);
+    }
+  }
   const sceneBank = isMinor ? SCENE_BANK_MINOR : SCENE_BANK_MAJOR;
-  const vibe = fillTemplate(pick(VIBE_FRAMES, h >>> 15), { scene: pick(sceneBank, h >>> 18) });
+  const frameBank = isMinor ? VIBE_FRAMES_MINOR : VIBE_FRAMES_MAJOR;
+  const colorSentBank = isMinor ? COLOR_SENTENCES_MINOR : COLOR_SENTENCES_MAJOR;
+
+  const sceneSentence = fillTemplate(pick(frameBank, h >>> 15), {
+    scene: pick(sceneBank, h >>> 18),
+  });
+  const colorSentence = fillTemplate(pick(colorSentBank, h >>> 21), {
+    color: hueColorWord.toLowerCase(),
+    Color: hueColorWord,
+    motion: motionPhrase,
+  });
+
+  // Optional tempo coda — included ~60% of the time
+  const codaBank = tempoBand === "Fast"
+    ? TEMPO_CODAS_FAST
+    : tempoBand === "Slow"
+      ? TEMPO_CODAS_SLOW
+      : TEMPO_CODAS_MID;
+  const includeCoda = ((h >>> 24) & 7) < 5;
+  const coda = includeCoda ? " " + pick(codaBank, h >>> 26) : "";
+
+  let vibe: string;
+  const seed = vibeSeed?.trim() ?? "";
+  if (seed) {
+    // User-seeded: keep their wording, append ONE generator sentence to fine-tune.
+    vibe = `${cleanSeed(seed)} ${colorSentence}`;
+  } else {
+    vibe = `${sceneSentence} ${colorSentence}${coda}`;
+  }
 
   // motion keywords from selected moods
   const words = new Set<string>();
@@ -744,6 +1002,8 @@ export function generateAura(input: {
   keyConfidence?: number | null;
   sourceType?: SourceType;
   userColorInfluence?: UserColorInfluence | null;
+  /** Optional user-written seed for the vibe description — fine-tunes rather than replaces. */
+  vibeSeed?: string | null;
 }): AuraProfile {
   const baseKey = personalityFromMoods(input.moods);
   const seedKey = input.id || `${input.artist}-${input.title}`;
@@ -764,19 +1024,23 @@ export function generateAura(input: {
   const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
 
   const colors = buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
+  const tempoBand = tempoBandFor(energy);
   const influence = input.userColorInfluence ?? null;
   const colorGuided = !!(influence && influence.mode !== "surprise" && (
     (influence.mode === "single" && influence.colors.length > 0) ||
     (influence.mode === "palette" && influence.colors.length > 0) ||
     (influence.mode === "description" && colorWordsToHex(influence.description).length > 0)
   ));
-  const desc = generateDescriptions({ seedKey, moods: input.moods, kp, baseKey });
+  const desc = generateDescriptions({
+    seedKey, moods: input.moods, kp, baseKey, colors, tempoBand,
+    vibeSeed: input.vibeSeed ?? undefined,
+  });
 
   const isRaw = input.sourceType === "raw_recording";
   const h = hash(`raw|${seedKey}|${input.moods.join(",")}`);
   const auraName = isRaw && (h % 10) < 7
     ? pick(RAW_NAME_BANK, h)
-    : auraNameFor(seedKey, input.moods, kp);
+    : auraNameFor(seedKey, input.moods, kp, colors);
 
   let description = desc.short;
   if (isRaw) {
@@ -791,7 +1055,7 @@ export function generateAura(input: {
   return {
     palette: baseKey,
     auraName,
-    paletteName: paletteName(seed, input.moods, kp),
+    paletteName: paletteName(seed, input.moods, kp, colors),
     energy,
     description,
     vibeDescription: desc.vibe,
@@ -803,7 +1067,7 @@ export function generateAura(input: {
     keyConfidence: conf ?? undefined,
     pitchCenter: input.pitchCenter ?? undefined,
     sourceType: input.sourceType,
-    tempoBand: tempoBandFor(energy),
+    tempoBand,
     density: densityFor(seedKey, baseKey),
     colors,
     userColorInfluence: influence ?? undefined,

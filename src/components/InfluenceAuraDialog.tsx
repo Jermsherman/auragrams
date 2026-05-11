@@ -82,11 +82,12 @@ export function InfluenceAuraDialog({ track, open, onOpenChange, onApplied }: Pr
         energyOverride: track.energy,
         sourceType: track.sourceType,
         userColorInfluence: influence,
+        vibeSeed: vibeNote,
       }),
-    [track, moods, influence],
+    [track, moods, influence, vibeNote],
   );
 
-  const previewVibe = vibeNote.trim() || preview.vibeDescription;
+  const previewVibe = preview.vibeDescription;
 
   const previewAura = {
     id: track.id,
@@ -102,7 +103,7 @@ export function InfluenceAuraDialog({ track, open, onOpenChange, onApplied }: Pr
   const handleSave = async () => {
     setSaving(true);
     try {
-      const finalVibe = vibeNote.trim() || preview.vibeDescription;
+      const finalVibe = preview.vibeDescription;
       const patch: Partial<Track> = {
         moods,
         userColorInfluence: influence,
