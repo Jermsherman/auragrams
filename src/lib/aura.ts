@@ -808,18 +808,27 @@ const SHORT_TEMPLATES_MINOR = [
   "{Tone} weather of {colorPhrase}, {motionPhrase} beneath {edge}.",
   "A {tone} minor-key aura — {colorPhrase}, {motionPhrase}, {edge}.",
 ];
-const VIBE_FRAMES = [
-  "This track feels like {scene}.",
-  "It moves like {scene}, soft but impossible to ignore.",
-  "It plays like {scene} — close, deliberate, alive.",
-  "Sounds like {scene}, the kind that stays with you.",
+
+// Vibe is now 2-3 short sentences. Sentence 1 = scene, sentence 2 = color/motion,
+// sentence 3 (optional) = tempo/density coda.
+const VIBE_FRAMES_MAJOR = [
+  "Feels like {scene}.",
+  "Plays like {scene}.",
+  "Moves like {scene}.",
+];
+const VIBE_FRAMES_MINOR = [
+  "Feels like {scene}.",
+  "Sits inside {scene}.",
+  "Lingers like {scene}.",
 ];
 const SCENE_BANK_MINOR = [
-  "driving home under city lights with something unsaid still sitting in your chest",
-  "standing at the edge of a decision while the night gets louder than your thoughts",
+  "driving home under city lights with something unsaid in your chest",
+  "the edge of a decision while the night gets louder than your thoughts",
   "an old feeling coming back at the wrong time",
   "rain on a window you're not opening",
   "a memory you never fully left",
+  "the last cigarette of a long week",
+  "the room after everyone leaves",
 ];
 const SCENE_BANK_MAJOR = [
   "the first warm hour after a long week",
@@ -827,16 +836,56 @@ const SCENE_BANK_MAJOR = [
   "a road opening up just as the song hits",
   "a bright morning that owes you nothing and gives you everything",
   "walking back into a room that finally feels like yours",
+  "the moment a city skyline tips into gold",
+  "a quiet win you didn't tell anyone about",
+];
+
+const COLOR_SENTENCES_MAJOR = [
+  "{Color} air keeps moving in {motion}.",
+  "It glows in {color}, breathing through {motion}.",
+  "Light gathers in {color} and lifts on {motion}.",
+];
+const COLOR_SENTENCES_MINOR = [
+  "{Color} shadow drifts under {motion}.",
+  "It hangs in {color}, slow with {motion}.",
+  "{Color} weather pulls through {motion}.",
+];
+
+const TEMPO_CODAS_FAST = [
+  "It doesn't sit still.",
+  "It runs ahead of you.",
+  "It pulses faster than you expect.",
+];
+const TEMPO_CODAS_MID = [
+  "It moves at the speed of a long thought.",
+  "It keeps its own steady pulse.",
+];
+const TEMPO_CODAS_SLOW = [
+  "It takes its time.",
+  "It barely breathes.",
+  "It almost stops — and that's the point.",
 ];
 
 function fillTemplate(tmpl: string, parts: Record<string,string>): string {
   return tmpl.replace(/\{(\w+)\}/g, (_, k) => parts[k] ?? "");
 }
 
+function cleanSeed(s: string): string {
+  let t = s.trim().replace(/\s+/g, " ");
+  if (t.length > 180) t = t.slice(0, 177).replace(/[,\s]+\S*$/, "") + "…";
+  if (t && !/[.!?…]$/.test(t)) t += ".";
+  // Capitalize first letter for consistency.
+  if (t) t = t[0].toUpperCase() + t.slice(1);
+  return t;
+}
+
 export function generateDescriptions(opts: {
   seedKey: string; moods: string[]; kp: KeyProfile | null; baseKey: MoodKey;
+  colors?: AuraPalette | null;
+  tempoBand?: TempoBand;
+  vibeSeed?: string;
 }): { short: string; vibe: string; motionKeywords: string[] } {
-  const { seedKey, moods, kp, baseKey } = opts;
+  const { seedKey, moods, kp, baseKey, colors, tempoBand, vibeSeed } = opts;
   const h = hash(`desc|${seedKey}|${moods.join(",")}|${kp?.tonic ?? ""}|${kp?.mode ?? ""}`);
   const isMinor = kp?.mode === "minor" || (!kp && MINOR_BIAS_KEY.has(baseKey));
   const personality = PERSONALITIES[baseKey];
@@ -849,8 +898,46 @@ export function generateDescriptions(opts: {
     tone, Tone: tone[0].toUpperCase() + tone.slice(1),
     colorPhrase, motionPhrase, edge,
   });
+
+  // --- new 2-3 sentence vibe ---
+  // Hue-family color word for sentence 2 (so green palette → "Verdant" not "Violet")
+  let hueColorWord = pick(personality.phrases.color, h >>> 3);
+  if (colors) {
+    const fams = dominantHueFamilies(colors);
+    if (fams[0] && fams[0] !== "neutral") {
+      hueColorWord = pick(HUE_FAMILIES[fams[0]].colorWords, h >>> 4);
+    }
+  }
   const sceneBank = isMinor ? SCENE_BANK_MINOR : SCENE_BANK_MAJOR;
-  const vibe = fillTemplate(pick(VIBE_FRAMES, h >>> 15), { scene: pick(sceneBank, h >>> 18) });
+  const frameBank = isMinor ? VIBE_FRAMES_MINOR : VIBE_FRAMES_MAJOR;
+  const colorSentBank = isMinor ? COLOR_SENTENCES_MINOR : COLOR_SENTENCES_MAJOR;
+
+  const sceneSentence = fillTemplate(pick(frameBank, h >>> 15), {
+    scene: pick(sceneBank, h >>> 18),
+  });
+  const colorSentence = fillTemplate(pick(colorSentBank, h >>> 21), {
+    color: hueColorWord.toLowerCase(),
+    Color: hueColorWord,
+    motion: motionPhrase,
+  });
+
+  // Optional tempo coda — included ~60% of the time
+  const codaBank = tempoBand === "Fast"
+    ? TEMPO_CODAS_FAST
+    : tempoBand === "Slow"
+      ? TEMPO_CODAS_SLOW
+      : TEMPO_CODAS_MID;
+  const includeCoda = ((h >>> 24) & 7) < 5;
+  const coda = includeCoda ? " " + pick(codaBank, h >>> 26) : "";
+
+  let vibe: string;
+  const seed = vibeSeed?.trim() ?? "";
+  if (seed) {
+    // User-seeded: keep their wording, append ONE generator sentence to fine-tune.
+    vibe = `${cleanSeed(seed)} ${colorSentence}`;
+  } else {
+    vibe = `${sceneSentence} ${colorSentence}${coda}`;
+  }
 
   // motion keywords from selected moods
   const words = new Set<string>();
