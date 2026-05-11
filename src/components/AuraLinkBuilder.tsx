@@ -398,7 +398,7 @@ export function AuraLinkBuilder() {
           <p className="mt-2 text-sm sm:text-base text-muted-foreground px-4">
             {editingId
               ? "Update your link page — changes save when you publish."
-              : "Create a music-first link page with streaming links, Auras, or both."}
+              : "Create a music-first link page with streaming links, social links, and Auras from your Farm."}
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <HelpLink hash="auralinks" label="What is an AuraLink?" />
