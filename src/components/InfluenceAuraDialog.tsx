@@ -82,8 +82,9 @@ export function InfluenceAuraDialog({ track, open, onOpenChange, onApplied }: Pr
         energyOverride: track.energy,
         sourceType: track.sourceType,
         userColorInfluence: influence,
+        vibeSeed: vibeNote,
       }),
-    [track, moods, influence],
+    [track, moods, influence, vibeNote],
   );
 
   const previewVibe = vibeNote.trim() || preview.vibeDescription;
