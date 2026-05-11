@@ -111,6 +111,9 @@ export function AuraLinkBuilder() {
     setCustomLinks([]);
     setSelectedAuraIds([]);
     setFeaturedAuraId(undefined);
+    setSeoTitle("");
+    setSeoDescription("");
+    setSocialPreviewImage("");
   }, [profile]);
 
   // Load an existing AuraLink into the form for editing.
