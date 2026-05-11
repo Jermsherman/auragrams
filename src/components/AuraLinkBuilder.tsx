@@ -87,6 +87,12 @@ export function AuraLinkBuilder() {
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
   const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
+  // SEO & sharing
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [socialPreviewImage, setSocialPreviewImage] = useState<string>("");
+  const [uploadingSocial, setUploadingSocial] = useState(false);
+
   const [showPreview, setShowPreview] = useState(false);
 
   // Reset form to a blank slate (used by "New AuraLink").
