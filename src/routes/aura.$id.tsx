@@ -96,7 +96,7 @@ function AuraPage() {
     setTrack(t ?? undefined);
     setSaved(isAuraSaved(id));
 
-    // Priority: local public URL → session blob (just uploaded) → legacy data URL
+    // Priority: local public URL → session blob (just uploaded) → legacy data URL → IDB guest blob
     if (t?.audioPublicUrl) {
       setAudioUrl(t.audioPublicUrl);
     } else {
@@ -107,6 +107,11 @@ function AuraPage() {
         setAudioUrl(t.audioDataUrl);
       } else {
         setAudioUrl(null);
+        getGuestAudio(id)
+          .then((entry) => {
+            if (!cancelled && entry) setAudioUrl(entry.audioUrl);
+          })
+          .catch(() => {});
       }
     }
 
