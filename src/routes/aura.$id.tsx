@@ -35,6 +35,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/aura/$id")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
+  }),
   head: ({ params }) => ({
     meta: [
       { title: `AuraLink · ${params.id} — Auragram` },
