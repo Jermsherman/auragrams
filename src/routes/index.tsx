@@ -5,6 +5,7 @@ import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2 } from "lucide-react";
 import { FaqPreview } from "@/components/FaqPreview";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
