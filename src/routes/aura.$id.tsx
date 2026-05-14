@@ -19,6 +19,7 @@ import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAur
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio } from "@/lib/audioStorage";
+import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
