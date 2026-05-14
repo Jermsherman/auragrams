@@ -44,7 +44,7 @@ import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
-import { setPendingAura, clearPendingAura, getPendingAura } from "@/lib/pendingAura";
+import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
 // Link already imported above
 
 export const Route = createFileRoute("/create")({
