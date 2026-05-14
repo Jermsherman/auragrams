@@ -37,7 +37,7 @@ import {
   type AuracleProjectType,
 } from "@/lib/auracle";
 import { toast } from "sonner";
-import { RequireAuth } from "@/components/RequireAuth";
+import { Link } from "@tanstack/react-router";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
@@ -45,7 +45,7 @@ import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, clearPendingAura, getPendingAura } from "@/lib/pendingAura";
-import { Link } from "@tanstack/react-router";
+// Link already imported above
 
 export const Route = createFileRoute("/create")({
   head: () => ({
