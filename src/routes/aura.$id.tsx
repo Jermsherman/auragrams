@@ -19,7 +19,7 @@ import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAur
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio } from "@/lib/audioStorage";
-import { Sparkles as SparklesIcon } from "lucide-react";
+
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
