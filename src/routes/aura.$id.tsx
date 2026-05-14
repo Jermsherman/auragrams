@@ -180,15 +180,21 @@ function AuraPage() {
     setClaiming(true);
     (async () => {
       try {
-        // Try to upload audio if a File is still in the session blob.
+        // Try to upload audio if a File is still in the session blob,
+        // or recover it from IndexedDB (survives the auth redirect).
         const session = getSessionAudio(id);
+        let fileToUpload: File | null = session?.file ?? null;
+        if (!fileToUpload) {
+          const guest = await getGuestAudio(id);
+          if (guest) fileToUpload = guest.file;
+        }
         let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
-        if (session?.file) {
+        if (fileToUpload) {
           try {
             uploaded = await uploadAuraAudio({
               authUserId: user.id,
               auraId: id,
-              file: session.file,
+              file: fileToUpload,
               rawRecording: t.sourceType === "raw_recording",
             });
           } catch (e) {
@@ -216,6 +222,7 @@ function AuraPage() {
         });
         if (cancelled) return;
         clearPendingAura();
+        await clearGuestAudio(id).catch(() => {});
         setPendingId(null);
         toast.success("Saved to My Auras.");
         // Strip ?claim from URL.
