@@ -5,6 +5,7 @@ import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2 } from "lucide-react";
 import { FaqPreview } from "@/components/FaqPreview";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
@@ -59,7 +61,7 @@ function Index() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              A music-first link page for artists. Turn every song into a playable visual aura, then share them all from one page.
+              Create your first Aura for free. Sign up to save it and build your music-first AuraLink.
             </p>
 
             <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
@@ -67,18 +69,20 @@ function Index() {
                 to="/create"
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
               >
-                Create Aura <ArrowRight className="h-4 w-4" />
+                {user ? "Create Aura" : "Create Your First Aura"} <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                to="/auralink/create"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
-              >
-                <Link2 className="h-4 w-4" /> Build AuraLink
-              </Link>
+              {user && (
+                <Link
+                  to="/auralink/create"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
+                >
+                  <Link2 className="h-4 w-4" /> Build AuraLink
+                </Link>
+              )}
             </div>
 
             <div className="mt-6 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-              Create Aura → Save to My Auras → Build AuraLink → Share Anywhere
+              Create Aura → Sign Up → Build AuraLink → Share Anywhere
             </div>
           </div>
         </section>
@@ -91,7 +95,7 @@ function Index() {
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               { n: "01", t: "Create Aura", d: "Upload a song or paste a music link to generate a living visual aura." },
-              { n: "02", t: "Save to My Auras", d: "Sign up to save your auras and grow your collection." },
+              { n: "02", t: "Sign Up to Save", d: "Sign up to save your Aura, then build your AuraLink." },
               { n: "03", t: "Build AuraLink", d: "Add your songs, socials, and streaming links to one music-first page." },
               { n: "04", t: "Share Anywhere", d: "Drop your AuraLink in bios, DMs, and stories." },
             ].map((s) => (
@@ -185,14 +189,16 @@ function Index() {
                 to="/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                Create Aura <ArrowRight className="h-4 w-4" />
+                {user ? "Create Aura" : "Create Your First Aura"} <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                to="/auralink/create"
-                className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium glass-strong"
-              >
-                <Link2 className="h-4 w-4" /> Build AuraLink
-              </Link>
+              {user && (
+                <Link
+                  to="/auralink/create"
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium glass-strong"
+                >
+                  <Link2 className="h-4 w-4" /> Build AuraLink
+                </Link>
+              )}
             </div>
           </div>
         </section>

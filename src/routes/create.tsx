@@ -477,7 +477,7 @@ function CreatePage() {
             >
               Sign up
             </Link>{" "}
-            to save it to My Auras and add it to your AuraLink.
+            to save it and build your music-first AuraLink.
           </div>
         )}
 
