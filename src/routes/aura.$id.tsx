@@ -378,26 +378,35 @@ function AuraPage() {
             {track.artist}
           </Link>
           <p className="mt-3 text-sm text-muted-foreground">
-            Save it to your Farm or share it anywhere with an AuraLink.
+            Save it to My Auras or share it anywhere with an AuraLink.
           </p>
         </div>
 
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {isOwner ? (
+          {!user && pendingId === id ? (
+            <Link
+              to="/auth"
+              search={{ mode: "signup", redirect: `/aura/${id}?claim=1` }}
+              className="col-span-2 sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+            >
+              <Bookmark className="h-4 w-4" />
+              {claiming ? "Saving…" : "Save this Aura"}
+            </Link>
+          ) : isOwner ? (
             saved ? (
               <button
-                onClick={() => toast.message("Already in your Farm")}
+                onClick={() => toast.message("Already in My Auras")}
                 className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
               >
-                <BookmarkCheck className="h-4 w-4" /> Saved in Farm
+                <BookmarkCheck className="h-4 w-4" /> Saved
               </button>
             ) : (
               <button
                 onClick={handleSave}
                 className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                <Bookmark className="h-4 w-4" /> Save to Farm
+                <Bookmark className="h-4 w-4" /> Save to My Auras
               </button>
             )
           ) : null}
