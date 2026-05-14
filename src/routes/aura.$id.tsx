@@ -70,8 +70,11 @@ export const Route = createFileRoute("/aura/$id")({
 
 function AuraPage() {
   const { id } = Route.useParams();
+  const { claim } = Route.useSearch();
   const nav = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [claiming, setClaiming] = useState(false);
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
