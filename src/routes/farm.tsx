@@ -1,14 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useState } from "react";
-import { Sparkles, Plus, Layers, Link2 } from "lucide-react";
+import { Sparkles, Plus, Link2 } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { AuraFarmCard } from "@/components/AuraFarmCard";
-import { AuracleCard } from "@/components/AuracleCard";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
-import { getSavedAuracles, type Auracle } from "@/lib/auracle";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
 import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";

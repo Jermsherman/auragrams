@@ -249,7 +249,7 @@ function AuraPage() {
   const handleSave = () => {
     saveAuraFromTrack(track);
     setSaved(true);
-    toast.success("Aura added to your Farm.");
+    toast.success("Aura added to My Auras.");
   };
 
   const handleDelete = async () => {
