@@ -14,9 +14,12 @@ import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette, Shuffle } from "lucide-react";
-import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal } from "@/lib/farm";
-import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura";
+import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAuras } from "@/lib/farm";
+import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
+import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
+import { uploadAuraAudio } from "@/lib/audioStorage";
+
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
@@ -35,6 +38,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/aura/$id")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
+  }),
   head: ({ params }) => ({
     meta: [
       { title: `AuraLink · ${params.id} — Auragram` },
@@ -64,8 +70,11 @@ export const Route = createFileRoute("/aura/$id")({
 
 function AuraPage() {
   const { id } = Route.useParams();
+  const { claim } = Route.useSearch();
   const nav = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [claiming, setClaiming] = useState(false);
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -152,6 +161,75 @@ function AuraPage() {
       cancelled = true;
     };
   }, [id]);
+
+  // Track which Aura is the guest pending one (for Save CTA / claim flow).
+  useEffect(() => {
+    setPendingId(getPendingAura()?.id ?? null);
+  }, [id, user?.id]);
+
+  // Claim flow: after sign-in with ?claim=1, push the local guest Aura to cloud.
+  useEffect(() => {
+    if (!claim || !profile?.id || !user?.id) return;
+    const pending = getPendingAura();
+    if (!pending || pending.id !== id) return;
+    const t = getTrack(id);
+    const saved = getSavedAuras().find((a) => a.id === id);
+    if (!t || !saved) return;
+    let cancelled = false;
+    setClaiming(true);
+    (async () => {
+      try {
+        // Try to upload audio if a File is still in the session blob.
+        const session = getSessionAudio(id);
+        let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+        if (session?.file) {
+          try {
+            uploaded = await uploadAuraAudio({
+              authUserId: user.id,
+              auraId: id,
+              file: session.file,
+              rawRecording: t.sourceType === "raw_recording",
+            });
+          } catch (e) {
+            console.error("claim upload", e);
+          }
+        }
+        const enriched = uploaded
+          ? {
+              ...saved,
+              audioStoragePath: uploaded.storagePath,
+              audioPublicUrl: uploaded.publicUrl,
+              audioFileName: uploaded.fileName,
+              audioMimeType: uploaded.mimeType,
+              audioSizeBytes: uploaded.sizeBytes,
+              audioDurationSeconds: uploaded.durationSeconds ?? undefined,
+            }
+          : saved;
+        await saveAuraToCloud({
+          saved: enriched,
+          userId: profile.id,
+          visibilityMode: "username",
+          artistProfileId: null,
+          publicArtistName: profile.display_name ?? profile.username ?? null,
+          publicHandle: profile.username ?? null,
+        });
+        if (cancelled) return;
+        clearPendingAura();
+        setPendingId(null);
+        toast.success("Saved to My Auras.");
+        // Strip ?claim from URL.
+        nav({ to: "/aura/$id", params: { id }, search: {}, replace: true });
+      } catch (e) {
+        console.error("claim", e);
+        toast.error("Could not save your Aura. Please try again.");
+      } finally {
+        if (!cancelled) setClaiming(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [claim, profile?.id, user?.id, id, nav]);
 
   if (track === undefined) {
     return (
@@ -300,26 +378,35 @@ function AuraPage() {
             {track.artist}
           </Link>
           <p className="mt-3 text-sm text-muted-foreground">
-            Save it to your Farm or share it anywhere with an AuraLink.
+            Save it to My Auras or share it anywhere with an AuraLink.
           </p>
         </div>
 
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {isOwner ? (
+          {!user && pendingId === id ? (
+            <Link
+              to="/auth"
+              search={{ mode: "signup", redirect: `/aura/${id}?claim=1` }}
+              className="col-span-2 sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+            >
+              <Bookmark className="h-4 w-4" />
+              {claiming ? "Saving…" : "Save this Aura"}
+            </Link>
+          ) : isOwner ? (
             saved ? (
               <button
-                onClick={() => toast.message("Already in your Farm")}
+                onClick={() => toast.message("Already in My Auras")}
                 className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
               >
-                <BookmarkCheck className="h-4 w-4" /> Saved in Farm
+                <BookmarkCheck className="h-4 w-4" /> Saved
               </button>
             ) : (
               <button
                 onClick={handleSave}
                 className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                <Bookmark className="h-4 w-4" /> Save to Farm
+                <Bookmark className="h-4 w-4" /> Save to My Auras
               </button>
             )
           ) : null}
