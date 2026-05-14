@@ -21,6 +21,7 @@ import {
   seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
+import { putGuestAudio } from "@/lib/guestAudioStore";
 import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
 import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
@@ -274,6 +275,7 @@ function CreatePage() {
           });
           const audioUrl = URL.createObjectURL(file);
           setSessionAudio(id, file, audioUrl);
+          if (!user) await putGuestAudio(id, file).catch(() => {});
 
           let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
           if (user) {
@@ -385,6 +387,7 @@ function CreatePage() {
         );
       }
       setSessionAudio(id, audio, audioUrl);
+      if (!user) await putGuestAudio(id, audio).catch(() => {});
 
       // Upload to persistent storage (best effort — playback still works locally if it fails)
       let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;

@@ -19,6 +19,7 @@ import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAur
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio } from "@/lib/audioStorage";
+import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
@@ -95,7 +96,7 @@ function AuraPage() {
     setTrack(t ?? undefined);
     setSaved(isAuraSaved(id));
 
-    // Priority: local public URL → session blob (just uploaded) → legacy data URL
+    // Priority: local public URL → session blob (just uploaded) → legacy data URL → IDB guest blob
     if (t?.audioPublicUrl) {
       setAudioUrl(t.audioPublicUrl);
     } else {
@@ -106,6 +107,11 @@ function AuraPage() {
         setAudioUrl(t.audioDataUrl);
       } else {
         setAudioUrl(null);
+        getGuestAudio(id)
+          .then((entry) => {
+            if (!cancelled && entry) setAudioUrl(entry.audioUrl);
+          })
+          .catch(() => {});
       }
     }
 
@@ -179,15 +185,21 @@ function AuraPage() {
     setClaiming(true);
     (async () => {
       try {
-        // Try to upload audio if a File is still in the session blob.
+        // Try to upload audio if a File is still in the session blob,
+        // or recover it from IndexedDB (survives the auth redirect).
         const session = getSessionAudio(id);
+        let fileToUpload: File | null = session?.file ?? null;
+        if (!fileToUpload) {
+          const guest = await getGuestAudio(id);
+          if (guest) fileToUpload = guest.file;
+        }
         let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
-        if (session?.file) {
+        if (fileToUpload) {
           try {
             uploaded = await uploadAuraAudio({
               authUserId: user.id,
               auraId: id,
-              file: session.file,
+              file: fileToUpload,
               rawRecording: t.sourceType === "raw_recording",
             });
           } catch (e) {
@@ -215,6 +227,7 @@ function AuraPage() {
         });
         if (cancelled) return;
         clearPendingAura();
+        await clearGuestAudio(id).catch(() => {});
         setPendingId(null);
         toast.success("Saved to My Auras.");
         // Strip ?claim from URL.
