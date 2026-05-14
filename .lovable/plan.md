@@ -1,65 +1,94 @@
-## MVP stabilization pass
+## Goal
 
-After reviewing the codebase against the acceptance criteria, the core flow (sign in → create → upload → save → AuraLink → public page → playback) is wired end-to-end. There are four real correctness gaps and a couple of polish items. No new features.
+Reframe Auragram as: **"A music-first link page for artists where each song can become a playable visual aura."** Simplify navigation to four areas, allow guests to try Aura creation once before sign-up, and de-emphasize advanced concepts in the UI without removing them from code.
 
-### 1. Delete actually deletes (Farm + Aura page)
+## Scope (UI + light flow changes only)
 
-Today `AuraFarmCard` and `routes/aura.$id.tsx` call `deleteAura` from `@/lib/farm` only, which removes the localStorage copy. After refresh, the cloud row reappears in the Farm.
+Core engine, data model, Supabase schema, Auracle/Aurascope/influence/lore code stay intact. Changes are routing, navigation labels, copy, gating, and one new "guest preview" handoff.
 
-Fix:
-- In `AuraFarmCard.remove()` and `aura.$id.handleDelete()`:
-  - If `profile.id === aura.userId`, also call `deleteAura(id)` and `deleteAuraAudio(audioStoragePath)` from `@/lib/cloudAura`.
-  - Then remove the localStorage copy and update UI.
-- Show a friendly error toast on failure; still clear local copy so the UI matches cloud truth.
+## 1. Navigation simplification (`src/components/Nav.tsx`)
 
-### 2. Owner gating on `/aura/$id`
+Reduce nav to four primary destinations + auth:
 
-The page renders Save / Delete / Edit Aura / Edit Palette / Shuffle / Add to Auracle / Influence regardless of who's viewing. A public visitor arriving from an AuraLink should only see view + share + play.
+1. **Create Aura** → `/create` (CTA button, visible to everyone)
+2. **My Auras** → `/farm` (label changed from "Farm"; only when signed in)
+3. **My AuraLink** → `/auralink` (label changed from "AuraLink"; only when signed in)
+4. **Public Preview** → opens the user's own AuraLink slug in a new tab when one exists; otherwise links to `/auralink` builder. Hidden when signed out.
 
-Fix:
-- Track ownership: `const isOwner = !!profile?.id && cloudRow?.user_id === profile.id` (use existing `getPublicAura` result we already fetch).
-- Hide all mutation controls (Save to Farm chip, Delete, Edit Aura, Edit Palette, Shuffle, Add to Auracle, Influence link) when `!isOwner`.
-- Keep Share AuraLink, Story Preview, and the audio player visible for everyone.
-- The `/aura/$id/influence` route already redirects; add an `isOwner` gate (redirect to `/aura/$id` if not the owner).
+Keep FAQ link as secondary. Remove no other items. Internal route name `/farm` stays.
 
-### 3. Robust cloud hydration of the Aura page
+## 2. Guest Aura creation (one Aura before sign-up)
 
-In `aura.$id.tsx`, the cloud-fallback only builds a Track shell when `row.audio_public_url` exists. A visitor on a different device opening `/aura/:id` for a platform-link or external Aura (no uploaded audio) sees a 404 even though the cloud row exists.
+Today `/create` is wrapped in `<RequireAuth>`. Change so guests can use it once.
 
-Fix:
-- Always build the Track shell from `getPublicAura(id)` when `getTrack(id)` returns `null`.
-- Set `audioUrl` from `audio_public_url` when present; otherwise show the existing "no longer available" / embed / platform card fallback (already implemented).
-- Add a short "Loading Aura…" skeleton while the cloud lookup is in flight, so we don't briefly throw notFound.
+**`src/routes/create.tsx`**
+- Remove the `RequireAuth` wrapper from the route component.
+- Inside `CreatePage`, when `!user`:
+  - Hide `IdentitySelector` (default identity to "anonymous" internally for preview).
+  - Skip cloud upload + `saveAuraToCloud` in `submit()`.
+  - Persist the in-progress Aura to a new `pendingAura` slot in `localStorage` (id, generated aura fields, audio as object URL + the `File` kept in `setSessionAudio`, moods, color influence, title).
+  - Disable the "Auracle" mode tab for guests (Auracle stays in code, hidden from MVP UI).
+  - After generation, navigate to `/generating?id=…` then `/aura/$id` as today — the aura renders from localStorage/session like a normal aura.
+- Add a soft banner above the form for guests: *"Try one Aura free. Sign up to save it to My Auras and add it to your AuraLink."*
 
-### 4. Clean missing-audio fallback
+**`src/routes/aura.$id.tsx`**
+- When the viewer is unauthenticated AND this aura matches the `pendingAura` in localStorage, show a prominent "Save this Aura" CTA that routes to `/auth?mode=signup&redirect=/aura/<id>?claim=1`.
+- After successful auth + redirect back with `?claim=1`, run a one-shot effect: upload audio (if a File is still in session), `saveAuraToCloud` with the user's profile, clear `pendingAura`, toast "Saved to My Auras."
+- If the session File is gone (page reload lost it), fall back to saving metadata only and toast that they may need to re-upload audio.
 
-`AuraLinkAuraCard` shows a play button whenever `aura.audioPublicUrl` is present. If the underlying file is gone (rare), the audio element silently errors.
+**Guest limit**: only one `pendingAura` may exist at a time. A second guest creation overwrites the first with a confirm dialog ("Replace your unsaved Aura?").
 
-Fix:
-- Listen for the audio element's `error` event; on error, hide the play button and show a small "Audio unavailable" caption. Public AuraLink page still works.
+## 3. Rename "Farm" → "My Auras" in user-facing copy
 
-### 5. Mobile polish (small, presentational only)
+Code identifiers stay (`farm.ts`, `/farm`, `getSavedAuras`, `AuraFarmCard`, etc.).
 
-- `routes/aura.$id.tsx` header: the right-side cluster (Save/Delete + Saved chip + Share) can clip on narrow phones. Wrap with `flex-wrap` and ensure each button stays ≥40px tall (already 40px); collapse the "Saved" pill on `sm:hidden` (already done) and let the Share button always be visible.
-- `routes/farm.tsx` action row: filter chips and the "Build AuraLink from Farm" button already wrap; just tighten spacing on small screens (`gap-1.5` and `text-[11px]` for filter chips on mobile).
-- `AuraLinkView` already uses `max-w-md` and pill-style buttons; no change needed beyond confirming the share button doesn't overlap a small viewport (already `top-4 right-4` with `glass`, fine).
+Update visible strings in:
+- `src/components/Nav.tsx` (already covered above)
+- `src/routes/farm.tsx`: page `<title>`, head meta, H1 ("My Auras"), description copy, empty state.
+- `src/routes/index.tsx`: replace "Farm" mentions in hero copy, "How it works" step 02, the "Aura Farm" feature card, and the workflow caption ("Create Aura → Save to My Auras → Build AuraLink → Share").
+- `src/components/AddToAuraLinkDialog.tsx` and any toast/empty-state strings that say "Farm" — swap to "My Auras".
+- `src/routes/auralink.tsx` head meta if it references Farm.
 
-### Files touched
+Keep route path `/farm` (no redirect needed) so existing links work.
 
-- `src/lib/farm.ts` — no schema change; `SavedAura.userId?` added so cards can check ownership cheaply (filled in by `mapAuraRowToSaved`).
-- `src/lib/cloudAura.ts` — include `user_id` in `mapAuraRowToSaved` output.
-- `src/components/AuraFarmCard.tsx` — cloud-aware delete; owner check (defensive — Farm should only show owner rows).
-- `src/routes/aura.$id.tsx` — owner gating, always-hydrate Track shell from cloud, loading skeleton.
-- `src/routes/aura.$id.influence.tsx` — owner redirect.
-- `src/components/AuraLinkAuraCard.tsx` — audio `onError` → hide controls, show caption.
-- Minor mobile classnames in `routes/aura.$id.tsx` and `routes/farm.tsx`.
+## 4. Reframe homepage (`src/routes/index.tsx`)
 
-### Out of scope (explicit)
+- Headline stays visually similar; subheadline becomes: *"A music-first link page for artists. Each song becomes a playable visual Aura you can share anywhere."*
+- Primary CTA: **Create Aura** (guests welcome) → `/create`. Secondary CTA: **Build AuraLink** → `/auralink` (gated as today).
+- "How it works" reduced to 4 steps reflecting the canonical flow:
+  1. Create profile (sign up)
+  2. Add a song
+  3. Generate its Aura
+  4. Add to AuraLink & share
+- Remove "Build Auracles" step from the public homepage. AuraLink Spotlight section stays.
+- Drop the "Auracle" mention from the feature trio; replace with a "My Auras" card.
 
-- Producer credits, Fave 5, MySpace-style customization, new dashboards.
-- Local→cloud migration prompt (existing flow already merges; no demo blocker).
-- Re-architecting Farm to drop localStorage entirely (kept only as a hydration fallback).
+## 5. De-emphasize advanced concepts in MVP UI
 
-### Acceptance verification
+No file deletions. Hide entry points only.
 
-After the patch I'll spot-check: sign in → create Aura with upload → see in Farm → build AuraLink → open `/l/:slug` in a new tab → play Aura inline → refresh → still works → sign out → public page still works, no owner controls leak through.
+- **Auracle**: hide the Auracle tab in `/create` mode switcher (keep behind a feature flag constant `MVP_HIDE_AURACLE = true` at top of `create.tsx`). Hide Auracles tab on `/farm` page (Tabs collapsed to single "Auras" view) when flag on. `AuracleCard`, `auracle.$id`, `auracle.create` routes still exist and remain reachable by direct URL.
+- **Aurascope / aura lore / influence**: keep `/aura/$id` clean — primary actions are Play, Add to AuraLink, Share. Keep "Influence" as a smaller secondary link rather than a prominent button. No code removal.
+- **Public artist feed / fan / collecting / comments**: confirm none of these are surfaced in primary nav; nothing to change in this pass beyond the nav cleanup.
+
+## 6. Aura page CTA tweak
+
+`src/routes/aura.$id.tsx`: when owner, ensure the **Add to AuraLink** button is the primary CTA (already exists). When viewer is the guest creator (pre-auth), the primary CTA becomes **Save to My Auras** (sign-up flow from §2).
+
+## 7. Out of scope
+
+- No schema changes.
+- No removal of Auracle/Aurascope code.
+- No visual redesign — colors, fonts, components unchanged.
+- No changes to `/l/$slug` public renderer.
+- No migration of existing localStorage data.
+
+## Acceptance criteria
+
+- Nav shows Create Aura, My Auras, My AuraLink, Public Preview, FAQ.
+- A signed-out visitor can create one Aura end-to-end and see its `/aura/$id` page.
+- That guest sees a "Save this Aura" CTA → sign up → returns to the same Aura, which is now saved to their cloud My Auras.
+- "Farm" no longer appears in user-visible copy; route `/farm` still works.
+- Auracle tab is hidden in `/create` and `/farm`; direct URLs still resolve.
+- Homepage messaging matches the new product framing.
+- Existing signed-in flows (create, save, build AuraLink, publish, share) continue to work.
