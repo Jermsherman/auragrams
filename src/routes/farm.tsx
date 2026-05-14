@@ -1,14 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useState } from "react";
-import { Sparkles, Plus, Layers, Link2 } from "lucide-react";
+import { Sparkles, Plus, Link2 } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { AuraFarmCard } from "@/components/AuraFarmCard";
-import { AuracleCard } from "@/components/AuracleCard";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
-import { getSavedAuracles, type Auracle } from "@/lib/auracle";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
 import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
@@ -16,15 +13,15 @@ import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
 export const Route = createFileRoute("/farm")({
   head: () => ({
     meta: [
-      { title: "Aura Farm — Auragram" },
+      { title: "My Auras — Auragram" },
       {
         name: "description",
-        content: "Your growing collection of sonic identities and curated Auracles.",
+        content: "Your growing collection of sonic identities.",
       },
-      { property: "og:title", content: "Aura Farm — Auragram" },
+      { property: "og:title", content: "My Auras — Auragram" },
       {
         property: "og:description",
-        content: "Your growing collection of sonic identities and curated Auracles.",
+        content: "Your growing collection of sonic identities.",
       },
     ],
   }),
@@ -36,13 +33,10 @@ type Filter = "all" | "upload" | "platform_link" | "raw_recording";
 function FarmPage() {
   const { profile } = useAuth();
   const [auras, setAuras] = useState<SavedAura[] | null>(null);
-  const [auracles, setAuracles] = useState<Auracle[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
-    // Hydrate immediately from local cache to avoid empty flicker.
     setAuras(getSavedAuras());
-    setAuracles(getSavedAuracles());
 
     if (!profile?.id) return;
     let cancelled = false;
@@ -67,8 +61,6 @@ function FarmPage() {
 
   const removedAura = (id: string) =>
     setAuras((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
-  const removedAuracle = (id: string) =>
-    setAuracles((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
 
   const filteredAuras = (auras ?? []).filter((a) => {
     if (filter === "all") return true;
@@ -76,62 +68,42 @@ function FarmPage() {
     return a.sourceType === filter;
   });
 
-  const canCreateAuracle = (auras?.length ?? 0) >= 2;
-
   return (
     <div className="min-h-screen flex flex-col">
       <Nav showCta={false} />
       <main className="flex-1 mx-auto w-full max-w-5xl px-5 sm:px-8 py-12 sm:py-16">
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-            <Sparkles className="h-3 w-3" /> Aura Farm
+            <Sparkles className="h-3 w-3" /> My Auras
           </div>
           <h1 className="mt-4 font-display text-4xl sm:text-5xl tracking-tight">
-            Your <span className="text-aura-gradient">Aura Farm.</span>
+            Your <span className="text-aura-gradient">Auras.</span>
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Your growing collection of sonic identities — and the Auracles you build from them.
+            Your growing collection of sonic identities.
           </p>
           <div className="mt-4 flex justify-center">
-            <HelpLink hash="farm" label="What is the Farm?" />
+            <HelpLink hash="farm" label="What is My Auras?" />
           </div>
         </div>
 
-        <Tabs defaultValue="auras" className="mt-10 sm:mt-12 animate-fade-up">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <TabsList className="bg-background/40 border border-border/60 rounded-full p-1 h-10">
-              <TabsTrigger value="auras" className="rounded-full px-4 h-8 text-xs uppercase tracking-[0.2em]">
-                Auras
-              </TabsTrigger>
-              <TabsTrigger value="auracles" className="rounded-full px-4 h-8 text-xs uppercase tracking-[0.2em]">
-                Auracles
-              </TabsTrigger>
-            </TabsList>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                to="/create"
-                className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
-              >
-                <Plus className="h-4 w-4" /> Create Aura
-              </Link>
-              <Link
-                to="/auralink/create"
-                className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
-              >
-                <Link2 className="h-4 w-4" /> Build AuraLink from Farm
-              </Link>
-              {canCreateAuracle && (
-                <Link
-                  to="/auracle/create"
-                  className="inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground px-4 h-10 text-xs sm:text-sm shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.9)]"
-                >
-                  <Layers className="h-4 w-4" /> Create Auracle
-                </Link>
-              )}
-            </div>
+        <div className="mt-10 sm:mt-12 animate-fade-up">
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            <Link
+              to="/create"
+              className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Create Aura
+            </Link>
+            <Link
+              to="/auralink/create"
+              className="inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground px-4 h-10 text-xs sm:text-sm shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.9)]"
+            >
+              <Link2 className="h-4 w-4" /> Build AuraLink
+            </Link>
           </div>
 
-          <TabsContent value="auras" className="mt-8">
+          <div className="mt-8">
             {auras === null ? null : auras.length === 0 ? (
               <EmptyAuras />
             ) : (
@@ -170,20 +142,8 @@ function FarmPage() {
                 )}
               </>
             )}
-          </TabsContent>
-
-          <TabsContent value="auracles" className="mt-8">
-            {auracles === null ? null : auracles.length === 0 ? (
-              <EmptyAuracles canCreate={canCreateAuracle} />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {auracles.map((a) => (
-                  <AuracleCard key={a.id} auracle={a} onDeleted={removedAuracle} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
       <Footer />
     </div>
@@ -193,7 +153,7 @@ function FarmPage() {
 function EmptyAuras() {
   return (
     <div className="mx-auto max-w-md text-center glass-strong rounded-3xl p-10">
-      <h2 className="font-display text-2xl">Your Farm is empty.</h2>
+      <h2 className="font-display text-2xl">No Auras yet.</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Create your first Aura and start growing your collection.
       </p>
@@ -201,31 +161,8 @@ function EmptyAuras() {
         to="/create"
         className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient"
       >
-        Gain Aura
+        Create Aura
       </Link>
-    </div>
-  );
-}
-
-function EmptyAuracles({ canCreate }: { canCreate: boolean }) {
-  return (
-    <div className="mx-auto max-w-md text-center glass-strong rounded-3xl p-10">
-      <h2 className="font-display text-2xl">No Auracles yet.</h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Group Auras from your Farm into a living project.
-      </p>
-      {canCreate ? (
-        <Link
-          to="/auracle/create"
-          className="mt-6 inline-flex items-center gap-2 rounded-full px-5 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient"
-        >
-          <Layers className="h-4 w-4" /> Create Auracle
-        </Link>
-      ) : (
-        <p className="mt-6 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-          Save at least 2 Auras first
-        </p>
-      )}
     </div>
   );
 }
