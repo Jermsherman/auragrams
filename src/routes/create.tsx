@@ -275,6 +275,7 @@ function CreatePage() {
           });
           const audioUrl = URL.createObjectURL(file);
           setSessionAudio(id, file, audioUrl);
+          if (!user) await putGuestAudio(id, file).catch(() => {});
 
           let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
           if (user) {
