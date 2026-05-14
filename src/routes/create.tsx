@@ -387,6 +387,7 @@ function CreatePage() {
         );
       }
       setSessionAudio(id, audio, audioUrl);
+      if (!user) await putGuestAudio(id, audio).catch(() => {});
 
       // Upload to persistent storage (best effort — playback still works locally if it fails)
       let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
