@@ -95,7 +95,7 @@ function Index() {
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               { n: "01", t: "Create Aura", d: "Upload a song or paste a music link to generate a living visual aura." },
-              { n: "02", t: "Save to My Auras", d: "Sign up to save your auras and grow your collection." },
+              { n: "02", t: "Sign Up to Save", d: "Sign up to save your Aura, then build your AuraLink." },
               { n: "03", t: "Build AuraLink", d: "Add your songs, socials, and streaming links to one music-first page." },
               { n: "04", t: "Share Anywhere", d: "Drop your AuraLink in bios, DMs, and stories." },
             ].map((s) => (
