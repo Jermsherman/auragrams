@@ -429,6 +429,10 @@ function CreatePage() {
           console.error("cloud save aura", e);
           toast.error("We couldn't save your Aura to the cloud. Try again.");
         });
+      } else if (isGuest) {
+        // Guest path: keep local-only, mark as pending so we can claim post-signup.
+        saveAuraFromTrack(fullTrack as Parameters<typeof saveAuraFromTrack>[0]);
+        setPendingAura({ id, createdAt: Date.now() });
       }
       nav({ to: "/generating", search: { id } });
     } catch (e) {
