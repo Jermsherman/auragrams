@@ -1,94 +1,56 @@
-## Goal
+# Fix: guest Aura loses its audio after sign-up
 
-Reframe Auragram as: **"A music-first link page for artists where each song can become a playable visual aura."** Simplify navigation to four areas, allow guests to try Aura creation once before sign-up, and de-emphasize advanced concepts in the UI without removing them from code.
+## Root cause
 
-## Scope (UI + light flow changes only)
+When a guest creates an Aura, the uploaded file lives only in an in-memory `Map` in `src/lib/session.ts`. Tapping "Save this Aura" navigates to `/auth`, which triggers a full page reload (and another one after auth redirects back). That wipes the in-memory store.
 
-Core engine, data model, Supabase schema, Auracle/Aurascope/influence/lore code stay intact. Changes are routing, navigation labels, copy, gating, and one new "guest preview" handoff.
+By the time `/aura/$id?claim=1` runs the claim effect in `src/routes/aura.$id.tsx`:
 
-## 1. Navigation simplification (`src/components/Nav.tsx`)
+- `getSessionAudio(id)` returns `null`
+- the upload-to-Supabase branch is skipped
+- `saveAuraToCloud(...)` writes the row with no `audio_storage_path` / `audio_public_url`
 
-Reduce nav to four primary destinations + auth:
+Result: the cloud Aura has no audio, and on the next visit the page falls back to the cloud row — audio appears deleted.
 
-1. **Create Aura** → `/create` (CTA button, visible to everyone)
-2. **My Auras** → `/farm` (label changed from "Farm"; only when signed in)
-3. **My AuraLink** → `/auralink` (label changed from "AuraLink"; only when signed in)
-4. **Public Preview** → opens the user's own AuraLink slug in a new tab when one exists; otherwise links to `/auralink` builder. Hidden when signed out.
+## Plan
 
-Keep FAQ link as secondary. Remove no other items. Internal route name `/farm` stays.
+Keep the in-memory session store as-is (still the fast path), but add a tiny IndexedDB-backed persistence layer for the guest audio Blob, keyed by aura id, so it survives the auth navigation.
 
-## 2. Guest Aura creation (one Aura before sign-up)
+### 1. New file `src/lib/guestAudioStore.ts`
 
-Today `/create` is wrapped in `<RequireAuth>`. Change so guests can use it once.
+Minimal IndexedDB wrapper (no deps):
 
-**`src/routes/create.tsx`**
-- Remove the `RequireAuth` wrapper from the route component.
-- Inside `CreatePage`, when `!user`:
-  - Hide `IdentitySelector` (default identity to "anonymous" internally for preview).
-  - Skip cloud upload + `saveAuraToCloud` in `submit()`.
-  - Persist the in-progress Aura to a new `pendingAura` slot in `localStorage` (id, generated aura fields, audio as object URL + the `File` kept in `setSessionAudio`, moods, color influence, title).
-  - Disable the "Auracle" mode tab for guests (Auracle stays in code, hidden from MVP UI).
-  - After generation, navigate to `/generating?id=…` then `/aura/$id` as today — the aura renders from localStorage/session like a normal aura.
-- Add a soft banner above the form for guests: *"Try one Aura free. Sign up to save it to My Auras and add it to your AuraLink."*
+- `putGuestAudio(id, file: File): Promise<void>` — store `{ id, blob, name, type, savedAt }` in object store `guest_audio`.
+- `getGuestAudio(id): Promise<{ file: File; audioUrl: string } | null>` — reconstruct a `File` from the blob and create an object URL.
+- `clearGuestAudio(id): Promise<void>` — delete the entry and best-effort `URL.revokeObjectURL`.
+- All functions are SSR-safe (`typeof indexedDB === "undefined"` → return null / noop) and swallow errors.
 
-**`src/routes/aura.$id.tsx`**
-- When the viewer is unauthenticated AND this aura matches the `pendingAura` in localStorage, show a prominent "Save this Aura" CTA that routes to `/auth?mode=signup&redirect=/aura/<id>?claim=1`.
-- After successful auth + redirect back with `?claim=1`, run a one-shot effect: upload audio (if a File is still in session), `saveAuraToCloud` with the user's profile, clear `pendingAura`, toast "Saved to My Auras."
-- If the session File is gone (page reload lost it), fall back to saving metadata only and toast that they may need to re-upload audio.
+### 2. `src/routes/create.tsx`
 
-**Guest limit**: only one `pendingAura` may exist at a time. A second guest creation overwrites the first with a confirm dialog ("Replace your unsaved Aura?").
+Wherever we currently call `setSessionAudio(id, file, audioUrl)` (the two sites at ~line 276 and ~line 387), also `await putGuestAudio(id, file).catch(() => {})` when there is no signed-in user. This guarantees the file is durable before navigation.
 
-## 3. Rename "Farm" → "My Auras" in user-facing copy
+(Logged-in users don't need this — they upload to Supabase Storage in the normal flow.)
 
-Code identifiers stay (`farm.ts`, `/farm`, `getSavedAuras`, `AuraFarmCard`, etc.).
+### 3. `src/routes/aura.$id.tsx`
 
-Update visible strings in:
-- `src/components/Nav.tsx` (already covered above)
-- `src/routes/farm.tsx`: page `<title>`, head meta, H1 ("My Auras"), description copy, empty state.
-- `src/routes/index.tsx`: replace "Farm" mentions in hero copy, "How it works" step 02, the "Aura Farm" feature card, and the workflow caption ("Create Aura → Save to My Auras → Build AuraLink → Share").
-- `src/components/AddToAuraLinkDialog.tsx` and any toast/empty-state strings that say "Farm" — swap to "My Auras".
-- `src/routes/auralink.tsx` head meta if it references Farm.
+Two surgical changes inside the existing `claim` effect (lines ~171–232):
 
-Keep route path `/farm` (no redirect needed) so existing links work.
+a. If `getSessionAudio(id)` returns nothing, fall back to `await getGuestAudio(id)` and use that `{ file }` for the `uploadAuraAudio(...)` call. Everything else stays the same.
 
-## 4. Reframe homepage (`src/routes/index.tsx`)
+b. After a successful `saveAuraToCloud(...)`, call `await clearGuestAudio(id).catch(() => {})` alongside the existing `clearPendingAura()`.
 
-- Headline stays visually similar; subheadline becomes: *"A music-first link page for artists. Each song becomes a playable visual Aura you can share anywhere."*
-- Primary CTA: **Create Aura** (guests welcome) → `/create`. Secondary CTA: **Build AuraLink** → `/auralink` (gated as today).
-- "How it works" reduced to 4 steps reflecting the canonical flow:
-  1. Create profile (sign up)
-  2. Add a song
-  3. Generate its Aura
-  4. Add to AuraLink & share
-- Remove "Build Auracles" step from the public homepage. AuraLink Spotlight section stays.
-- Drop the "Auracle" mention from the feature trio; replace with a "My Auras" card.
+Also extend the initial audio-resolution effect (lines ~92–110): if no session blob and no `audioPublicUrl`, asynchronously try `getGuestAudio(id)` and `setAudioUrl(entry.audioUrl)`. This makes the guest Aura playable on `/aura/$id` even after a hard refresh before sign-up.
 
-## 5. De-emphasize advanced concepts in MVP UI
-
-No file deletions. Hide entry points only.
-
-- **Auracle**: hide the Auracle tab in `/create` mode switcher (keep behind a feature flag constant `MVP_HIDE_AURACLE = true` at top of `create.tsx`). Hide Auracles tab on `/farm` page (Tabs collapsed to single "Auras" view) when flag on. `AuracleCard`, `auracle.$id`, `auracle.create` routes still exist and remain reachable by direct URL.
-- **Aurascope / aura lore / influence**: keep `/aura/$id` clean — primary actions are Play, Add to AuraLink, Share. Keep "Influence" as a smaller secondary link rather than a prominent button. No code removal.
-- **Public artist feed / fan / collecting / comments**: confirm none of these are surfaced in primary nav; nothing to change in this pass beyond the nav cleanup.
-
-## 6. Aura page CTA tweak
-
-`src/routes/aura.$id.tsx`: when owner, ensure the **Add to AuraLink** button is the primary CTA (already exists). When viewer is the guest creator (pre-auth), the primary CTA becomes **Save to My Auras** (sign-up flow from §2).
-
-## 7. Out of scope
+### 4. Out of scope
 
 - No schema changes.
-- No removal of Auracle/Aurascope code.
-- No visual redesign — colors, fonts, components unchanged.
-- No changes to `/l/$slug` public renderer.
-- No migration of existing localStorage data.
+- No changes to `auralinkService`, `farm.ts`, or any other route.
+- We do NOT remove the in-memory `session.ts` store — the IDB layer is purely additive.
+- No quota/eviction UI; only one pending guest Aura is allowed at a time (already enforced by `pendingAura.ts`), so storage stays bounded.
 
-## Acceptance criteria
+## Acceptance check
 
-- Nav shows Create Aura, My Auras, My AuraLink, Public Preview, FAQ.
-- A signed-out visitor can create one Aura end-to-end and see its `/aura/$id` page.
-- That guest sees a "Save this Aura" CTA → sign up → returns to the same Aura, which is now saved to their cloud My Auras.
-- "Farm" no longer appears in user-visible copy; route `/farm` still works.
-- Auracle tab is hidden in `/create` and `/farm`; direct URLs still resolve.
-- Homepage messaging matches the new product framing.
-- Existing signed-in flows (create, save, build AuraLink, publish, share) continue to work.
+1. Sign out, create an Aura as guest, tap "Save this Aura", complete sign-up.
+2. Land back on `/aura/$id?claim=1` — toast says "Saved to My Auras".
+3. The Aura in `/farm` plays the original uploaded audio.
+4. Refresh the page — audio still plays from the cloud URL.
