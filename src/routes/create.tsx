@@ -62,11 +62,7 @@ export const Route = createFileRoute("/create")({
       },
     ],
   }),
-  component: () => (
-    <RequireAuth>
-      <CreatePage />
-    </RequireAuth>
-  ),
+  component: CreatePage,
 });
 
 type Mode = "file" | "raw" | "auracle";
