@@ -301,7 +301,7 @@ function AuraPage() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
-                  aria-label="Delete from Farm"
+                  aria-label="Delete from My Auras"
                   className="inline-flex items-center gap-2 rounded-full glass px-3 sm:px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -312,7 +312,7 @@ function AuraPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this Aura?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This removes the Aura from your Farm and your cloud library.
+                    This removes the Aura from My Auras and your cloud library.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -327,7 +327,7 @@ function AuraPage() {
               className="inline-flex items-center gap-2 rounded-full glass px-3 sm:px-4 h-10 text-xs sm:text-sm hover:bg-foreground/10 transition-colors"
             >
               <Bookmark className="h-4 w-4" />
-              <span className="hidden sm:inline">Save to Farm</span>
+              <span className="hidden sm:inline">Save to My Auras</span>
             </button>
           ))}
           {isOwner && saved && (

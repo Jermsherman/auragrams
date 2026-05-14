@@ -59,7 +59,7 @@ function Index() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              Turn songs into living Auras, save them to your Farm, and build an AuraLink that brings your music, visuals, and socials into one shareable page.
+              A music-first link page for artists. Turn every song into a playable visual aura, then share them all from one page.
             </p>
 
             <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
@@ -78,7 +78,7 @@ function Index() {
             </div>
 
             <div className="mt-6 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-              Create Aura → Save to Farm → Build AuraLink → Share Anywhere
+              Create Aura → Save to My Auras → Build AuraLink → Share Anywhere
             </div>
           </div>
         </section>
@@ -90,10 +90,10 @@ function Index() {
           </h2>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { n: "01", t: "Gain Aura", d: "Upload a sound or paste a music link." },
-              { n: "02", t: "Grow Your Farm", d: "Save your visual music identities in one place." },
-              { n: "03", t: "Build Auracles", d: "Group Auras into living albums, EPs, playlists, or rollouts." },
-              { n: "04", t: "Share AuraLinks", d: "Give every track or project a living link built for bios, stories, DMs, and posts." },
+              { n: "01", t: "Create Aura", d: "Upload a song or paste a music link to generate a living visual aura." },
+              { n: "02", t: "Save to My Auras", d: "Sign up to save your auras and grow your collection." },
+              { n: "03", t: "Build AuraLink", d: "Add your songs, socials, and streaming links to one music-first page." },
+              { n: "04", t: "Share Anywhere", d: "Drop your AuraLink in bios, DMs, and stories." },
             ].map((s) => (
               <div
                 key={s.n}
@@ -150,7 +150,7 @@ function Index() {
               },
               {
                 I: Wand2,
-                t: "Aura Farm",
+                t: "My Auras",
                 d: "Your growing collection of sonic identities, in one place.",
               },
               {
