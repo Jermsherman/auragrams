@@ -28,6 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
