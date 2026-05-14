@@ -229,9 +229,8 @@ function AuraPage() {
         clearPendingAura();
         await clearGuestAudio(id).catch(() => {});
         setPendingId(null);
-        toast.success("Saved to My Auras.");
-        // Strip ?claim from URL.
-        nav({ to: "/aura/$id", params: { id }, search: {}, replace: true });
+        toast.success("Saved to My Auras. Let's build your AuraLink.");
+        nav({ to: "/auralink/create", replace: true });
       } catch (e) {
         console.error("claim", e);
         toast.error("Could not save your Aura. Please try again.");
