@@ -14,7 +14,7 @@ import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette, Shuffle } from "lucide-react";
-import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAura } from "@/lib/farm";
+import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAuras } from "@/lib/farm";
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
