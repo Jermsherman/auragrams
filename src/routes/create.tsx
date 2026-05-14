@@ -713,12 +713,16 @@ function CreatePage() {
               </div>
 
 
-              {/* Public Identity */}
-              <IdentitySelector value={identity} onChange={setIdentity} onResolve={setResolvedIdentity} />
-              {identity.mode === "anonymous" && (
-                <p className="px-2 text-[11px] text-muted-foreground">
-                  Your AuraLink will not show your artist name or username, but it will still be saved privately to your Farm.
-                </p>
+              {/* Public Identity (signed-in only) */}
+              {!isGuest && (
+                <>
+                  <IdentitySelector value={identity} onChange={setIdentity} onResolve={setResolvedIdentity} />
+                  {identity.mode === "anonymous" && (
+                    <p className="px-2 text-[11px] text-muted-foreground">
+                      Your AuraLink will not show your artist name or username, but it will still be saved privately to My Auras.
+                    </p>
+                  )}
+                </>
               )}
 
               {/* Mood picker + live preview */}
