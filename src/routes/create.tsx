@@ -150,7 +150,15 @@ function CreatePage() {
   }, [identity.mode, resolvedIdentity.publicArtistName]);
 
   
+
+  const isGuest = !user;
+  // Guests cannot use Auracle (multi-track) or pick identity — they get a single guest Aura.
+  useEffect(() => {
+    if (isGuest && mode === "auracle") setMode("file");
+  }, [isGuest, mode]);
+
   const identityReady =
+    isGuest ||
     identity.mode === "anonymous" ||
     (identity.mode === "username" && !!profile?.username) ||
     (identity.mode === "artist" && !!identity.artistProfileId);
