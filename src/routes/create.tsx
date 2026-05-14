@@ -252,6 +252,12 @@ function CreatePage() {
 
   const submit = async () => {
     if (!ready) return;
+    if (isGuest) {
+      const existing = getPendingAura();
+      if (existing && !window.confirm("You already have an unsaved guest Aura. Replace it?")) {
+        return;
+      }
+    }
     setBusy(true);
     try {
       if (mode === "auracle") {
