@@ -1,10 +1,31 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "@/hooks/useAuth";
+import { listMyAuraLinks } from "@/lib/auralinkService";
 
 export function Nav({ showCta = true }: { showCta?: boolean }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile?.id) {
+      setPreviewSlug(null);
+      return;
+    }
+    let cancelled = false;
+    listMyAuraLinks(profile.id)
+      .then((pages) => {
+        if (cancelled) return;
+        setPreviewSlug(pages[0]?.handleSlug ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
+
   return (
     <header className="sticky top-0 z-40">
       <div className="absolute inset-0 backdrop-blur-md bg-background/40 border-b border-border/60" />
@@ -16,21 +37,31 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           {user && (
             <>
               <Link
-                to="/auralink"
-                activeProps={{ className: "text-foreground" }}
-                inactiveProps={{ className: "text-muted-foreground" }}
-                className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
-              >
-                AuraLink
-              </Link>
-              <Link
                 to="/farm"
                 activeProps={{ className: "text-foreground" }}
                 inactiveProps={{ className: "text-muted-foreground" }}
                 className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
               >
-                Farm
+                My Auras
               </Link>
+              <Link
+                to="/auralink"
+                activeProps={{ className: "text-foreground" }}
+                inactiveProps={{ className: "text-muted-foreground" }}
+                className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
+              >
+                My AuraLink
+              </Link>
+              {previewSlug && (
+                <a
+                  href={`/l/${previewSlug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden sm:inline text-xs sm:text-sm tracking-wide text-muted-foreground hover:text-foreground transition-colors px-2"
+                >
+                  Public Preview
+                </a>
+              )}
             </>
           )}
           <Link

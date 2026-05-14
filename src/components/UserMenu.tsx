@@ -41,7 +41,7 @@ export function UserMenu() {
         <DropdownMenuLabel className="truncate">{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => nav({ to: "/farm" })}>
-          <Sparkles className="h-4 w-4 mr-2" /> Farm
+          <Sparkles className="h-4 w-4 mr-2" /> My Auras
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => nav({ to: "/settings/artists" })}>
           <Layers className="h-4 w-4 mr-2" /> Artist Profiles
