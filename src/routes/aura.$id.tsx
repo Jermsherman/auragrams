@@ -162,6 +162,75 @@ function AuraPage() {
     };
   }, [id]);
 
+  // Track which Aura is the guest pending one (for Save CTA / claim flow).
+  useEffect(() => {
+    setPendingId(getPendingAura()?.id ?? null);
+  }, [id, user?.id]);
+
+  // Claim flow: after sign-in with ?claim=1, push the local guest Aura to cloud.
+  useEffect(() => {
+    if (!claim || !profile?.id || !user?.id) return;
+    const pending = getPendingAura();
+    if (!pending || pending.id !== id) return;
+    const t = getTrack(id);
+    const saved = getSavedAuras().find((a) => a.id === id);
+    if (!t || !saved) return;
+    let cancelled = false;
+    setClaiming(true);
+    (async () => {
+      try {
+        // Try to upload audio if a File is still in the session blob.
+        const session = getSessionAudio(id);
+        let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
+        if (session?.file) {
+          try {
+            uploaded = await uploadAuraAudio({
+              authUserId: user.id,
+              auraId: id,
+              file: session.file,
+              rawRecording: t.sourceType === "raw_recording",
+            });
+          } catch (e) {
+            console.error("claim upload", e);
+          }
+        }
+        const enriched = uploaded
+          ? {
+              ...saved,
+              audioStoragePath: uploaded.storagePath,
+              audioPublicUrl: uploaded.publicUrl,
+              audioFileName: uploaded.fileName,
+              audioMimeType: uploaded.mimeType,
+              audioSizeBytes: uploaded.sizeBytes,
+              audioDurationSeconds: uploaded.durationSeconds ?? undefined,
+            }
+          : saved;
+        await saveAuraToCloud({
+          saved: enriched,
+          userId: profile.id,
+          visibilityMode: "username",
+          artistProfileId: null,
+          publicArtistName: profile.display_name ?? profile.username ?? null,
+          publicHandle: profile.username ?? null,
+        });
+        if (cancelled) return;
+        clearPendingAura();
+        setPendingId(null);
+        toast.success("Saved to My Auras.");
+        // Strip ?claim from URL.
+        nav({ to: "/aura/$id", params: { id }, search: {}, replace: true });
+      } catch (e) {
+        console.error("claim", e);
+        toast.error("Could not save your Aura. Please try again.");
+      } finally {
+        if (!cancelled) setClaiming(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [claim, profile?.id, user?.id, id, nav]);
+
   if (track === undefined) {
     return (
       <div className="min-h-screen grid place-items-center">
