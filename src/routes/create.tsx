@@ -464,9 +464,23 @@ function CreatePage() {
           </div>
         </div>
 
+        {isGuest && (
+          <div className="mt-8 mx-auto max-w-md glass rounded-2xl px-4 py-3 text-center text-xs text-muted-foreground animate-fade-up">
+            <span className="text-foreground">Try one Aura free.</span>{" "}
+            <Link
+              to="/auth"
+              search={{ mode: "signup" }}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Sign up
+            </Link>{" "}
+            to save it to My Auras and add it to your AuraLink.
+          </div>
+        )}
+
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className="glass rounded-full p-1 grid grid-cols-3 text-sm gap-0.5">
+          <div className={`glass rounded-full p-1 grid ${isGuest ? "grid-cols-2" : "grid-cols-3"} text-sm gap-0.5`}>
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
               <UploadCloud className="h-4 w-4" />
               <span className="hidden sm:inline">Upload File</span>
@@ -477,9 +491,11 @@ function CreatePage() {
               <span className="hidden sm:inline">Raw Aura</span>
               <span className="sm:hidden">Raw</span>
             </ModeTab>
-            <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
-              <Layers className="h-4 w-4" /> Auracle
-            </ModeTab>
+            {!isGuest && (
+              <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
+                <Layers className="h-4 w-4" /> Auracle
+              </ModeTab>
+            )}
           </div>
 
           {mode === "auracle" ? (
