@@ -432,9 +432,17 @@ function AuraPage() {
                 onClick={() => setStoryOpen(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
               >
-            <Sparkles className="h-4 w-4" /> Story Preview
-          </button>
+                <Sparkles className="h-4 w-4" /> Story Preview
+              </button>
+            </>
+          ) : null}
         </div>
+
+        {!user && pendingId === id && (
+          <p className="mt-3 text-xs text-muted-foreground max-w-md mx-auto animate-fade-up">
+            Sign up to save it and build your music-first AuraLink.
+          </p>
+        )}
 
         {/* Secondary actions — owner only */}
         {isOwner && (
