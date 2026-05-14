@@ -400,41 +400,38 @@ function AuraPage() {
             <Link
               to="/auth"
               search={{ mode: "signup", redirect: `/aura/${id}?claim=1` }}
-              className="col-span-2 sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+              className="col-span-2 sm:col-span-3 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
             >
               <Bookmark className="h-4 w-4" />
-              {claiming ? "Saving…" : "Save this Aura"}
+              {claiming ? "Saving…" : "Save Aura & Build AuraLink"}
             </Link>
           ) : isOwner ? (
-            saved ? (
+            <>
+              {saved ? (
+                <button
+                  onClick={() => toast.message("Already in My Auras")}
+                  className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
+                >
+                  <BookmarkCheck className="h-4 w-4" /> Saved
+                </button>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+                >
+                  <Bookmark className="h-4 w-4" /> Save to My Auras
+                </button>
+              )}
               <button
-                onClick={() => toast.message("Already in My Auras")}
-                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass-strong text-foreground/90"
+                onClick={() => setShareOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
               >
-                <BookmarkCheck className="h-4 w-4" /> Saved
+                <Share2 className="h-4 w-4" /> Share AuraLink
               </button>
-            ) : (
               <button
-                onClick={handleSave}
-                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
+                onClick={() => setStoryOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
               >
-                <Bookmark className="h-4 w-4" /> Save to My Auras
-              </button>
-            )
-          ) : null}
-          <button
-            onClick={() => setShareOpen(true)}
-            className={
-              (isOwner ? "" : "col-span-2 sm:col-span-2 ") +
-              "inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
-            }
-          >
-            <Share2 className="h-4 w-4" /> Share AuraLink
-          </button>
-          <button
-            onClick={() => setStoryOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
-          >
             <Sparkles className="h-4 w-4" /> Story Preview
           </button>
         </div>
