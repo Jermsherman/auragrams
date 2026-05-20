@@ -557,7 +557,7 @@ export function buttonStyleStyle(
   style: AuraLinkButtonStyle | undefined,
   themeButtonBg: string,
   themeAccent: string,
-): React.CSSProperties {
+): import("react").CSSProperties {
   switch (style) {
     case "outline":
       return { background: "transparent", border: `1px solid ${themeAccent}55`, color: themeAccent };
