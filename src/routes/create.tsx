@@ -755,6 +755,42 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
+              ) : mode === "link" ? (
+                <div className="rounded-3xl p-6 sm:p-8 glass space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid place-items-center h-11 w-11 rounded-2xl bg-aura-gradient text-primary-foreground shrink-0">
+                      <Link2 className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-display text-base">Paste a music link</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                        Spotify · Apple · YouTube · SoundCloud · Bandcamp
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://open.spotify.com/track/…"
+                    spellCheck={false}
+                    className="w-full rounded-2xl bg-background/40 border border-border/60 px-4 h-12 text-sm outline-none focus:border-foreground/25"
+                  />
+                  {linkUrl && !linkInfo && (
+                    <p className="text-[11px] text-destructive/90">
+                      That doesn't look like a supported music URL.
+                    </p>
+                  )}
+                  {linkInfo && (
+                    <div className="rounded-2xl bg-background/40 border border-border/60 px-4 py-3 flex items-center gap-3">
+                      <Music2 className="h-4 w-4 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm">{linkInfo.platformName}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{linkInfo.url}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               )}
