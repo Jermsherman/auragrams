@@ -316,6 +316,7 @@ export type Database = {
           default_visibility: string
           display_name: string | null
           id: string
+          onboarded_at: string | null
           updated_at: string
           username: string | null
         }
@@ -327,6 +328,7 @@ export type Database = {
           default_visibility?: string
           display_name?: string | null
           id?: string
+          onboarded_at?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -338,6 +340,7 @@ export type Database = {
           default_visibility?: string
           display_name?: string | null
           id?: string
+          onboarded_at?: string | null
           updated_at?: string
           username?: string | null
         }
