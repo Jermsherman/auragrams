@@ -499,7 +499,7 @@ export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef & {
     glow: `0 0 50px -10px ${glow}AA`,
     extras,
   };
-  void noExtras;
+  
 }
 
 // ------- Font pairs catalog -------
