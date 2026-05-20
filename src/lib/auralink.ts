@@ -54,6 +54,28 @@ export type AuraLinkCustomLink = {
   order: number;
 };
 
+export type AuraLinkBackgroundKind = "preset" | "solid" | "gradient" | "image" | "aura";
+
+export type AuraLinkBackground = {
+  kind: AuraLinkBackgroundKind;
+  imageUrl?: string;
+  auraId?: string;
+  gradientAngle?: number;   // 0..360, for gradient mode
+  overlayOpacity?: number;  // 0..1, image mode darkening overlay
+};
+
+export type AuraLinkButtonShape = "pill" | "rounded" | "square" | "soft" | "outline" | "glass";
+export type AuraLinkButtonStyle = "solid" | "outline" | "ghost" | "gradient";
+export type AuraLinkSpacing = "compact" | "comfy" | "airy";
+
+export type AuraLinkDecorations = {
+  grain?: boolean;
+  stars?: boolean;
+  bokeh?: boolean;
+};
+
+export type AuraLinkSectionKey = "profile" | "socials" | "streaming" | "auras" | "custom";
+
 export type AuraLinkTheme = {
   name: string;
   mode: "preset" | "custom";
@@ -64,6 +86,16 @@ export type AuraLinkTheme = {
   secondaryAccent?: string;
   buttonColor?: string;
   glowColor?: string;
+
+  // ---- Deep customization (all optional, backward-compatible) ----
+  background?: AuraLinkBackground;
+  fontHeading?: string;    // key from FONT_PAIRS
+  fontBody?: string;       // key from FONT_PAIRS
+  buttonShape?: AuraLinkButtonShape;
+  buttonStyle?: AuraLinkButtonStyle;
+  spacing?: AuraLinkSpacing;
+  decorations?: AuraLinkDecorations;
+  sectionOrder?: AuraLinkSectionKey[];
 };
 
 export type AuraLinkPage = {
