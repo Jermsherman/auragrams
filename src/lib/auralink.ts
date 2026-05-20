@@ -468,7 +468,6 @@ export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef & {
     | "sectionOrder"
   >;
 } {
-  const noExtras = {} as ThemeDef["extras"] extends infer X ? X : never;
   const blankExtras = {};
   if (!t) return { ...PRESET_THEMES.midnight, extras: blankExtras };
   if (typeof t === "string") {
