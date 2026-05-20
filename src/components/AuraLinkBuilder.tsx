@@ -165,6 +165,7 @@ export function AuraLinkBuilder() {
     setSlug("");
     setTheme("midnight");
     setCustomTheme({ ...DEFAULT_CUSTOM_THEME });
+    setThemeExtras({});
     setStreamingLinks([]);
     setSocialLinks([]);
     setCustomLinks([]);
@@ -191,11 +192,25 @@ export function AuraLinkBuilder() {
     setSlug(p.handleSlug);
     if (typeof p.theme === "string") {
       setTheme(p.theme);
-    } else if (p.theme.mode === "custom") {
-      setTheme("custom");
-      setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...p.theme });
+      setThemeExtras({});
     } else {
-      setTheme((p.theme.preset ?? "midnight") as AuraLinkThemePreset);
+      const t = p.theme;
+      if (t.mode === "custom") {
+        setTheme("custom");
+        setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...t });
+      } else {
+        setTheme((t.preset ?? "midnight") as AuraLinkThemePreset);
+      }
+      setThemeExtras({
+        fontHeading: t.fontHeading,
+        fontBody: t.fontBody,
+        buttonShape: t.buttonShape,
+        buttonStyle: t.buttonStyle,
+        spacing: t.spacing,
+        decorations: t.decorations,
+        background: t.background,
+        sectionOrder: t.sectionOrder,
+      });
     }
     setStreamingLinks(p.streamingLinks ?? []);
     setSocialLinks(p.socialLinks ?? []);
