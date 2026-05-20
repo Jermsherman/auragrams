@@ -1232,7 +1232,7 @@ export function AuraLinkBuilder() {
                       <label key={f.key} className="flex items-center gap-2 text-xs text-muted-foreground">
                         <input
                           type="color"
-                          value={(customTheme as Record<string, string | undefined>)[f.key] ?? "#1a1430"}
+                          value={(customTheme as unknown as Record<string, string | undefined>)[f.key] ?? "#1a1430"}
                           onChange={(e) =>
                             setCustomTheme((c) => ({ ...c, [f.key]: e.target.value }))
                           }
