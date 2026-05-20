@@ -8,7 +8,7 @@ import {
   ArrowRight,
   X,
   Image as ImageIcon,
-  
+  Link2,
   Layers,
   GripVertical,
   Mic,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
 import { putGuestAudio } from "@/lib/guestAudioStore";
+import { parseMusicLink, type MusicLinkInfo } from "@/lib/musicLinks";
 import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
 import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
-type Mode = "file" | "raw" | "auracle";
+type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -84,7 +85,11 @@ function CreatePage() {
   );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  // link mode removed
+  const [linkUrl, setLinkUrl] = useState("");
+  const linkInfo: MusicLinkInfo | null = useMemo(
+    () => (linkUrl.trim() ? parseMusicLink(linkUrl) : null),
+    [linkUrl],
+  );
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -169,12 +174,14 @@ function CreatePage() {
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
           ? !!audio
-          : !!(title.trim() && !!audio)
+          : mode === "link"
+            ? !!(title.trim() && linkInfo)
+            : !!(title.trim() && !!audio)
     );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
-    mode === "raw" ? "raw_recording" : "upload";
+    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
 
   const handleDetectMood = async () => {
     if (!audio) {
@@ -347,6 +354,53 @@ function CreatePage() {
         return;
       }
 
+      if (mode === "link" && linkInfo) {
+        const id = makeId();
+        const finalTitle = title.trim() || "Untitled";
+        const aura = generateAura({
+          id,
+          title: finalTitle,
+          artist: artist.trim(),
+          moods,
+          detectedKey: null,
+          sourceType: "platform_link",
+          userColorInfluence: colorInfluence,
+        });
+        const track = {
+          id,
+          title: finalTitle,
+          artist: artist.trim(),
+          artistHandle: slugify(artist.trim()) || "artist",
+          seed: seedFromId(id),
+          createdAt: Date.now(),
+          moods,
+          sourceType: "platform_link" as const,
+          provider: linkInfo.provider,
+          streamUrl: linkInfo.url,
+          embedUrl: linkInfo.embedUrl,
+          ...aura,
+        };
+        saveTrack(track);
+        if (profile) {
+          const saved = saveAuraFromTrack(track as Parameters<typeof saveAuraFromTrack>[0]);
+          await saveAuraToCloud({
+            saved, userId: profile.id,
+            visibilityMode: identity.mode,
+            artistProfileId: identity.artistProfileId,
+            publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
+            publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
+          }).catch((e) => {
+            console.error("cloud save aura", e);
+            toast.error("We couldn't save your Aura to the cloud.");
+          });
+        } else if (isGuest) {
+          saveAuraFromTrack(track as Parameters<typeof saveAuraFromTrack>[0]);
+          setPendingAura({ id, createdAt: Date.now() });
+        }
+        nav({ to: "/generating", search: { id } });
+        return;
+      }
+
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
       const finalTitle = (title.trim() || (mode === "raw" ? "Untitled Raw Aura" : title.trim()));
@@ -483,11 +537,16 @@ function CreatePage() {
 
         <div className="mt-10 space-y-5 animate-fade-up">
           {/* Mode toggle */}
-          <div className={`glass rounded-full p-1 grid ${isGuest ? "grid-cols-2" : "grid-cols-3"} text-sm gap-0.5`}>
+          <div className={`glass rounded-full p-1 grid ${isGuest ? "grid-cols-3" : "grid-cols-4"} text-sm gap-0.5`}>
             <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
               <UploadCloud className="h-4 w-4" />
-              <span className="hidden sm:inline">Upload File</span>
+              <span className="hidden sm:inline">Upload</span>
               <span className="sm:hidden">File</span>
+            </ModeTab>
+            <ModeTab active={mode === "link"} onClick={() => setMode("link")}>
+              <Link2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Music Link</span>
+              <span className="sm:hidden">Link</span>
             </ModeTab>
             <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
               <Mic className="h-4 w-4" />
@@ -500,6 +559,7 @@ function CreatePage() {
               </ModeTab>
             )}
           </div>
+
 
           {mode === "auracle" ? (
             <>
@@ -695,6 +755,42 @@ function CreatePage() {
                     </div>
                   )}
                 </label>
+              ) : mode === "link" ? (
+                <div className="rounded-3xl p-6 sm:p-8 glass space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid place-items-center h-11 w-11 rounded-2xl bg-aura-gradient text-primary-foreground shrink-0">
+                      <Link2 className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-display text-base">Paste a music link</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                        Spotify · Apple · YouTube · SoundCloud · Bandcamp
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://open.spotify.com/track/…"
+                    spellCheck={false}
+                    className="w-full rounded-2xl bg-background/40 border border-border/60 px-4 h-12 text-sm outline-none focus:border-foreground/25"
+                  />
+                  {linkUrl && !linkInfo && (
+                    <p className="text-[11px] text-destructive/90">
+                      That doesn't look like a supported music URL.
+                    </p>
+                  )}
+                  {linkInfo && (
+                    <div className="rounded-2xl bg-background/40 border border-border/60 px-4 py-3 flex items-center gap-3">
+                      <Music2 className="h-4 w-4 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm">{linkInfo.platformName}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{linkInfo.url}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               )}

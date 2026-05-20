@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
-import { useEffect, useState } from "react";
-import { Sparkles, Plus, Link2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles, Plus, Link2, Search } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { AuraFarmCard } from "@/components/AuraFarmCard";
@@ -9,6 +9,7 @@ import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
 import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+
 
 export const Route = createFileRoute("/farm")({
   head: () => ({
@@ -29,11 +30,14 @@ export const Route = createFileRoute("/farm")({
 });
 
 type Filter = "all" | "upload" | "platform_link" | "raw_recording";
+type SortKey = "newest" | "oldest" | "title" | "artist";
 
 function FarmPage() {
   const { profile } = useAuth();
   const [auras, setAuras] = useState<SavedAura[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("newest");
 
   useEffect(() => {
     setAuras(getSavedAuras());
@@ -62,11 +66,30 @@ function FarmPage() {
   const removedAura = (id: string) =>
     setAuras((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
 
-  const filteredAuras = (auras ?? []).filter((a) => {
-    if (filter === "all") return true;
-    if (filter === "platform_link") return a.sourceType === "platform_link" || a.sourceType === "external_link";
-    return a.sourceType === filter;
-  });
+  const filteredAuras = useMemo(() => {
+    const base = (auras ?? []).filter((a) => {
+      if (filter === "all") return true;
+      if (filter === "platform_link") return a.sourceType === "platform_link" || a.sourceType === "external_link";
+      return a.sourceType === filter;
+    });
+    const q = query.trim().toLowerCase();
+    const searched = q
+      ? base.filter((a) =>
+          [a.auraName, a.trackTitle, a.artistName, ...(a.moodTags ?? [])]
+            .filter(Boolean)
+            .some((s) => String(s).toLowerCase().includes(q)),
+        )
+      : base;
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      if (sort === "newest") return b.createdAt - a.createdAt;
+      if (sort === "oldest") return a.createdAt - b.createdAt;
+      if (sort === "title") return a.trackTitle.localeCompare(b.trackTitle);
+      return a.artistName.localeCompare(b.artistName);
+    });
+    return sorted;
+  }, [auras, filter, query, sort]);
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -108,6 +131,28 @@ function FarmPage() {
               <EmptyAuras />
             ) : (
               <>
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="relative flex-1 min-w-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search by name, track, artist, mood…"
+                      className="w-full rounded-full bg-background/40 border border-border/60 pl-9 pr-4 h-9 text-sm outline-none focus:border-foreground/25"
+                    />
+                  </div>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as SortKey)}
+                    className="rounded-full bg-background/40 border border-border/60 px-3 h-9 text-xs outline-none focus:border-foreground/25"
+                    aria-label="Sort"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="title">Track A–Z</option>
+                    <option value="artist">Artist A–Z</option>
+                  </select>
+                </div>
                 <div className="mb-5 flex flex-wrap gap-1.5">
                   {([
                     ["all", "All"],

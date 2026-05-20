@@ -27,12 +27,20 @@ import {
   SOCIAL_PLATFORMS,
   THEME_LIST,
   DEFAULT_CUSTOM_THEME,
+  DEFAULT_SECTION_ORDER,
+  FONT_PAIRS,
   resolveTheme,
   slugify,
+  type AuraLinkBackground,
+  type AuraLinkButtonShape,
+  type AuraLinkButtonStyle,
   type AuraLinkCustomLink,
+  type AuraLinkDecorations,
   type AuraLinkMode,
   type AuraLinkPage,
+  type AuraLinkSectionKey,
   type AuraLinkSocialLink,
+  type AuraLinkSpacing,
   type AuraLinkStreamingLink,
   type AuraLinkTheme,
   type AuraLinkThemePreset,
@@ -118,10 +126,20 @@ export function AuraLinkBuilder() {
   const [customTheme, setCustomTheme] = useState<AuraLinkTheme>({
     ...DEFAULT_CUSTOM_THEME,
   });
-  const themeValue: AuraLinkTheme | AuraLinkThemePreset =
+  const [themeExtras, setThemeExtras] = useState<{
+    fontHeading?: string;
+    fontBody?: string;
+    buttonShape?: AuraLinkButtonShape;
+    buttonStyle?: AuraLinkButtonStyle;
+    spacing?: AuraLinkSpacing;
+    decorations?: AuraLinkDecorations;
+    background?: AuraLinkBackground;
+    sectionOrder?: AuraLinkSectionKey[];
+  }>({});
+  const themeValue: AuraLinkTheme =
     theme === "custom"
-      ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom" }
-      : theme;
+      ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom", ...themeExtras }
+      : { name: theme, mode: "preset", preset: theme, ...themeExtras };
   const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
   const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
   const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
@@ -147,6 +165,7 @@ export function AuraLinkBuilder() {
     setSlug("");
     setTheme("midnight");
     setCustomTheme({ ...DEFAULT_CUSTOM_THEME });
+    setThemeExtras({});
     setStreamingLinks([]);
     setSocialLinks([]);
     setCustomLinks([]);
@@ -173,11 +192,25 @@ export function AuraLinkBuilder() {
     setSlug(p.handleSlug);
     if (typeof p.theme === "string") {
       setTheme(p.theme);
-    } else if (p.theme.mode === "custom") {
-      setTheme("custom");
-      setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...p.theme });
+      setThemeExtras({});
     } else {
-      setTheme((p.theme.preset ?? "midnight") as AuraLinkThemePreset);
+      const t = p.theme;
+      if (t.mode === "custom") {
+        setTheme("custom");
+        setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...t });
+      } else {
+        setTheme((t.preset ?? "midnight") as AuraLinkThemePreset);
+      }
+      setThemeExtras({
+        fontHeading: t.fontHeading,
+        fontBody: t.fontBody,
+        buttonShape: t.buttonShape,
+        buttonStyle: t.buttonStyle,
+        spacing: t.spacing,
+        decorations: t.decorations,
+        background: t.background,
+        sectionOrder: t.sectionOrder,
+      });
     }
     setStreamingLinks(p.streamingLinks ?? []);
     setSocialLinks(p.socialLinks ?? []);
@@ -242,6 +275,7 @@ export function AuraLinkBuilder() {
       customLinks,
       theme,
       customTheme,
+      themeExtras,
       seoTitle,
       seoDescription,
       socialPreviewImage,
@@ -1254,6 +1288,216 @@ export function AuraLinkBuilder() {
                 </div>
               )}
             </Section>
+
+            {/* Layout & polish — deep customization that applies to any theme */}
+            <Section title="Layout & polish">
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">Heading font</span>
+                    <select
+                      value={themeExtras.fontHeading ?? "default"}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, fontHeading: e.target.value === "default" ? undefined : e.target.value }))}
+                      className="mt-1.5 input-base !h-10"
+                    >
+                      {FONT_PAIRS.map((p) => (
+                        <option key={p.key} value={p.key}>{p.label}{p.heading ? ` — ${p.heading}` : ""}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">Body font</span>
+                    <select
+                      value={themeExtras.fontBody ?? themeExtras.fontHeading ?? "default"}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, fontBody: e.target.value === "default" ? undefined : e.target.value }))}
+                      className="mt-1.5 input-base !h-10"
+                    >
+                      {FONT_PAIRS.map((p) => (
+                        <option key={p.key} value={p.key}>{p.label}{p.body ? ` — ${p.body}` : ""}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">Button shape</span>
+                    <select
+                      value={themeExtras.buttonShape ?? "pill"}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, buttonShape: e.target.value as AuraLinkButtonShape }))}
+                      className="mt-1.5 input-base !h-10"
+                    >
+                      {(["pill","rounded","soft","square","glass"] as AuraLinkButtonShape[]).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">Button style</span>
+                    <select
+                      value={themeExtras.buttonStyle ?? "solid"}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, buttonStyle: e.target.value as AuraLinkButtonStyle }))}
+                      className="mt-1.5 input-base !h-10"
+                    >
+                      {(["solid","outline","ghost","gradient"] as AuraLinkButtonStyle[]).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">Spacing</span>
+                    <select
+                      value={themeExtras.spacing ?? "comfy"}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, spacing: e.target.value as AuraLinkSpacing }))}
+                      className="mt-1.5 input-base !h-10"
+                    >
+                      {(["compact","comfy","airy"] as AuraLinkSpacing[]).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1 mb-2">Decorations</div>
+                  <div className="flex flex-wrap gap-2">
+                    {(["grain","stars","bokeh"] as (keyof AuraLinkDecorations)[]).map((k) => {
+                      const on = !!themeExtras.decorations?.[k];
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setThemeExtras((x) => ({ ...x, decorations: { ...(x.decorations ?? {}), [k]: !on } }))}
+                          className={
+                            "rounded-full px-3 h-8 text-[11px] uppercase tracking-[0.2em] border transition-colors " +
+                            (on ? "border-foreground/40 bg-foreground/10" : "border-border/60 text-muted-foreground hover:text-foreground")
+                          }
+                        >
+                          {k}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1 mb-2">Background</div>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {(["preset","gradient","image","aura"] as const).map((k) => {
+                      const on = (themeExtras.background?.kind ?? "preset") === k;
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() =>
+                            setThemeExtras((x) => ({
+                              ...x,
+                              background: k === "preset" ? undefined : { ...(x.background ?? { kind: k }), kind: k },
+                            }))
+                          }
+                          className={
+                            "rounded-full px-3 h-8 text-[11px] uppercase tracking-[0.2em] border transition-colors " +
+                            (on ? "border-foreground/40 bg-foreground/10" : "border-border/60 text-muted-foreground hover:text-foreground")
+                          }
+                        >
+                          {k}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {themeExtras.background?.kind === "image" && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const { uploadAuraLinkCover } = await import("@/lib/auralinkImages");
+                            const url = await uploadAuraLinkCover(file);
+                            setThemeExtras((x) => ({ ...x, background: { ...(x.background ?? { kind: "image" }), kind: "image", imageUrl: url } }));
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Could not upload");
+                          }
+                        }}
+                        className="block text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs"
+                      />
+                      <label className="block text-[11px] text-muted-foreground">
+                        Overlay darkness
+                        <input
+                          type="range" min={0} max={100}
+                          value={Math.round(((themeExtras.background?.overlayOpacity ?? 0.45)) * 100)}
+                          onChange={(e) => setThemeExtras((x) => ({ ...x, background: { ...(x.background ?? { kind: "image" }), kind: "image", overlayOpacity: Number(e.target.value) / 100 } }))}
+                          className="w-full"
+                        />
+                      </label>
+                    </div>
+                  )}
+                  {themeExtras.background?.kind === "gradient" && (
+                    <label className="block text-[11px] text-muted-foreground">
+                      Angle
+                      <input
+                        type="range" min={0} max={360}
+                        value={themeExtras.background?.gradientAngle ?? 135}
+                        onChange={(e) => setThemeExtras((x) => ({ ...x, background: { ...(x.background ?? { kind: "gradient" }), kind: "gradient", gradientAngle: Number(e.target.value) } }))}
+                        className="w-full"
+                      />
+                    </label>
+                  )}
+                  {themeExtras.background?.kind === "aura" && (
+                    <select
+                      value={themeExtras.background?.auraId ?? ""}
+                      onChange={(e) => setThemeExtras((x) => ({ ...x, background: { ...(x.background ?? { kind: "aura" }), kind: "aura", auraId: e.target.value || undefined } }))}
+                      className="input-base !h-10"
+                    >
+                      <option value="">— Pick an Aura —</option>
+                      {auras.map((a) => (
+                        <option key={a.id} value={a.id}>{a.auraName} · {a.trackTitle}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1 mb-2">Section order</div>
+                  <div className="space-y-1.5">
+                    {(themeExtras.sectionOrder ?? DEFAULT_SECTION_ORDER).map((k, i, arr) => (
+                      <div key={k} className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+                        <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
+                        <span className="flex-1 text-sm capitalize">{k}</span>
+                        <button
+                          className="icon-btn"
+                          aria-label="Move up"
+                          disabled={i === 0}
+                          onClick={() => {
+                            const next = [...arr];
+                            [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                            setThemeExtras((x) => ({ ...x, sectionOrder: next }));
+                          }}
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          aria-label="Move down"
+                          disabled={i === arr.length - 1}
+                          onClick={() => {
+                            const next = [...arr];
+                            [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                            setThemeExtras((x) => ({ ...x, sectionOrder: next }));
+                          }}
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+
 
 
             {/* SEO & sharing */}
