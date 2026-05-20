@@ -452,16 +452,41 @@ export const DEFAULT_CUSTOM_THEME: AuraLinkTheme = {
   glowColor: "#A86BC8",
 };
 
-/** Resolve any theme value (legacy preset string or full object) into a ThemeDef. */
-export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef {
-  if (!t) return PRESET_THEMES.midnight;
+/** Resolve any theme value (legacy preset string or full object) into a ThemeDef.
+ *  The returned object also carries any "deep customization" fields the caller set,
+ *  so the renderer can read them in one place. */
+export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef & {
+  extras: Pick<
+    AuraLinkTheme,
+    | "background"
+    | "fontHeading"
+    | "fontBody"
+    | "buttonShape"
+    | "buttonStyle"
+    | "spacing"
+    | "decorations"
+    | "sectionOrder"
+  >;
+} {
+  const noExtras = {} as ThemeDef["extras"] extends infer X ? X : never;
+  const blankExtras = {};
+  if (!t) return { ...PRESET_THEMES.midnight, extras: blankExtras };
   if (typeof t === "string") {
-    return PRESET_THEMES[t as keyof typeof PRESET_THEMES] ?? PRESET_THEMES.midnight;
+    return { ...(PRESET_THEMES[t as keyof typeof PRESET_THEMES] ?? PRESET_THEMES.midnight), extras: blankExtras };
   }
+  const extras = {
+    background: t.background,
+    fontHeading: t.fontHeading,
+    fontBody: t.fontBody,
+    buttonShape: t.buttonShape,
+    buttonStyle: t.buttonStyle,
+    spacing: t.spacing,
+    decorations: t.decorations,
+    sectionOrder: t.sectionOrder,
+  };
   if (t.mode === "preset" && t.preset && t.preset !== "custom") {
-    return PRESET_THEMES[t.preset] ?? PRESET_THEMES.midnight;
+    return { ...(PRESET_THEMES[t.preset] ?? PRESET_THEMES.midnight), extras };
   }
-  // Custom theme: build a ThemeDef from the user's colors.
   const bg = t.backgroundColor || DEFAULT_CUSTOM_THEME.backgroundColor!;
   const accent = t.primaryAccent || DEFAULT_CUSTOM_THEME.primaryAccent!;
   const button = t.buttonColor || DEFAULT_CUSTOM_THEME.buttonColor!;
@@ -473,5 +498,89 @@ export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef {
     accent,
     buttonBg: `${button}B3`,
     glow: `0 0 50px -10px ${glow}AA`,
+    extras,
   };
+  void noExtras;
+}
+
+// ------- Font pairs catalog -------
+// Lightweight Google-Fonts-only pairs. Body falls back to system if undefined.
+export type FontPair = {
+  key: string;
+  label: string;
+  heading: string;   // Google Fonts family name
+  body: string;
+  /** Comma-separated Google Fonts URL query value, e.g. "Space+Grotesk:wght@500;700" */
+  load: string;
+};
+
+export const FONT_PAIRS: FontPair[] = [
+  { key: "default", label: "Default", heading: "", body: "", load: "" },
+  { key: "space-grotesk-dm-sans", label: "Modern Tech", heading: "Space Grotesk", body: "DM Sans", load: "Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500" },
+  { key: "syne-jakarta", label: "Creative", heading: "Syne", body: "Plus Jakarta Sans", load: "Syne:wght@600;800&family=Plus+Jakarta+Sans:wght@400;500" },
+  { key: "instrument-work-sans", label: "Editorial", heading: "Instrument Serif", body: "Work Sans", load: "Instrument+Serif&family=Work+Sans:wght@400;500" },
+  { key: "dm-serif-fira", label: "Brand", heading: "DM Serif Display", body: "Fira Sans", load: "DM+Serif+Display&family=Fira+Sans:wght@400;500" },
+  { key: "cormorant-karla", label: "Luxury", heading: "Cormorant Garamond", body: "Karla", load: "Cormorant+Garamond:wght@500;700&family=Karla:wght@400;500" },
+  { key: "bebas-barlow", label: "Bold Sport", heading: "Bebas Neue", body: "Barlow", load: "Bebas+Neue&family=Barlow:wght@400;500" },
+  { key: "archivo-hind", label: "Activist", heading: "Archivo Black", body: "Hind", load: "Archivo+Black&family=Hind:wght@400;500" },
+  { key: "abril-cabin", label: "Portfolio", heading: "Abril Fatface", body: "Cabin", load: "Abril+Fatface&family=Cabin:wght@400;500" },
+  { key: "jetbrains-work", label: "Dev", heading: "JetBrains Mono", body: "Work Sans", load: "JetBrains+Mono:wght@500;700&family=Work+Sans:wght@400;500" },
+  { key: "space-mono-rubik", label: "Indie", heading: "Space Mono", body: "Rubik", load: "Space+Mono:wght@700&family=Rubik:wght@400;500" },
+  { key: "lora-nunito", label: "Blog", heading: "Lora", body: "Nunito Sans", load: "Lora:wght@500;700&family=Nunito+Sans:wght@400;500" },
+];
+
+export function getFontPair(key: string | undefined): FontPair {
+  return FONT_PAIRS.find((p) => p.key === key) ?? FONT_PAIRS[0];
+}
+
+export const DEFAULT_SECTION_ORDER: AuraLinkSectionKey[] = [
+  "profile",
+  "socials",
+  "streaming",
+  "auras",
+  "custom",
+];
+
+export function buttonShapeClass(s: AuraLinkButtonShape | undefined): string {
+  switch (s) {
+    case "rounded": return "rounded-2xl";
+    case "square": return "rounded-md";
+    case "soft": return "rounded-3xl";
+    case "outline": return "rounded-2xl";
+    case "glass": return "rounded-2xl backdrop-blur-xl";
+    case "pill":
+    default:
+      return "rounded-full";
+  }
+}
+
+export function buttonStyleStyle(
+  style: AuraLinkButtonStyle | undefined,
+  themeButtonBg: string,
+  themeAccent: string,
+): React.CSSProperties {
+  switch (style) {
+    case "outline":
+      return { background: "transparent", border: `1px solid ${themeAccent}55`, color: themeAccent };
+    case "ghost":
+      return { background: "transparent", color: themeAccent };
+    case "gradient":
+      return {
+        background: `linear-gradient(135deg, ${themeAccent}33, ${themeButtonBg})`,
+        color: themeAccent,
+      };
+    case "solid":
+    default:
+      return { background: themeButtonBg, color: themeAccent };
+  }
+}
+
+export function spacingClass(s: AuraLinkSpacing | undefined): string {
+  switch (s) {
+    case "compact": return "py-6 gap-2";
+    case "airy": return "py-16 gap-5";
+    case "comfy":
+    default:
+      return "py-12 gap-3";
+  }
 }
