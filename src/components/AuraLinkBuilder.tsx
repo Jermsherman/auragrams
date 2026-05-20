@@ -275,6 +275,7 @@ export function AuraLinkBuilder() {
       customLinks,
       theme,
       customTheme,
+      themeExtras,
       seoTitle,
       seoDescription,
       socialPreviewImage,
