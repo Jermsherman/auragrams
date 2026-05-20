@@ -126,10 +126,20 @@ export function AuraLinkBuilder() {
   const [customTheme, setCustomTheme] = useState<AuraLinkTheme>({
     ...DEFAULT_CUSTOM_THEME,
   });
-  const themeValue: AuraLinkTheme | AuraLinkThemePreset =
+  const [themeExtras, setThemeExtras] = useState<{
+    fontHeading?: string;
+    fontBody?: string;
+    buttonShape?: AuraLinkButtonShape;
+    buttonStyle?: AuraLinkButtonStyle;
+    spacing?: AuraLinkSpacing;
+    decorations?: AuraLinkDecorations;
+    background?: AuraLinkBackground;
+    sectionOrder?: AuraLinkSectionKey[];
+  }>({});
+  const themeValue: AuraLinkTheme =
     theme === "custom"
-      ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom" }
-      : theme;
+      ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom", ...themeExtras }
+      : { name: theme, mode: "preset", preset: theme, ...themeExtras };
   const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
   const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
   const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
