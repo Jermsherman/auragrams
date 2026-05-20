@@ -8,7 +8,7 @@ import {
   ArrowRight,
   X,
   Image as ImageIcon,
-  
+  Link2,
   Layers,
   GripVertical,
   Mic,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
 import { putGuestAudio } from "@/lib/guestAudioStore";
+import { parseMusicLink, type MusicLinkInfo } from "@/lib/musicLinks";
 import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
 import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
-type Mode = "file" | "raw" | "auracle";
+type Mode = "file" | "link" | "raw" | "auracle";
 
 function CreatePage() {
   const nav = useNavigate();
@@ -84,7 +85,11 @@ function CreatePage() {
   );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  // link mode removed
+  const [linkUrl, setLinkUrl] = useState("");
+  const linkInfo: MusicLinkInfo | null = useMemo(
+    () => (linkUrl.trim() ? parseMusicLink(linkUrl) : null),
+    [linkUrl],
+  );
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -169,12 +174,14 @@ function CreatePage() {
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
           ? !!audio
-          : !!(title.trim() && !!audio)
+          : mode === "link"
+            ? !!(title.trim() && linkInfo)
+            : !!(title.trim() && !!audio)
     );
 
   const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "platform_link" | "upload" =
-    mode === "raw" ? "raw_recording" : "upload";
+    mode === "raw" ? "raw_recording" : mode === "link" ? "platform_link" : "upload";
 
   const handleDetectMood = async () => {
     if (!audio) {
