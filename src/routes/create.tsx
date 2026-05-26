@@ -8,7 +8,6 @@ import {
   ArrowRight,
   X,
   Image as ImageIcon,
-  Link2,
   Layers,
   GripVertical,
   Mic,
