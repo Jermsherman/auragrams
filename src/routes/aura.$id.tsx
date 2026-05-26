@@ -419,7 +419,7 @@ function AuraPage() {
                   onClick={handleSave}
                   className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-10px_oklch(0.7_0.2_310/0.9)]"
                 >
-                  <Bookmark className="h-4 w-4" /> Save to My Auras
+                  <Bookmark className="h-4 w-4" /> Save Aura & Build AuraLink
                 </button>
               )}
               <button
