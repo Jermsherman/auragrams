@@ -1574,6 +1574,9 @@ export function AuraLinkBuilder() {
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
                 Live Preview
               </div>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                AuraLinks are public and shareable. Creation access is currently limited.
+              </p>
               <div className="rounded-[28px] overflow-hidden ring-1 ring-foreground/10 shadow-2xl bg-black/40 mx-auto w-full max-w-[360px]">
                 <AuraLinkView page={previewPage} auras={auras} showLogo={false} />
               </div>
