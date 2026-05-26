@@ -345,53 +345,6 @@ function CreatePage() {
         return;
       }
 
-      if (mode === "link" && linkInfo) {
-        const id = makeId();
-        const finalTitle = title.trim() || "Untitled";
-        const aura = generateAura({
-          id,
-          title: finalTitle,
-          artist: artist.trim(),
-          moods,
-          detectedKey: null,
-          sourceType: "platform_link",
-          userColorInfluence: colorInfluence,
-        });
-        const track = {
-          id,
-          title: finalTitle,
-          artist: artist.trim(),
-          artistHandle: slugify(artist.trim()) || "artist",
-          seed: seedFromId(id),
-          createdAt: Date.now(),
-          moods,
-          sourceType: "platform_link" as const,
-          provider: linkInfo.provider,
-          streamUrl: linkInfo.url,
-          embedUrl: linkInfo.embedUrl,
-          ...aura,
-        };
-        saveTrack(track);
-        if (profile) {
-          const saved = saveAuraFromTrack(track as Parameters<typeof saveAuraFromTrack>[0]);
-          await saveAuraToCloud({
-            saved, userId: profile.id,
-            visibilityMode: identity.mode,
-            artistProfileId: identity.artistProfileId,
-            publicArtistName: identity.mode === "anonymous" ? null : resolvedIdentity.publicArtistName || null,
-            publicHandle: identity.mode === "anonymous" ? null : resolvedIdentity.publicHandle || null,
-          }).catch((e) => {
-            console.error("cloud save aura", e);
-            toast.error("We couldn't save your Aura to the cloud.");
-          });
-        } else if (isGuest) {
-          saveAuraFromTrack(track as Parameters<typeof saveAuraFromTrack>[0]);
-          setPendingAura({ id, createdAt: Date.now() });
-        }
-        nav({ to: "/generating", search: { id } });
-        return;
-      }
-
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
       const finalTitle = (title.trim() || (mode === "raw" ? "Untitled Raw Aura" : title.trim()));
