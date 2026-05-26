@@ -83,11 +83,6 @@ function CreatePage() {
   );
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  const [linkUrl, setLinkUrl] = useState("");
-  const linkInfo: MusicLinkInfo | null = useMemo(
-    () => (linkUrl.trim() ? parseMusicLink(linkUrl) : null),
-    [linkUrl],
-  );
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
