@@ -427,12 +427,14 @@ function AuraPage() {
               >
                 <Share2 className="h-4 w-4" /> Share AuraLink
               </button>
+              {flags.enableStoryExport && (
               <button
                 onClick={() => setStoryOpen(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
               >
                 <Sparkles className="h-4 w-4" /> Story Preview
               </button>
+              )}
             </>
           ) : null}
         </div>
