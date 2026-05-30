@@ -156,7 +156,6 @@ function FarmPage() {
                   {([
                     ["all", "All"],
                     ["upload", "Uploaded Audio"],
-                    ["platform_link", "Platform Links"],
                     ["raw_recording", "Raw Aura"],
                   ] as const).map(([key, label]) => (
                     <button
