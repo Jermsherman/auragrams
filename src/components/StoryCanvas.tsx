@@ -1,18 +1,19 @@
 import { forwardRef } from "react";
 import { Aurascope } from "./Aurascope";
 import mark from "@/assets/auragram-mark.png";
-import { PALETTES, type PaletteKey } from "@/lib/aura";
+import { PALETTES, type PaletteKey, type AuraPalette } from "@/lib/aura";
 
 type Props = {
   title: string;
   artist: string;
   mood?: string;
   palette: PaletteKey;
+  colors?: AuraPalette;
   platformName?: string;
 };
 
 export const StoryCanvas = forwardRef<HTMLDivElement, Props>(function StoryCanvas(
-  { title, artist, mood, palette, platformName },
+  { title, artist, mood, palette, colors, platformName },
   ref,
 ) {
   const p = PALETTES[palette];
@@ -40,7 +41,7 @@ export const StoryCanvas = forwardRef<HTMLDivElement, Props>(function StoryCanva
 
       <div className="absolute inset-0 grid place-items-center px-8">
         <Aurascope
-          aura={{ palette, auraName: title, artistName: artist }}
+          aura={{ palette, colors, auraName: title, artistName: artist }}
           size="large"
           mode="minimal"
           showLabel={false}

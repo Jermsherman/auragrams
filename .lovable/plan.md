@@ -1,175 +1,82 @@
-# Must-Fix-Before-Launch Plan
 
-Ten focused fixes, grouped by risk so I can batch the safe deletions first and the higher-risk refactors last. No new features. No database schema changes except a reserved-slug guard.
+# Palette + Vibe Consistency Fix
 
----
-
-## Group A — Dead code removal (zero risk)
-
-**1. Delete orphaned files and imports**
-- Delete `src/lib/musicLinks.ts` (never imported anywhere).
-- Delete `src/routes/aura.$id.influence.tsx` (only a redirect).
-- Remove `InfluenceAuraDialog` import + usage from `src/routes/aura.$id.tsx:27` (the influence button + modal).
-- Remove the dead `sourceType === "platform_link"` filter from `src/routes/farm.tsx:72` (uploads-only model means it's always empty).
-- Remove the non-functional "Remember me" checkbox from `src/routes/auth.tsx:63-64`.
-- Convert `src/routes/auralink.create.tsx` into a one-line redirect to `/auralink` (kept for back-compat with any shared URLs).
-- Regenerate `routeTree.gen.ts` is automatic via the Vite plugin.
+Two surgical, presentation-only fixes. No DB changes, no generation/business logic changes.
 
 ---
 
-## Group B — `/artist/$handle` decision
+## 1. Palette doesn't follow the aura everywhere (root cause)
 
-**2. Remove `/artist/$handle` for launch**
-The current implementation reads `localStorage` only (`src/routes/artist.$handle.tsx:53`), so every shared link 404s for visitors. Rebuilding it against the cloud is post-launch work.
+`Aurascope` renders `OrbVisual` like this:
 
-- Delete `src/routes/artist.$handle.tsx`.
-- Search for any `<Link to="/artist/...">` references and remove or replace with the AuraLink page (which is now the canonical public artist surface).
-
----
-
-## Group C — Create-flow simplification
-
-**3. Hide non-MVP create modes behind a feature flag**
-Keep the code (so we can re-enable post-launch) but remove from the UI.
-
-- Add `src/lib/featureFlags.ts` with `MVP_LAUNCH = true` and named flags: `enableRawRecording`, `enableAuracle`, `enableStoryExport`, `enableInfluence`, `enableEditPalette`, `enableColorInfluence`.
-- In `src/routes/create.tsx`: gate the Raw and Auracle mode tabs behind their flags. With MVP_LAUNCH=true, the mode selector renders nothing — upload is the only path. Tighten `Mode` to `"file"` when flags are off.
-- In `src/routes/aura.$id.tsx`: gate the Story, Edit Palette, Add-to-Auracle buttons behind their flags.
-- In `src/routes/__root.tsx` / `Nav.tsx`: hide any Auracle nav links.
-- Hide the Auracle routes by returning `notFound()` from `/auracle/create` and `/auracle/$id` loaders when `enableAuracle` is false (file stays, route is dead at runtime).
-
-This is reversible by flipping flags — no code is actually deleted.
-
----
-
-## Group D — Upload + analysis UX
-
-**4. Real upload progress indicator on `/create`**
-- `src/lib/audioStorage.ts::uploadAuraAudio`: Supabase JS `.upload()` doesn't expose progress directly, so wrap it with a manual XHR fallback using `supabase.storage.from(bucket).uploadToSignedUrl` after creating a signed upload URL (`createSignedUploadUrl`) — XHR's `upload.onprogress` gives real bytes-sent.
-- Surface progress as `0–100` via a callback param.
-- `src/routes/create.tsx::submit`: show a thin progress bar under the CTA while `busy === "upload"`. Reuse `<Progress />` from shadcn.
-- Add an "Analyzing audio…" indicator next to the file name while `runAnalysis` promises are pending (track all three with `Promise.allSettled`).
-
-**5. Reduce decode passes from 3 → 1**
-- Add `src/lib/audioDecode.ts` with `decodeOnce(file): Promise<AudioBuffer>` using a single shared `AudioContext`.
-- Refactor `detectKey`, `analyzeFile`, `detectPitchCenter` to accept an optional pre-decoded `AudioBuffer` (existing File-based signature kept for back-compat).
-- In `src/routes/create.tsx::runAnalysis`: decode once, then pass the buffer into all three detectors via `Promise.all`. ~3× RAM saved on a 50 MB file.
-
-**6. Real generating screen**
-- `src/routes/generating.tsx`: replace the hardcoded 4200 ms with a minimum-1500 ms theatrical floor that resolves the instant the aura is ready. Use `Promise.all([generationPromise, sleep(1500)])`. Generation already finishes before navigation, so this becomes just the 1.5 s reveal animation.
-
----
-
-## Group E — Cover image fix
-
-**7. Stop storing base64 cover images in `auras.extra`**
-- `src/lib/cloudAura.ts::saveAuraToCloud` currently writes `coverDataUrl` straight into the `extra` JSON column. For any non-trivial cover this bloats every row.
-- Add `src/lib/auraImages.ts::uploadAuraCover(authUserId, auraId, dataUrl)` that:
-  - Decodes the data URL.
-  - If size > 50 KB or it's a data URL at all, uploads to the existing `auralink-images` bucket under `covers/{authUserId}/{auraId}.jpg` (compressed via the existing helper).
-  - Returns the public URL.
-- In `saveAuraToCloud`: before writing `extra`, if `coverDataUrl` is a data URL, upload it and store the URL instead. Strip raw data URLs from `extra`.
-- Backfill is not needed — old rows remain valid; new writes are clean.
-
----
-
-## Group F — Security tightening
-
-**8. Owner-gate destructive ops + slug blocklist**
-- `src/lib/cloudAura.ts::deleteAura`: add `.eq("user_id", profileId)` so the client query matches the pattern in `deleteAuraLink`. RLS stays as the backstop; this gives defense-in-depth.
-- `src/lib/auralinkService.ts`: add a reserved-slug constant `RESERVED_SLUGS = new Set(["admin","api","auth","login","app","www","root","help","about","faq","create","auralink","auracle","aura","farm","artist","l","settings","onboarding","public"])`. In the slug-generation loop, if `slug` is in the set, append `-1` and continue. Apply to both create and rename paths.
-
----
-
-## Group G — Visibility model honesty
-
-**9. Honest copy for the visibility selector**
-Real private/unlisted requires RLS changes — that's post-launch. For now, fix the lie:
-- In `src/components/IdentitySelector.tsx`: add a small helper line under the selector — *"All Auras are public and shareable by link. This controls how your name appears on the AuraLink."*
-- In `src/routes/onboarding.tsx` step 3: same clarifying copy.
-- Remove "private/unlisted" implications from any landing copy if present.
-
-No code path for actual privacy is added — just truthful labeling.
-
----
-
-## Group H — Generating screen + onboarding (already addressed in F)
-
-Item 8 from the original list (replace 4.2s fake wait) is handled in **#6** above.
-
-Item 9 (Auracle removal) is handled in **#3** via flag.
-
-Item 10 (visibility model decision) is handled in **#9**.
-
----
-
-## Technical Details (for engineering review)
-
-**Feature flag shape:**
-```ts
-// src/lib/featureFlags.ts
-export const flags = {
-  enableRawRecording: false,
-  enableAuracle: false,
-  enableStoryExport: false,
-  enableInfluence: false,
-  enableEditPalette: false,
-  enableColorInfluence: false,
-} as const;
+```tsx
+<OrbVisual palette={aura.palette} profile={aura.profile} ... />
 ```
-Static booleans — bundler tree-shakes the disabled branches in production builds. No env var needed for MVP launch.
 
-**Upload progress signature:**
-```ts
-uploadAuraAudio(opts: {
-  file: File;
-  authUserId: string;
-  auraId: string;
-  onProgress?: (pct: number) => void;
-}): Promise<UploadResult>
+`OrbVisual` only uses the saved per-aura swatches when **`profile.colors`** is present (`src/components/OrbVisual.tsx:79–95`). Otherwise it falls back to the generic personality stops keyed off `palette` (e.g. `"amethyst"`), which is identical for every aura that maps to the same mood.
+
+`profile` is only built inside `aurascopeAuraFromTrack()` and only when `t.colors` exists. Every other call site passes `colors` but no `profile`:
+
+- `AuraFarmCard.tsx:98` — My Auras card
+- `StoryCanvas.tsx:42` — Story Preview (doesn't even pass `colors`)
+- `AuraLinkAuraCard.tsx:139,214`
+- `AuraLinkBuilder.tsx:594,1040,1114`
+- `StackedOrbs.tsx:38`
+- `auracle.create.tsx:225,256`, `auracle.$id.tsx:215`, `index.tsx:40`, `InfluenceAuraDialog.tsx:230`
+
+Result: the "Your Aura is Ready" screen shows the real generated palette, but the farm card, story preview, auralink cards, and stacked orbs all redraw with the generic mood swatches — so the same aura looks different in different places (your screenshots).
+
+### Fix (one place, fixes all call sites)
+
+In `src/components/Aurascope.tsx`, synthesize a minimal profile inside the component when `aura.colors` is provided but `aura.profile` isn't, and pass that to `OrbVisual`:
+
+```tsx
+const effectiveProfile = useMemo(() => {
+  if (aura.profile) return aura.profile;
+  if (!aura.colors) return undefined;
+  return { palette: aura.palette, colors: aura.colors } as AuraProfile;
+}, [aura.profile, aura.colors, aura.palette]);
 ```
-Uses `createSignedUploadUrl` + XHR PUT to get progress events. Falls back to the existing `.upload()` if signed-url creation fails.
 
-**Shared decode:**
-```ts
-// src/lib/audioDecode.ts
-let _ctx: AudioContext | null = null;
-export async function decodeOnce(file: File): Promise<AudioBuffer> {
-  _ctx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
-  return _ctx.decodeAudioData(await file.arrayBuffer());
-}
-```
-Each detector gets an optional `buffer?: AudioBuffer` param; if provided, skip its own decode.
+Then pass `profile={effectiveProfile}` to `OrbVisual` (line 292).
 
-**Cover image upload:**
-Reuses the existing `auralink-images` bucket and image compression helper (`auralinkImages.ts:21-35`) — no new bucket, no migration.
+This is sufficient because `OrbVisual` only reads `profile.colors` when overriding the base personality (`OrbVisual.tsx:86–94`).
 
-**Slug blocklist:**
-Pure client-side guard at write time. RLS-level enforcement (a CHECK constraint or trigger) is post-launch hardening.
+### One extra call site
+
+`src/components/StoryCanvas.tsx` only passes `palette` — no `colors`. Extend its props to accept `colors?: AuraPalette` and forward to `Aurascope`. Update the single caller `StoryPreviewDialog.tsx` to pass `track.colors`. With the Aurascope fix above, the story preview orb then matches the saved aura.
+
+No other call sites need changes — they already pass `aura.colors` (or `t.colors`) and will start rendering correctly automatically.
 
 ---
 
-## Out of scope (deferred to post-launch list)
+## 2. Vibe shows two paragraphs — keep only the quoted, editable one
 
-- Consolidating the dual localStorage + cloud storage model.
-- Lazy-loading `AuraLinkBuilder` (1631 lines).
-- `ArtistProfile` type unification.
-- Moving onboarding after the wow moment (requires deeper claim-flow rework).
-- Replacing `as never` casts.
-- Re-enabling Google OAuth.
-- Dropping the `is_anonymous` DB column.
-- Rebuilding `/artist/$handle` against the cloud.
+`src/components/AuraProfileCard.tsx:115–122` renders both:
+
+```tsx
+<Section title="Vibe" defaultOpen>
+  <p>{description}</p>           // ← prose paragraph (remove)
+  <VibeEditor vibeDescription={vibeDescription} ... />  // ← italic “…” line + Edit/Generate
+</Section>
+```
+
+The user wants only the quoted `vibeDescription` (the one that already has Edit / Generate the vibe controls).
+
+### Fix
+
+Delete the `<p className="text-sm leading-relaxed text-foreground/85">{description}</p>` line. Keep `VibeEditor` exactly as is. No prop changes, no generation changes — `description` is still generated and stored, just not duplicated in the UI.
 
 ---
 
-## Order of execution
+## Files touched
 
-1. Group A (deletes) — fastest, lowest risk.
-2. Group B (artist route) — single file delete.
-3. Group F (security) — small, surgical.
-4. Group G (copy fix).
-5. Group C (feature flags + UI gating).
-6. Group E (cover upload).
-7. Group D (decode-once + progress + generating screen) — biggest change, saved for last so I can verify the pipeline still produces an Aura end-to-end after the refactor.
+- `src/components/Aurascope.tsx` — synthesize `effectiveProfile` from `aura.colors`, pass to `OrbVisual` (both `mode === "story"` branch and the main return).
+- `src/components/StoryCanvas.tsx` — accept and forward `colors`.
+- `src/components/StoryPreviewDialog.tsx` — pass `track.colors` to `StoryCanvas`.
+- `src/components/AuraProfileCard.tsx` — remove the duplicate `<p>{description}</p>` inside the Vibe section.
 
-I will verify after each group that `/create` still produces an Aura, the orb renders on `/aura/$id`, and `/l/$slug` still loads.
+## Out of scope
+
+- No changes to aura generation, palette generation, DB schema, cloud hydration, or `OrbVisual`'s drawing code.
+- No changes to AuraLink builder logic, save/share flows, or audio playback.

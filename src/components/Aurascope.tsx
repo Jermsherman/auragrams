@@ -114,6 +114,15 @@ export function Aurascope({
     };
   }, [aura.colors, personality]);
 
+  // Ensure OrbVisual uses the saved per-aura colors at every call site, not
+  // just where a full AuraProfile was built. Without this, cards/story/etc.
+  // fall back to the generic mood swatches.
+  const effectiveProfile = useMemo<AuraProfile | undefined>(() => {
+    if (aura.profile) return aura.profile;
+    if (!aura.colors) return undefined;
+    return { palette: aura.palette, colors: aura.colors } as AuraProfile;
+  }, [aura.profile, aura.colors, aura.palette]);
+
   const dim = SIZE_PX[size];
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
   const isCompact = size === "small" || size === "mini";
@@ -155,7 +164,7 @@ export function Aurascope({
           <AurascopeLens
             size="large"
             mode="full"
-            aura={aura}
+            aura={{ ...aura, profile: effectiveProfile }}
             personality={personality}
             isPlaying={isPlaying}
             hero={hero}
@@ -182,7 +191,7 @@ export function Aurascope({
       <AurascopeLens
         size={size}
         mode={mode}
-        aura={aura}
+        aura={{ ...aura, profile: effectiveProfile }}
         personality={personality}
         isPlaying={isPlaying}
         hero={hero}

@@ -113,7 +113,6 @@ export function AuraProfileCard({
       </div>
 
       <Section title="Vibe" defaultOpen>
-        <p className="text-sm leading-relaxed text-foreground/85">{description}</p>
         <VibeEditor
           vibeDescription={vibeDescription}
           editable={editable}
