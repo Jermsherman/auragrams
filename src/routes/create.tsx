@@ -488,24 +488,28 @@ function CreatePage() {
         )}
 
         <div className="mt-10 space-y-5 animate-fade-up">
-          {/* Mode toggle */}
-          <div className={`glass rounded-full p-1 grid ${isGuest ? "grid-cols-2" : "grid-cols-3"} text-sm gap-0.5`}>
-            <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" />
-              <span className="hidden sm:inline">Upload</span>
-              <span className="sm:hidden">File</span>
-            </ModeTab>
-            <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
-              <Mic className="h-4 w-4" />
-              <span className="hidden sm:inline">Raw Aura</span>
-              <span className="sm:hidden">Raw</span>
-            </ModeTab>
-            {!isGuest && (
-              <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
-                <Layers className="h-4 w-4" /> Auracle
+          {/* Mode toggle — only show if any alt mode is enabled */}
+          {(flags.enableRawRecording || (flags.enableAuracle && !isGuest)) && (
+            <div className={`glass rounded-full p-1 grid text-sm gap-0.5`} style={{ gridTemplateColumns: `repeat(${1 + (flags.enableRawRecording ? 1 : 0) + (flags.enableAuracle && !isGuest ? 1 : 0)}, minmax(0,1fr))` }}>
+              <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
+                <UploadCloud className="h-4 w-4" />
+                <span className="hidden sm:inline">Upload</span>
+                <span className="sm:hidden">File</span>
               </ModeTab>
-            )}
-          </div>
+              {flags.enableRawRecording && (
+                <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
+                  <Mic className="h-4 w-4" />
+                  <span className="hidden sm:inline">Raw Aura</span>
+                  <span className="sm:hidden">Raw</span>
+                </ModeTab>
+              )}
+              {flags.enableAuracle && !isGuest && (
+                <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
+                  <Layers className="h-4 w-4" /> Auracle
+                </ModeTab>
+              )}
+            </div>
+          )}
 
 
           {mode === "auracle" ? (
