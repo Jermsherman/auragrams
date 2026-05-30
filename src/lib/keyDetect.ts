@@ -36,16 +36,15 @@ export type KeyDetection = {
   confidence: number;   // 0..1 (winner / runner-up margin)
 };
 
-export async function detectKey(file: File): Promise<KeyDetection | null> {
+export async function detectKey(file: File, preDecoded?: AudioBuffer | null): Promise<KeyDetection | null> {
   if (typeof window === "undefined") return null;
   try {
-    const Ctx = (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext
-      ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return null;
-    const ctx = new Ctx();
-    const buf = await file.arrayBuffer();
-    const audio = await ctx.decodeAudioData(buf.slice(0));
-    void ctx.close();
+    let audio: AudioBuffer | null = preDecoded ?? null;
+    if (!audio) {
+      const { decodeOnce } = await import("./audioDecode");
+      audio = await decodeOnce(file);
+    }
+    if (!audio) return null;
 
     // Mono mix
     const ch = audio.numberOfChannels;
@@ -148,16 +147,15 @@ function autocorrPitch(samples: Float32Array, sr: number): number | null {
   return sr / bestLag;
 }
 
-export async function detectPitchCenter(file: File): Promise<PitchCenter | null> {
+export async function detectPitchCenter(file: File, preDecoded?: AudioBuffer | null): Promise<PitchCenter | null> {
   if (typeof window === "undefined") return null;
   try {
-    const Ctx = (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext
-      ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return null;
-    const ctx = new Ctx();
-    const buf = await file.arrayBuffer();
-    const audio = await ctx.decodeAudioData(buf.slice(0));
-    void ctx.close();
+    let audio: AudioBuffer | null = preDecoded ?? null;
+    if (!audio) {
+      const { decodeOnce } = await import("./audioDecode");
+      audio = await decodeOnce(file);
+    }
+    if (!audio) return null;
 
     const ch = audio.numberOfChannels, len = audio.length;
     const mono = new Float32Array(len);

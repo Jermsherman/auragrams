@@ -89,8 +89,8 @@ function fft(re: Float32Array, im: Float32Array) {
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-export async function analyzeFile(file: File): Promise<AudioFeatures | null> {
-  const audio = await decode(file);
+export async function analyzeFile(file: File, preDecoded?: AudioBuffer | null): Promise<AudioFeatures | null> {
+  const audio = preDecoded ?? (await decode(file));
   if (!audio) return null;
   return analyzeBuffer(audio);
 }

@@ -1,22 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { RequireAuth } from "@/components/RequireAuth";
-import { AuraLinkBuilder } from "@/components/AuraLinkBuilder";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Legacy /auralink/create route — back-compat alias for /auralink.
+// Back-compat alias — redirects to the canonical /auralink builder.
 export const Route = createFileRoute("/auralink/create")({
-  head: () => ({
-    meta: [
-      { title: "Build AuraLink — Auragram" },
-      {
-        name: "description",
-        content:
-          "Create a music-first link page with streaming links, Auras, or both.",
-      },
-    ],
-  }),
-  component: () => (
-    <RequireAuth>
-      <AuraLinkBuilder />
-    </RequireAuth>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: "/auralink" });
+  },
+  component: () => null,
 });

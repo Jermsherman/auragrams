@@ -47,7 +47,7 @@ export function AuraFarmCard({
     try {
       if (isOwner) {
         try {
-          await deleteAuraCloud(aura.id);
+          await deleteAuraCloud(aura.id, profile?.id);
           await deleteAuraAudio(aura.audioStoragePath);
         } catch (e) {
           console.error(e);

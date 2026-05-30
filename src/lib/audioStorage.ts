@@ -63,8 +63,9 @@ export async function uploadAuraAudio(opts: {
   auraId: string;
   file: File;
   rawRecording?: boolean;
+  onProgress?: (pct: number) => void;
 }): Promise<UploadedAudio> {
-  const { authUserId, auraId, file, rawRecording } = opts;
+  const { authUserId, auraId, file, rawRecording, onProgress } = opts;
   const validation = validateAudioFile(file);
   if (validation) throw new Error(validation);
 
@@ -80,10 +81,46 @@ export async function uploadAuraAudio(opts: {
         ? "audio/mpeg"
         : "application/octet-stream");
 
-  const { error } = await supabase.storage
-    .from(AUDIO_BUCKET)
-    .upload(storagePath, file, { upsert: true, contentType });
-  if (error) throw error;
+  // Try signed-URL + XHR for real progress events. Fall back to the SDK
+  // upload if signed-URL creation isn't available.
+  let uploaded = false;
+  if (onProgress) {
+    try {
+      const { data: signed, error: signErr } = await supabase.storage
+        .from(AUDIO_BUCKET)
+        .createSignedUploadUrl(storagePath, { upsert: true } as never);
+      if (!signErr && signed?.signedUrl) {
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", signed.signedUrl, true);
+          xhr.setRequestHeader("Content-Type", contentType);
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              onProgress(Math.round((ev.loaded / ev.total) * 100));
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              onProgress(100);
+              resolve();
+            } else reject(new Error(`Upload failed (${xhr.status})`));
+          };
+          xhr.onerror = () => reject(new Error("Upload network error"));
+          xhr.send(file);
+        });
+        uploaded = true;
+      }
+    } catch (e) {
+      console.warn("[uploadAuraAudio] signed-url path failed, falling back", e);
+    }
+  }
+  if (!uploaded) {
+    const { error } = await supabase.storage
+      .from(AUDIO_BUCKET)
+      .upload(storagePath, file, { upsert: true, contentType });
+    if (error) throw error;
+    onProgress?.(100);
+  }
 
   const { data: pub } = supabase.storage
     .from(AUDIO_BUCKET)
