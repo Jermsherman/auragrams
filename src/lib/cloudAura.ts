@@ -89,6 +89,18 @@ export async function saveAuraToCloud(opts: {
   publicHandle: string | null;
 }) {
   const { saved, userId, visibilityMode, artistProfileId, publicArtistName, publicHandle } = opts;
+
+  // Upload base64 cover to storage instead of bloating the JSON column.
+  let coverUrl: string | null = saved.coverDataUrl ?? null;
+  if (coverUrl && coverUrl.startsWith("data:")) {
+    try {
+      coverUrl = await uploadAuraCover(saved.id, coverUrl);
+    } catch (e) {
+      console.warn("[saveAuraToCloud] cover upload failed, dropping", e);
+      coverUrl = null;
+    }
+  }
+
   const row = {
     id: saved.id,
     user_id: userId,
@@ -124,7 +136,7 @@ export async function saveAuraToCloud(opts: {
     audio_size_bytes: saved.audioSizeBytes ?? null,
     audio_duration_seconds: saved.audioDurationSeconds ?? null,
     extra: {
-      coverDataUrl: saved.coverDataUrl ?? null,
+      coverUrl: coverUrl ?? null,
       keyConfidence: saved.keyConfidence,
       userColorInfluence: saved.userColorInfluence ?? null,
       colorGuided: saved.colorGuided ?? false,
@@ -133,6 +145,20 @@ export async function saveAuraToCloud(opts: {
   };
   const { error } = await supabase.from("auras").upsert(row);
   if (error) throw error;
+}
+
+async function uploadAuraCover(auraId: string, dataUrl: string): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return null;
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const path = `covers/${u.user.id}/${auraId}.jpg`;
+  const { error } = await supabase.storage
+    .from("auralink-images")
+    .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: true });
+  if (error) throw error;
+  const { data: pub } = supabase.storage.from("auralink-images").getPublicUrl(path);
+  return pub.publicUrl;
 }
 
 export async function listMyAuras(profileId: string): Promise<CloudAuraRow[]> {
@@ -151,8 +177,10 @@ export async function getPublicAura(id: string): Promise<CloudAuraRow | null> {
   return (data as CloudAuraRow) ?? null;
 }
 
-export async function deleteAura(id: string) {
-  const { error } = await supabase.from("auras").delete().eq("id", id);
+export async function deleteAura(id: string, profileId?: string) {
+  let q = supabase.from("auras").delete().eq("id", id);
+  if (profileId) q = q.eq("user_id", profileId);
+  const { error } = await q;
   if (error) throw error;
 }
 
