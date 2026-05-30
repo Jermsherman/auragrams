@@ -88,6 +88,8 @@ function CreatePage() {
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
