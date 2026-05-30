@@ -85,7 +85,6 @@ function AuraPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [influenceOpen, setInfluenceOpen] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
