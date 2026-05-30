@@ -446,19 +446,14 @@ function AuraPage() {
         {/* Secondary actions — owner only */}
         {isOwner && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <button
-            onClick={() => setInfluenceOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
-            title="Reshape mood, color, vibe, and identity"
-          >
-            <Wand2 className="h-3.5 w-3.5" /> Edit Aura Details
-          </button>
+          {flags.enableAuracle && (
           <button
             onClick={() => setAuracleOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
           >
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
+          )}
           {track.colors && (
             <button
               onClick={() => {
@@ -471,7 +466,7 @@ function AuraPage() {
               <Shuffle className="h-3.5 w-3.5" /> Shuffle
             </button>
           )}
-          {saved && track.colors && (
+          {flags.enableEditPalette && saved && track.colors && (
             <button
               onClick={() => setPaletteOpen(true)}
               className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
