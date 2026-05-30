@@ -81,6 +81,9 @@ export function IdentitySelector({ value, onChange, onResolve }: Props) {
       <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/80 px-1">
         Who is this Aura for?
       </p>
+      <p className="text-[11px] text-muted-foreground px-1 -mt-1">
+        Saved Auras live privately in My Auras. They only become public once you include them in a shareable AuraLink.
+      </p>
 
       {/* Artist Profile */}
       <button
