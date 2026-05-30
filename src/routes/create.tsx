@@ -45,6 +45,8 @@ import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
+import { flags } from "@/lib/featureFlags";
+import { Progress } from "@/components/ui/progress";
 // Link already imported above
 
 export const Route = createFileRoute("/create")({
