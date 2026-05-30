@@ -119,18 +119,26 @@ export async function getAuraLinkBySlug(slug: string): Promise<AuraLinkPage | nu
   return data ? rowToPage(data as Row) : null;
 }
 
+const RESERVED_SLUGS = new Set([
+  "admin","api","auth","login","app","www","root","help","about","faq",
+  "create","auralink","auracle","aura","farm","artist","l","settings",
+  "onboarding","public","generating","404","signin","signup",
+]);
+
 export async function ensureUniqueSlug(base: string, ignoreId?: string): Promise<string> {
   const start = slugify(base);
-  let s = start;
+  let s = RESERVED_SLUGS.has(start) ? `${start}-1` : start;
   let i = 2;
   // Cap attempts to avoid infinite loops in degenerate cases.
   for (let attempts = 0; attempts < 30; attempts++) {
-    const { data } = await supabase
-      .from("auralinks")
-      .select("id")
-      .eq("slug", s)
-      .maybeSingle();
-    if (!data || data.id === ignoreId) return s;
+    if (!RESERVED_SLUGS.has(s)) {
+      const { data } = await supabase
+        .from("auralinks")
+        .select("id")
+        .eq("slug", s)
+        .maybeSingle();
+      if (!data || data.id === ignoreId) return s;
+    }
     s = `${start}-${i++}`;
   }
   return `${start}-${Date.now().toString(36)}`;
