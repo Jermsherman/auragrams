@@ -267,7 +267,7 @@ function AuraPage() {
   const handleDelete = async () => {
     if (isOwner) {
       try {
-        await deleteAuraCloud(track.id);
+        await deleteAuraCloud(track.id, profile?.id);
         await deleteAuraAudio(track.audioStoragePath);
       } catch (e) {
         console.error(e);
