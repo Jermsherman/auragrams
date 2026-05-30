@@ -69,7 +69,6 @@ function FarmPage() {
   const filteredAuras = useMemo(() => {
     const base = (auras ?? []).filter((a) => {
       if (filter === "all") return true;
-      if (filter === "platform_link") return a.sourceType === "platform_link" || a.sourceType === "external_link";
       return a.sourceType === filter;
     });
     const q = query.trim().toLowerCase();
