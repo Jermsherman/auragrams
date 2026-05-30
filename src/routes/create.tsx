@@ -710,6 +710,19 @@ function CreatePage() {
                       </div>
                     )}
                   </label>
+                  {audio && analyzing && (
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground text-center mt-2">
+                      Analyzing audio…
+                    </p>
+                  )}
+                  {uploadPct !== null && (
+                    <div className="mt-2 mx-auto max-w-md">
+                      <Progress value={uploadPct} />
+                      <p className="mt-1 text-[11px] text-muted-foreground text-center tabular-nums">
+                        Uploading… {uploadPct}%
+                      </p>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground text-center mt-2">
                     Upload an audio file to generate your Aura. Add streaming links later after saving.
                   </p>
