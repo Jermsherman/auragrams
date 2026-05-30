@@ -204,6 +204,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
   };
   const extra = (row.extra ?? {}) as {
     coverDataUrl?: string;
+    coverUrl?: string;
     userColorInfluence?: import("./aura").UserColorInfluence;
     colorGuided?: boolean;
     influenceSettings?: import("./farm").SavedAura["influenceSettings"];
