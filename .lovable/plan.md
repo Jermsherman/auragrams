@@ -1,72 +1,175 @@
-# Real-audio link mode + UX polish
+# Must-Fix-Before-Launch Plan
 
-You're right: an Aura without real audio is fake. The fix is to only accept links from sources where we can fetch a real audio preview, then run that preview through the **same analyzer pipeline** as an uploaded MP3 (key, pitch center, energy, mood suggestions). Everything else gets a friendly "upload the file instead" message.
+Ten focused fixes, grouped by risk so I can batch the safe deletions first and the higher-risk refactors last. No new features. No database schema changes except a reserved-slug guard.
 
-## What ships as v1
+---
 
-**Supported in link mode:** Spotify track URLs.
-- Spotify's Web API returns a `preview_url` (30s MP3, CDN-hosted, CORS-friendly) for most tracks plus title, artist, cover art, duration.
-- 30s is enough for the existing key/pitch/energy detectors — they already window to ~30s.
+## Group A — Dead code removal (zero risk)
 
-**Hidden / "not supported yet" in link mode:**
-- Apple Music, YouTube, YouTube Music, Tidal, Deezer, Amazon, Pandora, smart links — no clean preview audio without scraping or TOS issues. SoundCloud and Bandcamp are technically possible but need more work (separate follow-up); they stay listed but show "Upload the file for now."
+**1. Delete orphaned files and imports**
+- Delete `src/lib/musicLinks.ts` (never imported anywhere).
+- Delete `src/routes/aura.$id.influence.tsx` (only a redirect).
+- Remove `InfluenceAuraDialog` import + usage from `src/routes/aura.$id.tsx:27` (the influence button + modal).
+- Remove the dead `sourceType === "platform_link"` filter from `src/routes/farm.tsx:72` (uploads-only model means it's always empty).
+- Remove the non-functional "Remember me" checkbox from `src/routes/auth.tsx:63-64`.
+- Convert `src/routes/auralink.create.tsx` into a one-line redirect to `/auralink` (kept for back-compat with any shared URLs).
+- Regenerate `routeTree.gen.ts` is automatic via the Vite plugin.
 
-If the user pastes a non-Spotify link, the Generate button is disabled and we show: *"We can only read audio from Spotify track links right now. Paste a Spotify track URL, or upload the file."*
+---
 
-## Technical detail
+## Group B — `/artist/$handle` decision
 
-### 1. New server function `src/lib/musicLinks.functions.ts`
-- `resolveMusicLink({ url })` → `{ ok: true, provider, trackId, title, artist, coverUrl, previewUrl, durationMs } | { ok: false, reason }`
-- Spotify-only branch:
-  - Read `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` inside `.handler()`.
-  - Get a client-credentials token (cached in-memory per worker for `expires_in - 60s`).
-  - `GET https://api.spotify.com/v1/tracks/{id}?market=US` (market chosen to maximize `preview_url` availability).
-  - Return DTO only — never leak tokens.
-- Reasons: `unsupported_provider`, `no_preview` (track has no preview_url — common for some labels), `not_found`, `bad_url`, `server_misconfig`.
-- Input validated with the existing `musicLinkSchema` (Zod, max 500 chars, must parse as URL).
+**2. Remove `/artist/$handle` for launch**
+The current implementation reads `localStorage` only (`src/routes/artist.$handle.tsx:53`), so every shared link 404s for visitors. Rebuilding it against the cloud is post-launch work.
 
-### 2. Secrets
-Requires two runtime secrets the user must add via the secret prompt:
-- `SPOTIFY_CLIENT_ID`
-- `SPOTIFY_CLIENT_SECRET`
-(Free Spotify developer app — instructions surfaced in the prompt copy. Until both are set, link mode shows a soft "Coming soon" state instead of crashing.)
+- Delete `src/routes/artist.$handle.tsx`.
+- Search for any `<Link to="/artist/...">` references and remove or replace with the AuraLink page (which is now the canonical public artist surface).
 
-### 3. Client flow in `src/routes/create.tsx` (link mode)
-Replace the current `linkInfo` memo + naive `platform_link` submission with a real fetch-and-analyze flow:
+---
 
-1. User pastes URL.
-2. Inline validation via existing `parseMusicLink` — show platform chip immediately.
-3. If provider !== `"spotify"` → disabled CTA with the message above + a "Switch to file upload" button that copies the title/artist guess and flips `mode` to `"file"`.
-4. If provider === `"spotify"` → click **Fetch preview** (or auto-debounce 600ms after paste):
-   - Call `resolveMusicLink`.
-   - Show loading skeleton on the cover card.
-   - On success: render cover thumbnail, prefill `title` + `artist` (user can still edit), download the `previewUrl` as a Blob, wrap it in a `File`, and feed it into the **existing** `onPick(file)` path. From here every downstream detector (`detectKey`, `analyzeFile`, `detectPitchCenter`, `suggestMoods`) runs unchanged, and `sourceType` becomes `"upload"` because we now have real audio — that keeps the Aura honest. We tag the track with `provider: "spotify"`, `streamUrl: url`, `embedUrl` so the player still shows the Spotify embed for playback of the full track.
-   - On `no_preview`: show "Spotify didn't return an audio preview for this track. Try a different release or upload the file." with an Upload CTA.
-   - On `not_found` / `bad_url`: inline error under the input.
+## Group C — Create-flow simplification
 
-### 4. UX polish on the Link tab
-- Big paste-friendly input with a Spotify icon prefix, "Paste a Spotify track URL" placeholder, and a one-tap **Paste** button (uses `navigator.clipboard.readText`, falls back to focus).
-- Live state card directly under the input with three visual states:
-  - **Empty** — soft hint + supported/unsupported provider list (Spotify ✅; everything else "Upload the file").
-  - **Resolving** — skeleton cover + shimmer title.
-  - **Resolved** — 64px cover, title, artist, duration, "Preview loaded ✓" pill, and a small ▶︎ to preview the 30s clip in place using the existing `AudioPlayer`.
-- Clear "Clear link" (×) action; mode tabs preserve state when you switch back.
-- Submit button copy becomes **"Generate Aura from preview"** (vs "Generate Aura" for file mode) so the user knows what's analyzed.
-- Help link: a "Why only Spotify?" tooltip linking to a short FAQ entry explaining we need real audio to make a real Aura.
+**3. Hide non-MVP create modes behind a feature flag**
+Keep the code (so we can re-enable post-launch) but remove from the UI.
 
-### 5. Remove dead code paths
-- Drop the old `mode === "link"` branch in `submit()` that wrote a `platform_link` track with no audio — replaced by the upload path described above. The `sourceType: "platform_link"` enum value stays in types for backwards compatibility with existing saved Auras, but new Auras created from a Spotify link are stored as `sourceType: "upload"` + `provider: "spotify"` + `streamUrl` so playback still goes to Spotify.
+- Add `src/lib/featureFlags.ts` with `MVP_LAUNCH = true` and named flags: `enableRawRecording`, `enableAuracle`, `enableStoryExport`, `enableInfluence`, `enableEditPalette`, `enableColorInfluence`.
+- In `src/routes/create.tsx`: gate the Raw and Auracle mode tabs behind their flags. With MVP_LAUNCH=true, the mode selector renders nothing — upload is the only path. Tighten `Mode` to `"file"` when flags are off.
+- In `src/routes/aura.$id.tsx`: gate the Story, Edit Palette, Add-to-Auracle buttons behind their flags.
+- In `src/routes/__root.tsx` / `Nav.tsx`: hide any Auracle nav links.
+- Hide the Auracle routes by returning `notFound()` from `/auracle/create` and `/auracle/$id` loaders when `enableAuracle` is false (file stays, route is dead at runtime).
 
-### 6. Files touched
-- **New:** `src/lib/musicLinks.functions.ts` (server fn + Spotify client-credentials helper).
-- **Edited:** `src/routes/create.tsx` (link mode UI + new client flow), `src/lib/musicLinks.ts` (add `isSupportedForAudio(provider)` helper + tighter messages).
-- **Secrets request:** `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` (prompted before wiring the server fn).
-- **No DB migration. No changes to AuraLink, Farm, or onboarding** in this turn.
+This is reversible by flipping flags — no code is actually deleted.
 
-## Out of scope (call out, don't build)
-- SoundCloud / Bandcamp real-audio support (needs separate research — SoundCloud requires a deprecated client_id; Bandcamp needs HTML scraping of the embed JSON).
-- Apple Music / YouTube real-audio support (no legitimate preview endpoint).
-- Any AuraLink, profile, or onboarding work — last turn's pending items stay pending.
+---
 
-## Confirmation needed before I start
-I'll request the two Spotify secrets via the secret prompt. You'll need a free Spotify Developer app (dashboard.spotify.com → Create App → copy Client ID + Secret). Approve this plan and I'll trigger that prompt as the first step.
+## Group D — Upload + analysis UX
+
+**4. Real upload progress indicator on `/create`**
+- `src/lib/audioStorage.ts::uploadAuraAudio`: Supabase JS `.upload()` doesn't expose progress directly, so wrap it with a manual XHR fallback using `supabase.storage.from(bucket).uploadToSignedUrl` after creating a signed upload URL (`createSignedUploadUrl`) — XHR's `upload.onprogress` gives real bytes-sent.
+- Surface progress as `0–100` via a callback param.
+- `src/routes/create.tsx::submit`: show a thin progress bar under the CTA while `busy === "upload"`. Reuse `<Progress />` from shadcn.
+- Add an "Analyzing audio…" indicator next to the file name while `runAnalysis` promises are pending (track all three with `Promise.allSettled`).
+
+**5. Reduce decode passes from 3 → 1**
+- Add `src/lib/audioDecode.ts` with `decodeOnce(file): Promise<AudioBuffer>` using a single shared `AudioContext`.
+- Refactor `detectKey`, `analyzeFile`, `detectPitchCenter` to accept an optional pre-decoded `AudioBuffer` (existing File-based signature kept for back-compat).
+- In `src/routes/create.tsx::runAnalysis`: decode once, then pass the buffer into all three detectors via `Promise.all`. ~3× RAM saved on a 50 MB file.
+
+**6. Real generating screen**
+- `src/routes/generating.tsx`: replace the hardcoded 4200 ms with a minimum-1500 ms theatrical floor that resolves the instant the aura is ready. Use `Promise.all([generationPromise, sleep(1500)])`. Generation already finishes before navigation, so this becomes just the 1.5 s reveal animation.
+
+---
+
+## Group E — Cover image fix
+
+**7. Stop storing base64 cover images in `auras.extra`**
+- `src/lib/cloudAura.ts::saveAuraToCloud` currently writes `coverDataUrl` straight into the `extra` JSON column. For any non-trivial cover this bloats every row.
+- Add `src/lib/auraImages.ts::uploadAuraCover(authUserId, auraId, dataUrl)` that:
+  - Decodes the data URL.
+  - If size > 50 KB or it's a data URL at all, uploads to the existing `auralink-images` bucket under `covers/{authUserId}/{auraId}.jpg` (compressed via the existing helper).
+  - Returns the public URL.
+- In `saveAuraToCloud`: before writing `extra`, if `coverDataUrl` is a data URL, upload it and store the URL instead. Strip raw data URLs from `extra`.
+- Backfill is not needed — old rows remain valid; new writes are clean.
+
+---
+
+## Group F — Security tightening
+
+**8. Owner-gate destructive ops + slug blocklist**
+- `src/lib/cloudAura.ts::deleteAura`: add `.eq("user_id", profileId)` so the client query matches the pattern in `deleteAuraLink`. RLS stays as the backstop; this gives defense-in-depth.
+- `src/lib/auralinkService.ts`: add a reserved-slug constant `RESERVED_SLUGS = new Set(["admin","api","auth","login","app","www","root","help","about","faq","create","auralink","auracle","aura","farm","artist","l","settings","onboarding","public"])`. In the slug-generation loop, if `slug` is in the set, append `-1` and continue. Apply to both create and rename paths.
+
+---
+
+## Group G — Visibility model honesty
+
+**9. Honest copy for the visibility selector**
+Real private/unlisted requires RLS changes — that's post-launch. For now, fix the lie:
+- In `src/components/IdentitySelector.tsx`: add a small helper line under the selector — *"All Auras are public and shareable by link. This controls how your name appears on the AuraLink."*
+- In `src/routes/onboarding.tsx` step 3: same clarifying copy.
+- Remove "private/unlisted" implications from any landing copy if present.
+
+No code path for actual privacy is added — just truthful labeling.
+
+---
+
+## Group H — Generating screen + onboarding (already addressed in F)
+
+Item 8 from the original list (replace 4.2s fake wait) is handled in **#6** above.
+
+Item 9 (Auracle removal) is handled in **#3** via flag.
+
+Item 10 (visibility model decision) is handled in **#9**.
+
+---
+
+## Technical Details (for engineering review)
+
+**Feature flag shape:**
+```ts
+// src/lib/featureFlags.ts
+export const flags = {
+  enableRawRecording: false,
+  enableAuracle: false,
+  enableStoryExport: false,
+  enableInfluence: false,
+  enableEditPalette: false,
+  enableColorInfluence: false,
+} as const;
+```
+Static booleans — bundler tree-shakes the disabled branches in production builds. No env var needed for MVP launch.
+
+**Upload progress signature:**
+```ts
+uploadAuraAudio(opts: {
+  file: File;
+  authUserId: string;
+  auraId: string;
+  onProgress?: (pct: number) => void;
+}): Promise<UploadResult>
+```
+Uses `createSignedUploadUrl` + XHR PUT to get progress events. Falls back to the existing `.upload()` if signed-url creation fails.
+
+**Shared decode:**
+```ts
+// src/lib/audioDecode.ts
+let _ctx: AudioContext | null = null;
+export async function decodeOnce(file: File): Promise<AudioBuffer> {
+  _ctx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
+  return _ctx.decodeAudioData(await file.arrayBuffer());
+}
+```
+Each detector gets an optional `buffer?: AudioBuffer` param; if provided, skip its own decode.
+
+**Cover image upload:**
+Reuses the existing `auralink-images` bucket and image compression helper (`auralinkImages.ts:21-35`) — no new bucket, no migration.
+
+**Slug blocklist:**
+Pure client-side guard at write time. RLS-level enforcement (a CHECK constraint or trigger) is post-launch hardening.
+
+---
+
+## Out of scope (deferred to post-launch list)
+
+- Consolidating the dual localStorage + cloud storage model.
+- Lazy-loading `AuraLinkBuilder` (1631 lines).
+- `ArtistProfile` type unification.
+- Moving onboarding after the wow moment (requires deeper claim-flow rework).
+- Replacing `as never` casts.
+- Re-enabling Google OAuth.
+- Dropping the `is_anonymous` DB column.
+- Rebuilding `/artist/$handle` against the cloud.
+
+---
+
+## Order of execution
+
+1. Group A (deletes) — fastest, lowest risk.
+2. Group B (artist route) — single file delete.
+3. Group F (security) — small, surgical.
+4. Group G (copy fix).
+5. Group C (feature flags + UI gating).
+6. Group E (cover upload).
+7. Group D (decode-once + progress + generating screen) — biggest change, saved for last so I can verify the pipeline still produces an Aura end-to-end after the refactor.
+
+I will verify after each group that `/create` still produces an Aura, the orb renders on `/aura/$id`, and `/l/$slug` still loads.
