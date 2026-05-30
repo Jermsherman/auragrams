@@ -41,7 +41,7 @@ export const StoryCanvas = forwardRef<HTMLDivElement, Props>(function StoryCanva
 
       <div className="absolute inset-0 grid place-items-center px-8">
         <Aurascope
-          aura={{ palette, auraName: title, artistName: artist }}
+          aura={{ palette, colors, auraName: title, artistName: artist }}
           size="large"
           mode="minimal"
           showLabel={false}
