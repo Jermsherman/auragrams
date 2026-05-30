@@ -30,10 +30,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [remember, setRemember] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("auragram_remember_me") !== "0";
-  });
+  const remember = true;
 
   const after = async () => {
     // Decide where to send the user
@@ -147,15 +144,6 @@ function AuthPage() {
                   placeholder="••••••••"
                 />
               </div>
-            </label>
-            <label className="flex items-center gap-2 px-1 pt-1 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 accent-foreground/80 rounded"
-              />
-              <span className="text-xs text-muted-foreground">Remember me on this device</span>
             </label>
             <button
               type="submit"

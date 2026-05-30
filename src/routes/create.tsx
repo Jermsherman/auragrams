@@ -45,6 +45,8 @@ import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
 import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
+import { flags } from "@/lib/featureFlags";
+import { Progress } from "@/components/ui/progress";
 // Link already imported above
 
 export const Route = createFileRoute("/create")({
@@ -86,6 +88,8 @@ function CreatePage() {
   const [moods, setMoods] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
@@ -104,14 +108,17 @@ function CreatePage() {
     setKeyDetection(null);
     setFeatures(null);
     setPitchCenter(null);
-    detectKey(f).then((res) => {
-      if (res) {
-        setKeyDetection(res);
-        if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
-      }
-    }).catch(() => {});
-    analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }).catch(() => {});
-    detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }).catch(() => {});
+    setAnalyzing(true);
+    Promise.allSettled([
+      detectKey(f).then((res) => {
+        if (res) {
+          setKeyDetection(res);
+          if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
+        }
+      }),
+      analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }),
+      detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }),
+    ]).finally(() => setAnalyzing(false));
   };
 
   const onPick = (f: File | undefined | null) => {
@@ -153,7 +160,8 @@ function CreatePage() {
   const isGuest = !user;
   // Guests cannot use Auracle (multi-track) or pick identity — they get a single guest Aura.
   useEffect(() => {
-    if (isGuest && mode === "auracle") setMode("file");
+    if (mode === "auracle" && (isGuest || !flags.enableAuracle)) setMode("file");
+    if (mode === "raw" && !flags.enableRawRecording) setMode("file");
   }, [isGuest, mode]);
 
   const identityReady =
@@ -391,16 +399,19 @@ function CreatePage() {
       let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
       if (user) {
         try {
+          setUploadPct(0);
           uploaded = await uploadAuraAudio({
             authUserId: user.id,
             auraId: id,
             file: audio,
             rawRecording: mode === "raw",
+            onProgress: (pct) => setUploadPct(pct),
           });
         } catch (e) {
           console.error("audio upload", e);
           toast.error("Upload failed. Please try again.");
           setBusy(false);
+          setUploadPct(null);
           return;
         }
       }
@@ -480,24 +491,28 @@ function CreatePage() {
         )}
 
         <div className="mt-10 space-y-5 animate-fade-up">
-          {/* Mode toggle */}
-          <div className={`glass rounded-full p-1 grid ${isGuest ? "grid-cols-2" : "grid-cols-3"} text-sm gap-0.5`}>
-            <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
-              <UploadCloud className="h-4 w-4" />
-              <span className="hidden sm:inline">Upload</span>
-              <span className="sm:hidden">File</span>
-            </ModeTab>
-            <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
-              <Mic className="h-4 w-4" />
-              <span className="hidden sm:inline">Raw Aura</span>
-              <span className="sm:hidden">Raw</span>
-            </ModeTab>
-            {!isGuest && (
-              <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
-                <Layers className="h-4 w-4" /> Auracle
+          {/* Mode toggle — only show if any alt mode is enabled */}
+          {(flags.enableRawRecording || (flags.enableAuracle && !isGuest)) && (
+            <div className={`glass rounded-full p-1 grid text-sm gap-0.5`} style={{ gridTemplateColumns: `repeat(${1 + (flags.enableRawRecording ? 1 : 0) + (flags.enableAuracle && !isGuest ? 1 : 0)}, minmax(0,1fr))` }}>
+              <ModeTab active={mode === "file"} onClick={() => setMode("file")}>
+                <UploadCloud className="h-4 w-4" />
+                <span className="hidden sm:inline">Upload</span>
+                <span className="sm:hidden">File</span>
               </ModeTab>
-            )}
-          </div>
+              {flags.enableRawRecording && (
+                <ModeTab active={mode === "raw"} onClick={() => setMode("raw")}>
+                  <Mic className="h-4 w-4" />
+                  <span className="hidden sm:inline">Raw Aura</span>
+                  <span className="sm:hidden">Raw</span>
+                </ModeTab>
+              )}
+              {flags.enableAuracle && !isGuest && (
+                <ModeTab active={mode === "auracle"} onClick={() => setMode("auracle")}>
+                  <Layers className="h-4 w-4" /> Auracle
+                </ModeTab>
+              )}
+            </div>
+          )}
 
 
           {mode === "auracle" ? (
@@ -695,6 +710,19 @@ function CreatePage() {
                       </div>
                     )}
                   </label>
+                  {audio && analyzing && (
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground text-center mt-2">
+                      Analyzing audio…
+                    </p>
+                  )}
+                  {uploadPct !== null && (
+                    <div className="mt-2 mx-auto max-w-md">
+                      <Progress value={uploadPct} />
+                      <p className="mt-1 text-[11px] text-muted-foreground text-center tabular-nums">
+                        Uploading… {uploadPct}%
+                      </p>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground text-center mt-2">
                     Upload an audio file to generate your Aura. Add streaming links later after saving.
                   </p>
@@ -742,7 +770,9 @@ function CreatePage() {
                   canDetect={canDetect}
                 />
 
-                <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
+                {flags.enableColorInfluence && (
+                  <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
+                )}
 
                 <div className="flex items-center gap-4 pt-1">
                   <div className="relative h-14 w-14 shrink-0 grid place-items-center">

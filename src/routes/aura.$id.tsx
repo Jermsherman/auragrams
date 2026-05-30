@@ -13,7 +13,7 @@ import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Wand2, Palette, Shuffle } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Palette, Shuffle } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAuras } from "@/lib/farm";
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
@@ -85,7 +85,6 @@ function AuraPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [influenceOpen, setInfluenceOpen] = useState(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
@@ -428,12 +427,14 @@ function AuraPage() {
               >
                 <Share2 className="h-4 w-4" /> Share AuraLink
               </button>
+              {flags.enableStoryExport && (
               <button
                 onClick={() => setStoryOpen(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
               >
                 <Sparkles className="h-4 w-4" /> Story Preview
               </button>
+              )}
             </>
           ) : null}
         </div>
@@ -447,19 +448,14 @@ function AuraPage() {
         {/* Secondary actions — owner only */}
         {isOwner && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <button
-            onClick={() => setInfluenceOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
-            title="Reshape mood, color, vibe, and identity"
-          >
-            <Wand2 className="h-3.5 w-3.5" /> Edit Aura Details
-          </button>
+          {flags.enableAuracle && (
           <button
             onClick={() => setAuracleOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
           >
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
+          )}
           {track.colors && (
             <button
               onClick={() => {
@@ -472,7 +468,7 @@ function AuraPage() {
               <Shuffle className="h-3.5 w-3.5" /> Shuffle
             </button>
           )}
-          {saved && track.colors && (
+          {flags.enableEditPalette && saved && track.colors && (
             <button
               onClick={() => setPaletteOpen(true)}
               className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
@@ -517,12 +513,6 @@ function AuraPage() {
           />
         )}
 
-        <InfluenceAuraDialog
-          track={track}
-          open={influenceOpen}
-          onOpenChange={setInfluenceOpen}
-          onApplied={(next) => setTrack(next)}
-        />
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (

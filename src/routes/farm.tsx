@@ -29,7 +29,7 @@ export const Route = createFileRoute("/farm")({
   component: () => (<RequireAuth><FarmPage /></RequireAuth>),
 });
 
-type Filter = "all" | "upload" | "platform_link" | "raw_recording";
+type Filter = "all" | "upload" | "raw_recording";
 type SortKey = "newest" | "oldest" | "title" | "artist";
 
 function FarmPage() {
@@ -69,7 +69,6 @@ function FarmPage() {
   const filteredAuras = useMemo(() => {
     const base = (auras ?? []).filter((a) => {
       if (filter === "all") return true;
-      if (filter === "platform_link") return a.sourceType === "platform_link" || a.sourceType === "external_link";
       return a.sourceType === filter;
     });
     const q = query.trim().toLowerCase();
@@ -157,7 +156,6 @@ function FarmPage() {
                   {([
                     ["all", "All"],
                     ["upload", "Uploaded Audio"],
-                    ["platform_link", "Platform Links"],
                     ["raw_recording", "Raw Aura"],
                   ] as const).map(([key, label]) => (
                     <button
