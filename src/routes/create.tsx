@@ -399,16 +399,19 @@ function CreatePage() {
       let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
       if (user) {
         try {
+          setUploadPct(0);
           uploaded = await uploadAuraAudio({
             authUserId: user.id,
             auraId: id,
             file: audio,
             rawRecording: mode === "raw",
+            onProgress: (pct) => setUploadPct(pct),
           });
         } catch (e) {
           console.error("audio upload", e);
           toast.error("Upload failed. Please try again.");
           setBusy(false);
+          setUploadPct(null);
           return;
         }
       }
