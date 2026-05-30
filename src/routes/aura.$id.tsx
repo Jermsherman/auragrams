@@ -24,7 +24,7 @@ import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
-import { InfluenceAuraDialog } from "@/components/InfluenceAuraDialog";
+import { flags } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import {
   AlertDialog,
