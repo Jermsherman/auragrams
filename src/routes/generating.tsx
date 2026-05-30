@@ -21,7 +21,7 @@ const STEPS = [
   { label: "Shaping your Aura…", sub: "A living identity is forming" },
 ];
 
-const TOTAL_MS = 4200;
+const TOTAL_MS = 1500;
 
 function GeneratingPage() {
   const { id } = Route.useSearch();
