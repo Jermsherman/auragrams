@@ -227,7 +227,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     energyLevel: Number(row.energy_level ?? 0.6),
     palette: ((visual.palette ?? row.palette_name) as import("./aura").PaletteKey) ?? "amethyst",
     seed: Number(visual.seed ?? 0),
-    coverDataUrl: extra.coverDataUrl,
+    coverDataUrl: extra.coverUrl ?? extra.coverDataUrl,
     musicalKey: row.detected_key ?? undefined,
     tempoBand: visual.tempoBand,
     density: visual.density,
