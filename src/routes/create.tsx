@@ -160,7 +160,8 @@ function CreatePage() {
   const isGuest = !user;
   // Guests cannot use Auracle (multi-track) or pick identity — they get a single guest Aura.
   useEffect(() => {
-    if (isGuest && mode === "auracle") setMode("file");
+    if (mode === "auracle" && (isGuest || !flags.enableAuracle)) setMode("file");
+    if (mode === "raw" && !flags.enableRawRecording) setMode("file");
   }, [isGuest, mode]);
 
   const identityReady =
