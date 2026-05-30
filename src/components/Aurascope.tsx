@@ -191,7 +191,7 @@ export function Aurascope({
       <AurascopeLens
         size={size}
         mode={mode}
-        aura={aura}
+        aura={{ ...aura, profile: effectiveProfile }}
         personality={personality}
         isPlaying={isPlaying}
         hero={hero}
