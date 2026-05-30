@@ -511,12 +511,6 @@ function AuraPage() {
           />
         )}
 
-        <InfluenceAuraDialog
-          track={track}
-          open={influenceOpen}
-          onOpenChange={setInfluenceOpen}
-          onApplied={(next) => setTrack(next)}
-        />
 
         <div className="mt-8 w-full animate-fade-up">
           {audioUrl ? (
