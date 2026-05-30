@@ -108,14 +108,17 @@ function CreatePage() {
     setKeyDetection(null);
     setFeatures(null);
     setPitchCenter(null);
-    detectKey(f).then((res) => {
-      if (res) {
-        setKeyDetection(res);
-        if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
-      }
-    }).catch(() => {});
-    analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }).catch(() => {});
-    detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }).catch(() => {});
+    setAnalyzing(true);
+    Promise.allSettled([
+      detectKey(f).then((res) => {
+        if (res) {
+          setKeyDetection(res);
+          if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
+        }
+      }),
+      analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }),
+      detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }),
+    ]).finally(() => setAnalyzing(false));
   };
 
   const onPick = (f: File | undefined | null) => {
