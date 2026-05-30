@@ -29,7 +29,7 @@ export const Route = createFileRoute("/farm")({
   component: () => (<RequireAuth><FarmPage /></RequireAuth>),
 });
 
-type Filter = "all" | "upload" | "platform_link" | "raw_recording";
+type Filter = "all" | "upload" | "raw_recording";
 type SortKey = "newest" | "oldest" | "title" | "artist";
 
 function FarmPage() {
