@@ -1,26 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
-import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, RefreshCw } from "lucide-react";
 import { FaqPreview } from "@/components/FaqPreview";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  SHOWCASE_AURAS,
+  pickRandomShowcase,
+  pickContrastingShowcase,
+  type ShowcaseAura,
+} from "@/lib/showcaseAuras";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Auragram — Your song deserves more than a link" },
+      { title: "Auragram — Give your music a living identity" },
       {
         name: "description",
         content:
-          "Turn songs into living Auras, save them to your Farm, group them into Auracles, and share them anywhere with AuraLinks.",
+          "Turn any song into a living, playable Aura. Share your sound with an AuraLink — a music-first link page with playable Auras.",
       },
       { property: "og:title", content: "Auragram — See your sound" },
       {
         property: "og:description",
         content:
-          "Turn songs into Auras, save them to your Farm, group them into Auracles, and share them with AuraLinks.",
+          "Turn songs into living Auras and share them with an AuraLink — a music-first link page with playable Auras.",
       },
     ],
   }),
@@ -29,6 +37,15 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // SSR-safe: pick the first showcase on the server, then randomize on the client.
+  const [showcase, setShowcase] = useState<ShowcaseAura>(SHOWCASE_AURAS[0]);
+  useEffect(() => {
+    setShowcase(pickRandomShowcase());
+  }, []);
+  const contrasting = pickContrastingShowcase(showcase.id);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
@@ -36,68 +53,178 @@ function Index() {
         {/* HERO */}
         <section className="relative overflow-hidden">
           <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-6 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center animate-fade-up">
-            <div className="relative grid place-items-center">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/create" })}
+              aria-label={`Create your own Aura — example: ${showcase.trackTitle}`}
+              className="relative grid place-items-center group rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
+            >
               <Aurascope
-                aura={{ palette: "euphoric", auraName: "Auragram" }}
+                aura={{
+                  palette: showcase.palette,
+                  colors: showcase.colors,
+                  seed: showcase.seed,
+                  auraName: showcase.trackTitle,
+                }}
                 size="large"
                 mode="minimal"
                 hero
                 className="animate-float-y"
                 showLabel={false}
               />
+            </button>
+
+            {/* Hero metadata — teaches "Auras come from music" in one glance */}
+            <div className="mt-6 sm:mt-8 max-w-sm w-full">
+              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+                Generated From
+              </div>
+              <div className="mt-1.5 font-display text-xl sm:text-2xl tracking-tight text-aura-gradient">
+                &ldquo;{showcase.trackTitle}&rdquo;
+              </div>
+              <div className="mt-2 text-xs sm:text-sm text-muted-foreground">
+                <span className="text-foreground/80">Mood:</span> {showcase.mood}
+                <span className="mx-2 opacity-40">·</span>
+                <span className="text-foreground/80">Energy:</span> {showcase.energy}%
+                <span className="mx-2 opacity-40">·</span>
+                <span className="text-foreground/80">Key:</span> {showcase.musicalKey}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowcase((cur) => pickRandomShowcase(cur.id))}
+                className="mt-3 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" /> Show another
+              </button>
             </div>
 
             <a
-              href="#how-it-works"
-              className="mt-2 sm:mt-4 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.3em] text-foreground/85 hover:border-foreground/20 transition-colors"
+              href="#what-is-an-aura"
+              className="mt-8 sm:mt-10 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.3em] text-foreground/85 hover:border-foreground/20 transition-colors"
             >
               <AudioLines className="h-4 w-4 text-aura-gradient" />
               See your sound
             </a>
 
             <h1 className="mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
-              Your song deserves <br />
-              <span className="text-aura-gradient">more than a link.</span>
+              Give Your Music <br />
+              <span className="text-aura-gradient">A Living Identity.</span>
             </h1>
 
-            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md">
-              Create your first Aura for free. Sign up to save it and build your music-first AuraLink.
-            </p>
+            <div className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md space-y-1">
+              <p>Upload a song.</p>
+              <p>Generate a living Aura.</p>
+              <p>Share it anywhere with AuraLink.</p>
+            </div>
 
             <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
               <Link
                 to="/create"
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
               >
-                {user ? "Create Aura" : "Create Your First Aura"} <ArrowRight className="h-4 w-4" />
+                See Your Sound <ArrowRight className="h-4 w-4" />
               </Link>
-              {user && (
-                <Link
-                  to="/auralink/create"
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
-                >
-                  <Link2 className="h-4 w-4" /> Build AuraLink
-                </Link>
-              )}
-            </div>
-
-            <div className="mt-6 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-              Create Aura → Sign Up → Build AuraLink → Share Anywhere
+              <a
+                href="#what-is-an-aura"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
+              >
+                View Example Aura
+              </a>
             </div>
           </div>
         </section>
 
-        {/* HOW IT WORKS */}
+        {/* WHAT IS AN AURA */}
+        <section
+          id="what-is-an-aura"
+          className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24 scroll-mt-24"
+        >
+          <div className="rounded-3xl glass-strong p-7 sm:p-12 relative overflow-hidden">
+            <div className="text-center max-w-2xl mx-auto">
+              <h2 className="font-display text-3xl sm:text-4xl tracking-tight">
+                What exactly is an <span className="text-aura-gradient">Aura?</span>
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                An Aura is a living visual identity generated from your music&apos;s mood,
+                energy, key, rhythm, and atmosphere.
+              </p>
+            </div>
+
+            <div className="mt-10 grid md:grid-cols-2 gap-10 items-center">
+              <div className="grid place-items-center">
+                <Aurascope
+                  aura={{
+                    palette: contrasting.palette,
+                    colors: contrasting.colors,
+                    seed: contrasting.seed,
+                    auraName: contrasting.trackTitle,
+                  }}
+                  size="medium"
+                  mode="minimal"
+                  hero
+                  showLabel={false}
+                />
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+                    Generated From
+                  </div>
+                  <div className="mt-1 font-display text-xl text-aura-gradient">
+                    &ldquo;{contrasting.trackTitle}&rdquo;
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                    Mood Tags
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {contrasting.moodTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full glass px-3 h-7 text-xs text-foreground/85"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                    <span>Energy</span>
+                    <span className="text-foreground/80">{contrasting.energy}%</span>
+                  </div>
+                  <Progress value={contrasting.energy} className="h-2" />
+                </div>
+
+                <div className="flex items-baseline gap-2 text-sm">
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                    Detected Key
+                  </span>
+                  <span className="text-foreground/90">{contrasting.musicalKey}</span>
+                </div>
+
+                <p className="text-sm italic text-foreground/80 border-l-2 border-foreground/20 pl-3">
+                  &ldquo;{contrasting.vibeDescription}&rdquo;
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS — simplified to 3 outcome-led steps */}
         <section id="how-it-works" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="font-display text-3xl sm:text-4xl tracking-tight text-center">
             How it works
           </h2>
-          <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="mt-12 grid sm:grid-cols-3 gap-5">
             {[
-              { n: "01", t: "Create Aura", d: "Upload a song or paste a music link to generate a living visual aura." },
-              { n: "02", t: "Sign Up to Save", d: "Sign up to save your Aura, then build your AuraLink." },
-              { n: "03", t: "Build AuraLink", d: "Add your songs, socials, and streaming links to one music-first page." },
-              { n: "04", t: "Share Anywhere", d: "Drop your AuraLink in bios, DMs, and stories." },
+              { n: "01", t: "Upload Audio", d: "Drop in a song." },
+              { n: "02", t: "Generate Aura", d: "Watch your music become visual." },
+              { n: "03", t: "Share Anywhere", d: "Turn it into a playable AuraLink." },
             ].map((s) => (
               <div
                 key={s.n}
@@ -111,6 +238,9 @@ function Index() {
               </div>
             ))}
           </div>
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Create a free account to save your Aura.
+          </p>
         </section>
 
         {/* AURALINK SPOTLIGHT */}
@@ -122,15 +252,15 @@ function Index() {
                 <Link2 className="h-3 w-3" /> AuraLink
               </div>
               <h2 className="mt-4 font-display text-3xl sm:text-4xl tracking-tight">
-                AuraLink is your <span className="text-aura-gradient">music-first link page.</span>
+                AuraLink is <span className="text-aura-gradient">a music-first link page with playable Auras.</span>
               </h2>
               <p className="mt-3 text-muted-foreground max-w-xl">
-                Add streaming links, social profiles, and playable Auras from your Farm into one page built for bios, stories, DMs, and rollouts.
+                One playable page built for bios, stories, DMs, and rollouts — streaming links, social profiles, and Auras that play right inside your link.
               </p>
               <ul className="mt-6 grid sm:grid-cols-2 gap-2.5 text-sm text-foreground/85 max-w-xl">
-                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Spotify, Apple Music, SoundCloud, YouTube, Bandcamp, and more.</li>
-                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Feature your best Auras.</li>
-                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Share one clean music-first link.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Auras that play right inside your link.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Add Spotify, Apple Music, SoundCloud, YouTube, and more.</li>
+                <li className="flex gap-2"><span className="text-aura-gradient">›</span> Share one clean, playable music-first link.</li>
                 <li className="flex gap-2"><span className="text-aura-gradient">›</span> Make your profile feel alive, not generic.</li>
               </ul>
               <Link
@@ -143,24 +273,24 @@ function Index() {
           </div>
         </section>
 
-
+        {/* OUTCOME-FOCUSED FEATURE CARDS */}
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24">
           <div className="grid sm:grid-cols-3 gap-5">
             {[
               {
                 I: Sparkles,
-                t: "Living Auras",
-                d: "Every Aura breathes, glows, and reacts to your sound.",
-              },
-              {
-                I: Wand2,
-                t: "My Auras",
-                d: "Your growing collection of sonic identities, in one place.",
+                t: "Turn Music Into Visual Identity",
+                d: "Every track becomes a living Aura.",
               },
               {
                 I: Share2,
-                t: "AuraLinks",
-                d: "A premium music-first share page for bios, stories, and DMs.",
+                t: "Share Your Sound",
+                d: "Create a playable AuraLink for releases, bios, stories, and DMs.",
+              },
+              {
+                I: Wand2,
+                t: "Stand Out",
+                d: "Give every song its own visual identity instead of another generic link.",
               },
             ].map(({ I, t, d }) => (
               <div key={t} className="glass rounded-2xl p-6 sm:p-7 relative">
@@ -189,7 +319,7 @@ function Index() {
                 to="/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                {user ? "Create Aura" : "Create Your First Aura"} <ArrowRight className="h-4 w-4" />
+                {user ? "Create Aura" : "See Your Sound"} <ArrowRight className="h-4 w-4" />
               </Link>
               {user && (
                 <Link
