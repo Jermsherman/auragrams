@@ -143,7 +143,24 @@ function AuthPage() {
             </button>
           </div>
 
-          {/* Google sign-in temporarily disabled. */}
+          <button
+            type="button"
+            onClick={onGoogle}
+            disabled={busy}
+            className="w-full mb-3 inline-flex items-center justify-center gap-2.5 rounded-2xl h-12 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.75-6-6.15S8.7 5.9 12 5.9c1.9 0 3.15.8 3.87 1.5l2.65-2.55C16.85 3.3 14.65 2.4 12 2.4c-5.3 0-9.6 4.3-9.6 9.6s4.3 9.6 9.6 9.6c5.55 0 9.2-3.9 9.2-9.4 0-.63-.07-1.1-.15-1.6H12z"/>
+            </svg>
+            Continue with Google
+          </button>
+          <div className="flex items-center gap-3 mb-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/70">
+            <div className="flex-1 h-px bg-border/60" />
+            or
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+
+
 
 
           <form onSubmit={onSubmit} className="space-y-3">
