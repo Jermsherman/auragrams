@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { ArrowRight, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +47,38 @@ function AuthPage() {
       nav({ to: "/onboarding", search: { redirect } });
     } else {
       nav({ to: redirect });
+    }
+  };
+
+  // If a user lands here already signed in (e.g. Google OAuth redirect), route them forward.
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled && data.user) after();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onGoogle = async () => {
+    setBusy(true);
+    try {
+      try {
+        localStorage.setItem("auragram_remember_me", "1");
+      } catch { /* noop */ }
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/auth",
+      });
+      if ("error" in result && result.error) throw result.error;
+      // In-page flow: setSession already happened inside lovable client.
+      await after();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Google sign-in failed";
+      toast.error(msg);
+    } finally {
+      setBusy(false);
     }
   };
 
