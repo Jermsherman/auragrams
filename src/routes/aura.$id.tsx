@@ -43,14 +43,50 @@ export const Route = createFileRoute("/aura/$id")({
   validateSearch: (s: Record<string, unknown>) => ({
     claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
   }),
-  head: ({ params }) => ({
-    meta: [
-      { title: `AuraLink · ${params.id} — Auragram` },
-      { name: "description", content: "A living link for this track. Listen, watch, and open it on your favorite platform." },
-      { property: "og:title", content: "Listen on Auragram" },
-      { property: "og:description", content: "A living link for this track." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    // Best-effort SSR meta — never throws so guest/local-only Auras still render.
+    try {
+      const row = await getPublicAura(params.id);
+      if (!row) return { seo: null };
+      const extra = (row.extra ?? {}) as { coverUrl?: string };
+      const anon = row.visibility_mode === "anonymous";
+      const artist = anon ? "Anonymous Artist" : row.public_artist_name ?? "";
+      return {
+        seo: {
+          title: `${row.track_title}${artist ? ` · ${artist}` : ""} — Auragram`,
+          description:
+            row.vibe_description ||
+            row.aura_description ||
+            `A living Aura for "${row.track_title}" on Auragram.`,
+          image: extra.coverUrl ?? null,
+        },
+      };
+    } catch {
+      return { seo: null };
+    }
+  },
+  head: ({ params, loaderData }) => {
+    const d = loaderData as { seo: { title: string; description: string; image: string | null } | null } | undefined;
+    const title = d?.seo?.title ?? `Aura on Auragram`;
+    const description =
+      d?.seo?.description ??
+      "A living link for this track. Listen, watch, and open it on your favorite platform.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "music.song" },
+      { name: "twitter:card", content: d?.seo?.image ? "summary_large_image" : "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ];
+    if (d?.seo?.image) {
+      meta.push({ property: "og:image", content: d.seo.image });
+      meta.push({ name: "twitter:image", content: d.seo.image });
+    }
+    return { meta };
+  },
   component: AuraPage,
   notFoundComponent: () => (
     <div className="min-h-screen grid place-items-center text-center px-6">
