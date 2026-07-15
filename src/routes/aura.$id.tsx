@@ -4,7 +4,7 @@ import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
-import { AudioUploadPlayer } from "@/components/AudioUploadPlayer";
+
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { StreamingChips } from "@/components/StreamingLinks";
@@ -381,13 +381,9 @@ function AuraPage() {
           <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
             {track.title}
           </h1>
-          <Link
-            to="/artist/$handle"
-            params={{ handle: track.artistHandle }}
-            className="mt-2 inline-block text-muted-foreground tracking-wide hover:text-foreground transition-colors"
-          >
+          <p className="mt-2 text-muted-foreground tracking-wide">
             {track.artist}
-          </Link>
+          </p>
           <p className="mt-3 text-sm text-muted-foreground">
             Save it to My Auras or share it anywhere with an AuraLink.
           </p>
