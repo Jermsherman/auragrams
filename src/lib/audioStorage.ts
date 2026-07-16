@@ -171,15 +171,14 @@ export async function uploadAuraAudio(opts: {
     onProgress?.(100);
   }
 
-  const { data: pub } = supabase.storage
-    .from(AUDIO_BUCKET)
-    .getPublicUrl(storagePath);
+  // Bucket is private now — mint a signed URL for immediate playback after upload.
+  const signedUrl = await getSignedAudioUrl(storagePath);
 
   const durationSeconds = await probeDuration(file);
 
   return {
     storagePath,
-    publicUrl: pub.publicUrl,
+    publicUrl: signedUrl ?? "",
     fileName,
     mimeType: contentType,
     sizeBytes: file.size,
