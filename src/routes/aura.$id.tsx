@@ -161,8 +161,9 @@ function AuraPage() {
           return;
         }
         setOwnerUserId(row.user_id);
-        if (row.audio_public_url) {
-          setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        if (row.audio_storage_path) {
+          const signed = await getSignedAudioUrl(row.audio_storage_path);
+          if (signed) setAudioUrl((prev) => prev ?? signed);
         }
         if (!t) {
           const shell = {
