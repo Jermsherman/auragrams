@@ -8,7 +8,7 @@ import { AuraFarmCard } from "@/components/AuraFarmCard";
 import { getSavedAuras, type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
-import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib/cloudAura";
 
 
 export const Route = createFileRoute("/farm")({
