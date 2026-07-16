@@ -53,7 +53,7 @@ import {
   deleteAuraLink,
   ensureUniqueSlug,
 } from "@/lib/auralinkService";
-import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib/cloudAura";
 import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 
