@@ -275,7 +275,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     visibilityMode: row.visibility_mode,
     influenceSettings: extra.influenceSettings,
     audioStoragePath: row.audio_storage_path ?? undefined,
-    audioPublicUrl: row.audio_public_url ?? undefined,
+    audioPublicUrl: undefined, // resolve via hydrateSavedAuraAudioUrls() — bucket is private.
     audioFileName: row.audio_file_name ?? undefined,
     audioMimeType: row.audio_mime_type ?? undefined,
     audioSizeBytes: row.audio_size_bytes ?? undefined,
