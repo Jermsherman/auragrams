@@ -2,6 +2,7 @@
 // Owner-side reads/writes only — public reads use the same client (RLS allows public select).
 
 import { supabase } from "@/integrations/supabase/client";
+import { getSignedAudioUrl, getSignedAudioUrls } from "./audioStorage";
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
 import type { Auracle } from "./auracle";
