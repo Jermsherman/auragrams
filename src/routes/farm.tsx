@@ -48,9 +48,12 @@ function FarmPage() {
       try {
         const rows = await listMyAuras(profile.id);
         if (cancelled) return;
+        const mapped = rows.map(mapAuraRowToSaved);
+        await hydrateSavedAuraAudioUrls(mapped);
+        if (cancelled) return;
         const merged = new Map<string, SavedAura>();
         for (const a of getSavedAuras()) merged.set(a.id, a);
-        for (const r of rows) merged.set(r.id, mapAuraRowToSaved(r));
+        for (const r of mapped) merged.set(r.id, r);
         setAuras(
           Array.from(merged.values()).sort((a, b) => b.createdAt - a.createdAt),
         );
