@@ -35,6 +35,7 @@ export const Route = createFileRoute("/l/$slug")({
         .select("*")
         .in("id", page.selectedAuraIds);
       auras = ((data as CloudAuraRow[] | null) ?? []).map(mapAuraRowToSaved);
+      await hydrateSavedAuraAudioUrls(auras);
     }
     const artist = page.artistName || page.title || "Artist";
     return {
