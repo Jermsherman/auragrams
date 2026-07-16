@@ -100,7 +100,10 @@ export function AuraLinkBuilder() {
           listMyAuraLinks(profile.id),
         ]);
         if (cancelled) return;
-        setAuras(auraRows.map(mapAuraRowToSaved));
+        const mapped = auraRows.map(mapAuraRowToSaved);
+        await hydrateSavedAuraAudioUrls(mapped);
+        if (cancelled) return;
+        setAuras(mapped);
         setSavedLinks(linkRows);
       } catch (e) {
         console.error(e);
