@@ -6,7 +6,7 @@ import { AuraLinkView } from "@/components/AuraLinkView";
 import type { AuraLinkPage } from "@/lib/auralink";
 import { getAuraLinkBySlug } from "@/lib/auralinkService";
 import { supabase } from "@/integrations/supabase/client";
-import { mapAuraRowToSaved, type CloudAuraRow } from "@/lib/cloudAura";
+import { mapAuraRowToSaved, hydrateSavedAuraAudioUrls, type CloudAuraRow } from "@/lib/cloudAura";
 import type { SavedAura } from "@/lib/farm";
 
 type LoaderData = {
@@ -35,6 +35,7 @@ export const Route = createFileRoute("/l/$slug")({
         .select("*")
         .in("id", page.selectedAuraIds);
       auras = ((data as CloudAuraRow[] | null) ?? []).map(mapAuraRowToSaved);
+      await hydrateSavedAuraAudioUrls(auras);
     }
     const artist = page.artistName || page.title || "Artist";
     return {

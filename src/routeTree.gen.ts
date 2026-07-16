@@ -23,6 +23,7 @@ import { Route as AuralinkCreateRouteImport } from './routes/auralink.create'
 import { Route as AuracleCreateRouteImport } from './routes/auracle.create'
 import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
+import { Route as ApiPublicCronCleanupGuestAurasRouteImport } from './routes/api/public/cron/cleanup-guest-auras'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -94,6 +95,12 @@ const AuraIdRoute = AuraIdRouteImport.update({
   path: '/aura/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronCleanupGuestAurasRoute =
+  ApiPublicCronCleanupGuestAurasRouteImport.update({
+    id: '/api/public/cron/cleanup-guest-auras',
+    path: '/api/public/cron/cleanup-guest-auras',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/api/public/cron/cleanup-guest-auras'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/api/public/cron/cleanup-guest-auras'
   id:
     | '__root__'
     | '/'
@@ -193,6 +205,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/api/public/cron/cleanup-guest-auras'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,6 +222,7 @@ export interface RootRouteChildren {
   AuracleCreateRoute: typeof AuracleCreateRoute
   LSlugRoute: typeof LSlugRoute
   SettingsArtistsRoute: typeof SettingsArtistsRoute
+  ApiPublicCronCleanupGuestAurasRoute: typeof ApiPublicCronCleanupGuestAurasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuraIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/cleanup-guest-auras': {
+      id: '/api/public/cron/cleanup-guest-auras'
+      path: '/api/public/cron/cleanup-guest-auras'
+      fullPath: '/api/public/cron/cleanup-guest-auras'
+      preLoaderRoute: typeof ApiPublicCronCleanupGuestAurasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -340,6 +361,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuracleCreateRoute: AuracleCreateRoute,
   LSlugRoute: LSlugRoute,
   SettingsArtistsRoute: SettingsArtistsRoute,
+  ApiPublicCronCleanupGuestAurasRoute: ApiPublicCronCleanupGuestAurasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

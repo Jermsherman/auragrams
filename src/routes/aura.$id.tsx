@@ -19,7 +19,7 @@ import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSaved
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
-import { uploadAuraAudio } from "@/lib/audioStorage";
+import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
@@ -161,8 +161,9 @@ function AuraPage() {
           return;
         }
         setOwnerUserId(row.user_id);
-        if (row.audio_public_url) {
-          setAudioUrl((prev) => prev ?? row.audio_public_url ?? null);
+        if (row.audio_storage_path) {
+          const signed = await getSignedAudioUrl(row.audio_storage_path);
+          if (signed) setAudioUrl((prev) => prev ?? signed);
         }
         if (!t) {
           const shell = {
@@ -304,10 +305,15 @@ function AuraPage() {
     if (isOwner) {
       try {
         await deleteAuraCloud(track.id, profile?.id);
-        await deleteAuraAudio(track.audioStoragePath);
       } catch (e) {
         console.error(e);
         toast.error("Couldn't remove from cloud. Removed locally.");
+      }
+      try {
+        await deleteAuraAudio(track.audioStoragePath);
+      } catch (e) {
+        console.error("audio delete failed", e);
+        toast.warning("Aura deleted, but the audio file couldn't be removed. Try again later.");
       }
     }
     deleteAuraLocal(track.id);

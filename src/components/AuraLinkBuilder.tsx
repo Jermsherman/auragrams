@@ -53,7 +53,7 @@ import {
   deleteAuraLink,
   ensureUniqueSlug,
 } from "@/lib/auralinkService";
-import { listMyAuras, mapAuraRowToSaved } from "@/lib/cloudAura";
+import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib/cloudAura";
 import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 
@@ -100,7 +100,10 @@ export function AuraLinkBuilder() {
           listMyAuraLinks(profile.id),
         ]);
         if (cancelled) return;
-        setAuras(auraRows.map(mapAuraRowToSaved));
+        const mapped = auraRows.map(mapAuraRowToSaved);
+        await hydrateSavedAuraAudioUrls(mapped);
+        if (cancelled) return;
+        setAuras(mapped);
         setSavedLinks(linkRows);
       } catch (e) {
         console.error(e);

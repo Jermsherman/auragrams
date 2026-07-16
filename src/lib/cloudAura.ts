@@ -2,6 +2,7 @@
 // Owner-side reads/writes only — public reads use the same client (RLS allows public select).
 
 import { supabase } from "@/integrations/supabase/client";
+import { getSignedAudioUrl, getSignedAudioUrls } from "./audioStorage";
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
 import type { Auracle } from "./auracle";
@@ -130,7 +131,8 @@ export async function saveAuraToCloud(opts: {
     public_artist_name: publicArtistName,
     public_handle: publicHandle,
     audio_storage_path: saved.audioStoragePath ?? null,
-    audio_public_url: saved.audioPublicUrl ?? null,
+    // audio_public_url is legacy — the bucket is private now and we mint signed URLs at read time.
+    audio_public_url: null,
     audio_file_name: saved.audioFileName ?? null,
     audio_mime_type: saved.audioMimeType ?? null,
     audio_size_bytes: saved.audioSizeBytes ?? null,
@@ -184,13 +186,46 @@ export async function deleteAura(id: string, profileId?: string) {
   if (error) throw error;
 }
 
-export async function deleteAuraAudio(storagePath: string | null | undefined) {
+export async function deleteAuraAudio(storagePath: string | null | undefined): Promise<void> {
   if (!storagePath) return;
-  try {
-    await supabase.storage.from("auragram-audio").remove([storagePath]);
-  } catch {
-    /* best-effort */
+  // Await + retry once. The caller is responsible for surfacing a toast on failure.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { error } = await supabase.storage.from("auragram-audio").remove([storagePath]);
+      if (!error) return;
+      if (attempt === 1) {
+        console.error("[deleteAuraAudio] failed", error);
+        throw error;
+      }
+    } catch (e) {
+      if (attempt === 1) {
+        console.error("[deleteAuraAudio] threw", e);
+        throw e;
+      }
+    }
   }
+}
+
+/**
+ * Populate audioPublicUrl on a batch of SavedAura via short-lived signed URLs.
+ * Mutates in place and returns the same array for convenience.
+ */
+export async function hydrateSavedAuraAudioUrls<T extends { audioStoragePath?: string; audioPublicUrl?: string }>(
+  items: T[],
+): Promise<T[]> {
+  const paths = items.map((i) => i.audioStoragePath).filter((p): p is string => !!p);
+  if (paths.length === 0) return items;
+  const signed = await getSignedAudioUrls(paths);
+  for (const item of items) {
+    const p = item.audioStoragePath;
+    if (p && signed.has(p)) item.audioPublicUrl = signed.get(p);
+  }
+  return items;
+}
+
+/** Convenience for single-row fetches; returns a signed URL for the row's audio (if any). */
+export async function signRowAudio(row: CloudAuraRow | null | undefined): Promise<string | null> {
+  return getSignedAudioUrl(row?.audio_storage_path ?? null);
 }
 
 /** Translate a CloudAuraRow into the SavedAura shape used by Farm/AuraLink views. */
@@ -240,7 +275,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     visibilityMode: row.visibility_mode,
     influenceSettings: extra.influenceSettings,
     audioStoragePath: row.audio_storage_path ?? undefined,
-    audioPublicUrl: row.audio_public_url ?? undefined,
+    audioPublicUrl: undefined, // resolve via hydrateSavedAuraAudioUrls() — bucket is private.
     audioFileName: row.audio_file_name ?? undefined,
     audioMimeType: row.audio_mime_type ?? undefined,
     audioSizeBytes: row.audio_size_bytes ?? undefined,
