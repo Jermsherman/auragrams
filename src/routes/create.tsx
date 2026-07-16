@@ -128,6 +128,8 @@ function CreatePage() {
       toast.error(err);
       return;
     }
+    const warn = audioSoftWarning(f);
+    if (warn) toast.message(warn);
     setAudio(f);
     runAnalysis(f);
   };
