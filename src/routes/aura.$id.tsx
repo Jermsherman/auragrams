@@ -304,10 +304,15 @@ function AuraPage() {
     if (isOwner) {
       try {
         await deleteAuraCloud(track.id, profile?.id);
-        await deleteAuraAudio(track.audioStoragePath);
       } catch (e) {
         console.error(e);
         toast.error("Couldn't remove from cloud. Removed locally.");
+      }
+      try {
+        await deleteAuraAudio(track.audioStoragePath);
+      } catch (e) {
+        console.error("audio delete failed", e);
+        toast.warning("Aura deleted, but the audio file couldn't be removed. Try again later.");
       }
     }
     deleteAuraLocal(track.id);
