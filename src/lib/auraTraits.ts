@@ -189,7 +189,7 @@ export function computeAuraTraits(track: TraitInput): AuraTraits {
   const texture = p.texture;
 
   const pal = paletteFamilyTrait(track.colors);
-  const energy = energyTier(track.energy ?? 50);
+  const energy = energyTier(track.energy ?? track.energyLevel ?? 50);
   const density = densityFrom(track);
   const tempo = tempoBand(track);
   const key = keySignature(track);
