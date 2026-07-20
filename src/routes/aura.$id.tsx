@@ -44,6 +44,7 @@ import {
 export const Route = createFileRoute("/aura/$id")({
   validateSearch: (s: Record<string, unknown>) => ({
     claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
+    reveal: s.reveal === "1" || s.reveal === 1 ? ("1" as const) : undefined,
   }),
   loader: async ({ params }) => {
     // Best-effort SSR meta — never throws so guest/local-only Auras still render.
