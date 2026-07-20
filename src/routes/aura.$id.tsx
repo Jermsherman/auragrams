@@ -233,6 +233,60 @@ function AuraPage() {
     setPendingId(getPendingAura()?.id ?? null);
   }, [id, user?.id]);
 
+  // Load (or generate) the Song Personality Profile from the cloud row.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setInsight(null);
+    setInsightState("loading");
+    (async () => {
+      try {
+        const { data: row } = await supabase
+          .from("auras")
+          .select("insight")
+          .eq("id", id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (row && isAuraInsight(row.insight)) {
+          setInsight(row.insight as AuraInsight);
+          setInsightState("ready");
+          return;
+        }
+        // Row missing insight (or row not in cloud yet) — try to generate.
+        const res = await generateAuraInsight({ data: { auraId: id } });
+        if (cancelled) return;
+        if (res.insight) {
+          setInsight(res.insight);
+          setInsightState("ready");
+        } else {
+          setInsightState("failed");
+        }
+      } catch {
+        if (!cancelled) setInsightState("failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const retryInsight = async () => {
+    setInsightState("loading");
+    try {
+      const res = await generateAuraInsight({ data: { auraId: id } });
+      if (res.insight) {
+        setInsight(res.insight);
+        setInsightState("ready");
+      } else {
+        setInsightState("failed");
+        toast.error("Couldn't write the story just now — try again in a moment.");
+      }
+    } catch {
+      setInsightState("failed");
+      toast.error("Couldn't write the story just now — try again in a moment.");
+    }
+  };
+
   // Claim flow: after sign-in with ?claim=1, push the local guest Aura to cloud.
   useEffect(() => {
     if (!claim || !profile?.id || !user?.id) return;
