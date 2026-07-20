@@ -15,10 +15,10 @@ export const Route = createFileRoute("/generating")({
 });
 
 const STEPS = [
-  { label: "Listening to your sound…", sub: "Reading frequency, key, and energy" },
-  { label: "Mapping mood & motion…", sub: "Translating feeling into color" },
-  { label: "Mixing your palette…", sub: "Choosing hues that fit your vibe" },
-  { label: "Shaping your Aura…", sub: "A living identity is forming" },
+  { label: "Reading your track's shape…", sub: "Frequency, key, and transient character" },
+  { label: "Finding the color it lives in…", sub: "Mapping sound to hue and motion" },
+  { label: "Locking the signature…", sub: "One song, one canonical Aura" },
+  { label: "Revealing your Aura…", sub: "Deterministic — the same song, always" },
 ];
 
 const TOTAL_MS = 1500;
