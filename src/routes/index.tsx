@@ -328,3 +328,51 @@ function Index() {
     </div>
   );
 }
+
+function HeroDropZone() {
+  const navigate = useNavigate();
+  const [drag, setDrag] = useState(false);
+
+  const hand = async (f: File | undefined | null) => {
+    if (!f) return;
+    if (!f.type.startsWith("audio/") && !/\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i.test(f.name)) {
+      return;
+    }
+    const { setLandingFile } = await import("@/lib/landingHandoff");
+    setLandingFile(f);
+    navigate({ to: "/create" });
+  };
+
+  return (
+    <label
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDrag(false);
+        hand(e.dataTransfer.files?.[0]);
+      }}
+      className={`mt-8 w-full max-w-md cursor-pointer rounded-3xl px-6 py-7 flex flex-col items-center justify-center text-center transition-all glass-strong ${
+        drag ? "ring-2 ring-foreground/40 scale-[1.01]" : "hover:bg-foreground/[0.05]"
+      }`}
+    >
+      <input
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => hand(e.target.files?.[0])}
+      />
+      <UploadCloud className="h-7 w-7 text-aura-gradient" />
+      <div className="mt-3 font-display text-lg sm:text-xl">
+        Drop a track. Get your Aura.
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC
+      </div>
+      <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
+        Claim Your Aura <ArrowRight className="h-4 w-4" />
+      </div>
+    </label>
+  );
+}
+
