@@ -97,10 +97,12 @@ function toSerial(t: TraitInput): string {
   const mode = t.mode ?? "";
   const band = (t.tempoBand ?? "").toLowerCase();
   const density = (t.density ?? "").toLowerCase();
-  const colorKey = (t.colors ?? [])
-    .slice(0, 3)
-    .map((c) => (typeof c === "string" ? c.toLowerCase() : ""))
-    .join("|");
+  const c = t.colors;
+  const colorKey = c
+    ? [c.primary, c.secondary, c.accent]
+        .map((x) => (typeof x === "string" ? x.toLowerCase() : ""))
+        .join("|")
+    : "";
   const key = `s|${t.palette}|${tonic}|${mode}|${band}|${density}|${energy}|${colorKey}`;
   const h = hash32(key);
   return `#${String(h % 999983).padStart(6, "0")}`;
