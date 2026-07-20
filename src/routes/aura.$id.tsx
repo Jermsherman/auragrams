@@ -23,6 +23,8 @@ import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
+import { AuraRevealHero } from "@/components/AuraRevealHero";
+import { AuraShareDialog } from "@/components/AuraShareDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
@@ -127,6 +129,7 @@ function AuraPage() {
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [auraShareOpen, setAuraShareOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -483,12 +486,19 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <div className="animate-fade-up">
-          <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-            Your Aura is ready
-          </div>
+        {/* Cinematic reveal hero: eyebrow · Aura Name · song · pull-quote */}
+        <div className="w-full animate-fade-up">
+          <AuraRevealHero
+            auraName={insight?.auraName || track.auraName}
+            trackTitle={track.title}
+            artist={track.artist}
+            colors={track.colors}
+            insight={insight}
+            reveal={revealActive}
+          />
         </div>
-        <div className="relative mt-6 animate-fade-up">
+
+        <div className="relative mt-8 animate-fade-up">
           <Aurascope
             aura={aurascopeAuraFromTrack(track)}
             size="large"
@@ -586,21 +596,9 @@ function AuraPage() {
           ) : null}
         </div>
 
-        <div className="mt-10 sm:mt-14 max-w-md mx-auto animate-fade-up">
-          <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
-            {track.title}
-          </h1>
-          <p className="mt-2 text-muted-foreground tracking-wide">
-            {track.artist}
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Save it to My Auras or share it anywhere with an AuraLink.
-          </p>
-        </div>
-
         {insightState === "ready" && insight ? (
           <div className="mt-10">
-            <SongPersonalityProfile insight={insight} reveal={revealActive} />
+            <SongPersonalityProfile insight={insight} reveal={revealActive} hideHeader />
           </div>
         ) : insightState === "loading" ? (
           <div className="mt-10">
@@ -654,12 +652,18 @@ function AuraPage() {
               >
                 <Share2 className="h-4 w-4" /> Share AuraLink
               </button>
+              <button
+                onClick={() => setAuraShareOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+              >
+                <Sparkles className="h-4 w-4" /> Share Aura
+              </button>
               {flags.enableStoryExport && (
               <button
                 onClick={() => setStoryOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+                className="col-span-2 sm:col-span-3 inline-flex items-center justify-center gap-2 rounded-full h-10 text-xs font-medium glass hover:bg-foreground/10 transition-colors text-muted-foreground"
               >
-                <Sparkles className="h-4 w-4" /> Story Preview
+                <Sparkles className="h-3.5 w-3.5" /> Legacy Story Preview
               </button>
               )}
             </>
@@ -707,6 +711,13 @@ function AuraPage() {
         )}
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
+        <AuraShareDialog
+          track={track}
+          insight={insight}
+          shareUrl={url}
+          open={auraShareOpen}
+          onOpenChange={setAuraShareOpen}
+        />
         <AddToAuracleDialog
           auraId={track.id}
           open={auracleOpen}
