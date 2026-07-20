@@ -208,6 +208,7 @@ export type Database = {
           energy_level: number | null
           extra: Json
           id: string
+          insight: Json | null
           is_anonymous: boolean | null
           mood_tags: Json
           palette_name: string | null
@@ -241,6 +242,7 @@ export type Database = {
           energy_level?: number | null
           extra?: Json
           id?: string
+          insight?: Json | null
           is_anonymous?: boolean | null
           mood_tags?: Json
           palette_name?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           energy_level?: number | null
           extra?: Json
           id?: string
+          insight?: Json | null
           is_anonymous?: boolean | null
           mood_tags?: Json
           palette_name?: string | null

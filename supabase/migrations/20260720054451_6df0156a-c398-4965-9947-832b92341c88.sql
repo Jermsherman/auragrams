@@ -1,0 +1,1 @@
+ALTER TABLE public.auras ADD COLUMN IF NOT EXISTS insight JSONB;
