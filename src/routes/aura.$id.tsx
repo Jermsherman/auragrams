@@ -596,22 +596,15 @@ function AuraPage() {
           ) : null}
         </div>
 
-        <div className="mt-10 sm:mt-14 max-w-md mx-auto animate-fade-up">
-          <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
-            {track.title}
-          </h1>
-          <p className="mt-2 text-muted-foreground tracking-wide">
-            {track.artist}
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Save it to My Auras or share it anywhere with an AuraLink.
-          </p>
-        </div>
-
         {insightState === "ready" && insight ? (
           <div className="mt-10">
-            <SongPersonalityProfile insight={insight} reveal={revealActive} />
+            <SongPersonalityProfile insight={insight} reveal={revealActive} hideHeader />
           </div>
+        ) : insightState === "loading" ? (
+          <div className="mt-10">
+            <SongPersonalityProfilePending />
+          </div>
+        ) : null}
         ) : insightState === "loading" ? (
           <div className="mt-10">
             <SongPersonalityProfilePending />
