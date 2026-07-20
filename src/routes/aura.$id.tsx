@@ -502,6 +502,90 @@ function AuraPage() {
           />
         </div>
 
+        <div className="mt-6 w-full animate-fade-up">
+          {audioUrl ? (
+            <AudioUploadPlayer
+              src={audioUrl}
+              palette={track.palette}
+              fileMeta={
+                track.audioFileName
+                  ? {
+                      name: track.audioFileName,
+                      type: track.audioMimeType ?? "audio/*",
+                      size: track.audioSizeBytes ?? 0,
+                    }
+                  : null
+              }
+              onPlayingChange={setPlaying}
+              onAnalyserReady={(a) => {
+                analyserRef.current = a;
+                force((n) => n + 1);
+              }}
+              onMetricsReady={(m) => {
+                metricsRef.current = m;
+                force((n) => n + 1);
+              }}
+            />
+          ) : isUpload ? (
+            <div className="mx-auto w-full max-w-md text-center">
+              <div className="glass-strong rounded-2xl px-5 py-6">
+                <p className="text-sm text-foreground/90">
+                  {track.sourceType === "raw_recording"
+                    ? "This Raw Aura recording is no longer available. Record again to restore playback."
+                    : "This uploaded audio is no longer available. Reupload to restore playback."}
+                </p>
+                <Link
+                  to="/create"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full px-5 h-10 text-xs bg-aura-gradient text-primary-foreground"
+                >
+                  {track.sourceType === "raw_recording" ? "Record again" : "Upload again"}
+                </Link>
+              </div>
+            </div>
+          ) : track.embedUrl ? (
+            <div className="mx-auto w-full max-w-md">
+              <div className="glass-strong rounded-2xl overflow-hidden">
+                <iframe
+                  title={`${track.title} player`}
+                  src={track.embedUrl}
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"
+                  loading="lazy"
+                  className="w-full"
+                  style={{
+                    height:
+                      track.provider === "spotify"
+                        ? 152
+                        : track.provider === "soundcloud"
+                          ? 140
+                          : track.provider === "apple"
+                            ? 175
+                            : 200,
+                    border: 0,
+                    background: "transparent",
+                    colorScheme: "normal",
+                  }}
+                />
+              </div>
+              {track.streamUrl && (
+                <a
+                  href={track.streamUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block text-center text-[11px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Open on {platformName} ↗
+                </a>
+              )}
+            </div>
+          ) : track.streamUrl ? (
+            <PlatformCard
+              platformName={platformName}
+              url={track.streamUrl}
+              provider={track.provider}
+            />
+          ) : null}
+        </div>
+
         <div className="mt-10 sm:mt-14 max-w-md mx-auto animate-fade-up">
           <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
             {track.title}
@@ -655,91 +739,6 @@ function AuraPage() {
             }}
           />
         )}
-
-
-        <div className="mt-8 w-full animate-fade-up">
-          {audioUrl ? (
-            <AudioUploadPlayer
-              src={audioUrl}
-              palette={track.palette}
-              fileMeta={
-                track.audioFileName
-                  ? {
-                      name: track.audioFileName,
-                      type: track.audioMimeType ?? "audio/*",
-                      size: track.audioSizeBytes ?? 0,
-                    }
-                  : null
-              }
-              onPlayingChange={setPlaying}
-              onAnalyserReady={(a) => {
-                analyserRef.current = a;
-                force((n) => n + 1);
-              }}
-              onMetricsReady={(m) => {
-                metricsRef.current = m;
-                force((n) => n + 1);
-              }}
-            />
-          ) : isUpload ? (
-            <div className="mx-auto w-full max-w-md text-center">
-              <div className="glass-strong rounded-2xl px-5 py-6">
-                <p className="text-sm text-foreground/90">
-                  {track.sourceType === "raw_recording"
-                    ? "This Raw Aura recording is no longer available. Record again to restore playback."
-                    : "This uploaded audio is no longer available. Reupload to restore playback."}
-                </p>
-                <Link
-                  to="/create"
-                  className="mt-4 inline-flex items-center gap-2 rounded-full px-5 h-10 text-xs bg-aura-gradient text-primary-foreground"
-                >
-                  {track.sourceType === "raw_recording" ? "Record again" : "Upload again"}
-                </Link>
-              </div>
-            </div>
-          ) : track.embedUrl ? (
-            <div className="mx-auto w-full max-w-md">
-              <div className="glass-strong rounded-2xl overflow-hidden">
-                <iframe
-                  title={`${track.title} player`}
-                  src={track.embedUrl}
-                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"
-                  loading="lazy"
-                  className="w-full"
-                  style={{
-                    height:
-                      track.provider === "spotify"
-                        ? 152
-                        : track.provider === "soundcloud"
-                          ? 140
-                          : track.provider === "apple"
-                            ? 175
-                            : 200,
-                    border: 0,
-                    background: "transparent",
-                    colorScheme: "normal",
-                  }}
-                />
-              </div>
-              {track.streamUrl && (
-                <a
-                  href={track.streamUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 block text-center text-[11px] uppercase tracking-[0.24em] text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Open on {platformName} ↗
-                </a>
-              )}
-            </div>
-          ) : track.streamUrl ? (
-            <PlatformCard
-              platformName={platformName}
-              url={track.streamUrl}
-              provider={track.provider}
-            />
-          ) : null}
-        </div>
 
         <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80">
           {isUpload
