@@ -34,7 +34,7 @@ export function AuraShareDialog({ track, insight, shareUrl, open, onOpenChange }
     if (insight?.personalityTraits?.length) {
       return insight.personalityTraits.slice(0, 3).map((t) => t.trait);
     }
-    return computeAuraTraits(track).slice(0, 3).map((t) => t.label);
+    return computeAuraTraits(track).traits.slice(0, 3).map((t) => t.value);
   }, [insight, track]);
 
   const auraName = insight?.auraName || track.auraName;

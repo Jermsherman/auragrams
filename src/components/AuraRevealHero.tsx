@@ -44,8 +44,8 @@ export function AuraRevealHero({
   }, [reveal]);
 
   // Backdrop from palette (falls back to design tokens).
-  const c1 = colors?.[0] ?? "oklch(0.7 0.2 310)";
-  const c2 = colors?.[2] ?? colors?.[1] ?? "oklch(0.5 0.2 260)";
+  const c1 = colors?.primary ?? colors?.swatches?.[0] ?? "oklch(0.7 0.2 310)";
+  const c2 = colors?.accent ?? colors?.secondary ?? colors?.swatches?.[2] ?? "oklch(0.5 0.2 260)";
   const backdrop = `radial-gradient(ellipse 60% 40% at 50% 20%, ${c1} 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 50% 100%, ${c2} 0%, transparent 60%)`;
 
   const chars = auraName.split("");

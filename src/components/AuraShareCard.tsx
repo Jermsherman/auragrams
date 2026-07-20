@@ -34,9 +34,9 @@ export const AuraShareCard = forwardRef<HTMLDivElement, Props>(function AuraShar
   ref,
 ) {
   const p = PALETTES[palette];
-  const c0 = colors?.[0] ?? p.stops[0];
-  const c1 = colors?.[1] ?? p.stops[1];
-  const c2 = colors?.[2] ?? p.stops[2];
+  const c0 = colors?.primary ?? colors?.swatches?.[0] ?? p.stops[0];
+  const c1 = colors?.secondary ?? colors?.swatches?.[1] ?? p.stops[1];
+  const c2 = colors?.accent ?? colors?.swatches?.[2] ?? p.stops[2];
 
   const isStory = variant === "story";
   // Reference pixel dimensions — captured 1:1 by html-to-image.
