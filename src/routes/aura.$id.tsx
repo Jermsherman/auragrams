@@ -26,6 +26,8 @@ import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
+import { computeAuraTraits } from "@/lib/auraTraits";
+import { TraitSheet } from "@/components/TraitSheet";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -431,6 +433,10 @@ function AuraPage() {
             Save it to My Auras or share it anywhere with an AuraLink.
           </p>
         </div>
+
+        <TraitSheet traits={computeAuraTraits(track)} />
+
+
 
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">

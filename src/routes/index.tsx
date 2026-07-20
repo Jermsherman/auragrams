@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, RefreshCw } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, RefreshCw, UploadCloud } from "lucide-react";
 import { FaqPreview } from "@/components/FaqPreview";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -111,28 +111,19 @@ function Index() {
               <span className="text-aura-gradient">A Living Identity.</span>
             </h1>
 
-            <div className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md space-y-1">
-              <p>Upload a song.</p>
-              <p>Generate a living Aura.</p>
-              <p>Share it anywhere with AuraLink.</p>
-            </div>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-md">
+              Every song has an aura. Upload one and claim yours.
+            </p>
 
-            <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/create"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
-              >
-                See Your Sound <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a
-                href="#what-is-an-aura"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
-              >
-                View Example Aura
-              </a>
-            </div>
+            {/* Inline drop zone — the hero action */}
+            <HeroDropZone />
+
+            <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground/80">
+              Free · No account needed to preview
+            </p>
           </div>
         </section>
+
 
         {/* WHAT IS AN AURA */}
         <section
@@ -319,7 +310,7 @@ function Index() {
                 to="/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                {user ? "Create Aura" : "See Your Sound"} <ArrowRight className="h-4 w-4" />
+                {user ? "Create Aura" : "Claim Your Aura"} <ArrowRight className="h-4 w-4" />
               </Link>
               {user && (
                 <Link
@@ -337,3 +328,51 @@ function Index() {
     </div>
   );
 }
+
+function HeroDropZone() {
+  const navigate = useNavigate();
+  const [drag, setDrag] = useState(false);
+
+  const hand = async (f: File | undefined | null) => {
+    if (!f) return;
+    if (!f.type.startsWith("audio/") && !/\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i.test(f.name)) {
+      return;
+    }
+    const { setLandingFile } = await import("@/lib/landingHandoff");
+    setLandingFile(f);
+    navigate({ to: "/create" });
+  };
+
+  return (
+    <label
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDrag(false);
+        hand(e.dataTransfer.files?.[0]);
+      }}
+      className={`mt-8 w-full max-w-md cursor-pointer rounded-3xl px-6 py-7 flex flex-col items-center justify-center text-center transition-all glass-strong ${
+        drag ? "ring-2 ring-foreground/40 scale-[1.01]" : "hover:bg-foreground/[0.05]"
+      }`}
+    >
+      <input
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => hand(e.target.files?.[0])}
+      />
+      <UploadCloud className="h-7 w-7 text-aura-gradient" />
+      <div className="mt-3 font-display text-lg sm:text-xl">
+        Drop a track. Get your Aura.
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC
+      </div>
+      <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
+        Claim Your Aura <ArrowRight className="h-4 w-4" />
+      </div>
+    </label>
+  );
+}
+

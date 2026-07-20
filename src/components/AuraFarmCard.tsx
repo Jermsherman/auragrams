@@ -8,6 +8,8 @@ import { deleteAura as deleteAuraLocal, type SavedAura } from "@/lib/farm";
 import { deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
+import { computeAuraTraits } from "@/lib/auraTraits";
+import { TraitChipStrip } from "./TraitSheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,18 +125,10 @@ export function AuraFarmCard({
         <div className="text-xs text-muted-foreground truncate">{aura.artistName}</div>
       </div>
 
-      {aura.moodTags.length > 0 && (
-        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-          {aura.moodTags.slice(0, 3).map((m) => (
-            <span
-              key={m}
-              className="rounded-full border border-border/60 bg-background/30 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
-            >
-              {m}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="mt-3 flex justify-center">
+        <TraitChipStrip traits={computeAuraTraits(aura)} />
+      </div>
+
 
       <div className="mt-4 w-full flex items-center gap-2">
         <Link

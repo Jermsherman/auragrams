@@ -548,7 +548,7 @@ function hueToFamily(h: number, s: number, l: number): HueFamilyKey {
 }
 
 /** Returns the 1-2 most prominent hue families across the palette swatches. */
-function dominantHueFamilies(colors: AuraPalette): HueFamilyKey[] {
+export function dominantHueFamilies(colors: AuraPalette): HueFamilyKey[] {
   const samples = [colors.primary, colors.accent, colors.secondary, ...(colors.swatches ?? [])];
   const tally: Partial<Record<HueFamilyKey, number>> = {};
   let chromaticTotal = 0;

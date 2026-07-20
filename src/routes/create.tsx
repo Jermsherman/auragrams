@@ -43,7 +43,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
-import { uploadAuraAudio, validateAudioFile, audioSoftWarning } from "@/lib/audioStorage";
+import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
 import { flags } from "@/lib/featureFlags";
 import { Progress } from "@/components/ui/progress";
@@ -104,6 +104,18 @@ function CreatePage() {
   const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
   const [auracleDesc, setAuracleDesc] = useState("");
 
+  // Consume a file handed off from the landing page drop zone
+  useEffect(() => {
+    import("@/lib/landingHandoff").then(({ takeLandingFile }) => {
+      const f = takeLandingFile();
+      if (f) {
+        setAudio(f);
+        runAnalysis(f);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const runAnalysis = (f: File) => {
     setKeyDetection(null);
     setFeatures(null);
@@ -128,8 +140,6 @@ function CreatePage() {
       toast.error(err);
       return;
     }
-    const warn = audioSoftWarning(f);
-    if (warn) toast.message(warn);
     setAudio(f);
     runAnalysis(f);
   };
