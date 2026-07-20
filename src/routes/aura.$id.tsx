@@ -243,7 +243,12 @@ function AuraPage() {
             });
           } catch (e) {
             console.error("claim upload", e);
+            toast.error(e instanceof Error ? e.message : "Could not upload your audio. Please try again.");
+            return;
           }
+        } else if (t.hasLocalAudio && !saved.audioStoragePath) {
+          toast.error("Could not recover the guest audio file. Please re-upload before saving.");
+          return;
         }
         const enriched = uploaded
           ? {
