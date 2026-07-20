@@ -26,6 +26,8 @@ import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
+import { computeAuraTraits } from "@/lib/auraTraits";
+import { TraitSheet } from "@/components/TraitSheet";
 import { toast } from "sonner";
 import {
   AlertDialog,
