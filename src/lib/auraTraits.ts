@@ -1,10 +1,14 @@
-// Derived "Trait Sheet" for an Aura — collectible-style summary computed
-// deterministically from a Track. No new audio DSP; everything comes from
-// fields already persisted (energy, moods, key, tempoBand, density, colors,
-// motion/texture via mood personality) plus the Aura seed.
+// Deterministic "Trait Sheet" for an Aura — a collectible-style summary
+// computed purely from measured audio features + palette personality.
 //
-// Framing: this is a *visual reveal* system, not an NFT. No mint, no chain,
-// no re-rolls — one track produces one canonical trait sheet forever.
+// Design tenets (see .lovable/plan.md):
+//   • Same song → same sheet, for anyone, forever. No randomness, no rerolls.
+//   • Serial is derived from the *music*, not the aura row id.
+//   • Palette is a signature, not a rarity — we don't claim rarity we haven't
+//     measured against a population.
+//   • Rarity is descriptive of the *sound*, not of luck.
+//
+// One track produces one canonical trait sheet. Never a pack, never a re-roll.
 
 import {
   getPersonality,
@@ -12,12 +16,9 @@ import {
   type AuraPalette,
   type MotionKind,
   type TextureKind,
-  type HueFamilyKey,
   type PaletteKey,
 } from "@/lib/aura";
 
-/** Minimum shape needed to compute a trait sheet — satisfied by both
- *  `Track` and `SavedAura`. */
 export type TraitInput = {
   id: string;
   palette: PaletteKey;
@@ -37,28 +38,27 @@ export type TraitInput = {
 export type TraitTier = "Common" | "Uncommon" | "Rare" | "Radiant" | "Mythic";
 
 export type Trait = {
-  /** short id for keys/analytics */
   id: string;
-  /** display label ("Motion", "Palette", "Energy") */
+  /** short evocative label — "Hue", "Cadence", "Grain"… */
   label: string;
-  /** display value ("Tide", "Ember & Jade", "Charged 74") */
+  /** human value shown on the tile — "Ember & Jade", "Tide", "Charged · 74" */
   value: string;
-  /** 0..1 rarity — higher = rarer */
+  /** 0..1 uncommonness of *this measurement*, not of a random roll. */
   rarity: number;
-  /** longer explainer for tap/hover */
+  /** 1-sentence explainer, templated with the actual measured value. */
   detail: string;
 };
 
 export type AuraTraits = {
   traits: Trait[];
-  rarityScore: number; // 0..1 average of trait rarities (weighted)
+  rarityScore: number;
   tier: TraitTier;
-  tierColor: string; // hex for tier ribbon
-  serial: string; // e.g. "#042317"
-  signature: string; // "Ember Tide" — reuse of paletteName / auraName
+  tierColor: string;
+  serial: string;
+  signature: string;
 };
 
-// ------------- rarity tables -------------
+// ---------- rarity tables (uncommonness of the sonic feature) ----------
 
 const MOTION_RARITY: Record<MotionKind, number> = {
   breathe: 0.15,
@@ -78,27 +78,7 @@ const TEXTURE_RARITY: Record<TextureKind, number> = {
   ripple: 0.85,
 };
 
-const HUE_FAMILY_RARITY: Partial<Record<HueFamilyKey, number>> = {
-  blue: 0.2,
-  indigo: 0.25,
-  violet: 0.3,
-  rose: 0.35,
-  ember: 0.4,
-  amber: 0.4,
-  jade: 0.45,
-  green: 0.35,
-  teal: 0.5,
-  cyan: 0.55,
-  magenta: 0.65,
-  gold: 0.65,
-  chartreuse: 0.8,
-  red: 0.6,
-  onyx: 0.75,
-  pearl: 0.8,
-  neutral: 0.5,
-};
-
-// ------------- helpers -------------
+// ---------- deterministic hashing ----------
 
 function hash32(s: string): number {
   let h = 2166136261;
@@ -109,149 +89,232 @@ function hash32(s: string): number {
   return h >>> 0;
 }
 
-function toSerial(id: string): string {
-  const h = hash32(`serial|${id}`);
+/** Serial is derived from measurable properties of the *music*, so the same
+ *  song always yields the same serial regardless of who uploaded it. */
+function toSerial(t: TraitInput): string {
+  const energy = Math.round((t.energy ?? t.energyLevel ?? 50) / 10);
+  const tonic = t.tonic ?? t.detectedKey ?? t.musicalKey ?? "";
+  const mode = t.mode ?? "";
+  const band = (t.tempoBand ?? "").toLowerCase();
+  const density = (t.density ?? "").toLowerCase();
+  const colorKey = (t.colors ?? [])
+    .slice(0, 3)
+    .map((c) => (typeof c === "string" ? c.toLowerCase() : ""))
+    .join("|");
+  const key = `s|${t.palette}|${tonic}|${mode}|${band}|${density}|${energy}|${colorKey}`;
+  const h = hash32(key);
   return `#${String(h % 999983).padStart(6, "0")}`;
 }
 
-function energyTier(energy: number): { label: string; rarity: number } {
-  if (energy <= 20) return { label: `Still · ${energy}`, rarity: 0.8 };
-  if (energy <= 50) return { label: `Warm · ${energy}`, rarity: 0.3 };
-  if (energy <= 80) return { label: `Charged · ${energy}`, rarity: 0.15 };
-  return { label: `Volatile · ${energy}`, rarity: 0.85 };
-}
-
-function densityFrom(track: TraitInput): { label: string; rarity: number } {
-  const d = (track.density || "").toLowerCase();
-  if (d.includes("sparse") || d.includes("air")) return { label: "Sparse", rarity: 0.6 };
-  if (d.includes("dense") || d.includes("thick")) return { label: "Dense", rarity: 0.45 };
-  if (d.includes("overgrown") || d.includes("full")) return { label: "Overgrown", rarity: 0.85 };
-  return { label: "Balanced", rarity: 0.2 };
-}
-
-function tempoBand(track: TraitInput): { label: string; rarity: number } {
-  const t = (track.tempoBand || "").toLowerCase();
-  if (t.startsWith("slow") || t === "ballad") return { label: "Ballad", rarity: 0.35 };
-  if (t.startsWith("fast") || t === "frenzy") return { label: "Frenzy", rarity: 0.75 };
-  if (t.startsWith("mid") || t === "groove") return { label: "Groove", rarity: 0.2 };
-  return { label: "Drive", rarity: 0.3 };
-}
-
-function paletteFamilyTrait(colors: AuraPalette | undefined): {
-  label: string;
-  rarity: number;
-  families: HueFamilyKey[];
-} {
-  if (!colors) return { label: "Uncharted", rarity: 0.9, families: [] };
-  const fams = dominantHueFamilies(colors);
-  const primary = fams[0] ?? "neutral";
-  const primaryRarity = HUE_FAMILY_RARITY[primary] ?? 0.5;
-  if (fams.length >= 2) {
-    const label = `${cap(primary)} & ${cap(fams[1])}`;
-    // splits are always rarer than either single family
-    const combined = Math.min(0.95, Math.max(primaryRarity, HUE_FAMILY_RARITY[fams[1]] ?? 0.5) + 0.2);
-    return { label, rarity: combined, families: fams };
-  }
-  return { label: cap(primary), rarity: primaryRarity, families: fams };
-}
+// ---------- individual traits ----------
 
 function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-function keySignature(track: TraitInput): { label: string; rarity: number } {
-  const tonic = track.tonic ?? track.detectedKey ?? track.musicalKey ?? "";
-  const mode = track.mode ?? "";
-  if (!tonic) return { label: "Untuned", rarity: 0.7 };
+/** Uncommonness curve: 0 at the population mean (~55), rising toward the
+ *  edges, but *labeled* descriptively so "quiet" and "loud" get different
+ *  names — no fake symmetry. */
+function chargeTrait(energy: number): { value: string; rarity: number; detail: string } {
+  const e = Math.max(0, Math.min(100, Math.round(energy)));
+  const distance = Math.abs(e - 55) / 55; // 0..~0.82
+  const rarity = Math.min(0.85, Math.pow(distance, 1.2) + 0.12);
+  let name: string;
+  let feel: string;
+  if (e <= 20) {
+    name = "Still";
+    feel = "quiet and unhurried — room for every breath.";
+  } else if (e <= 45) {
+    name = "Warm";
+    feel = "low-simmer energy that keeps you in the pocket.";
+  } else if (e <= 70) {
+    name = "Charged";
+    feel = "confident momentum — the middle where songs land.";
+  } else if (e <= 88) {
+    name = "Blazing";
+    feel = "high transient intensity, driving hard.";
+  } else {
+    name = "Volatile";
+    feel = "peaks near the ceiling — this track burns.";
+  }
+  return {
+    value: `${name} · ${e}`,
+    rarity,
+    detail: `Charge ${e}/100 — ${feel}`,
+  };
+}
+
+function weightTrait(density?: string): { value: string; rarity: number; detail: string } {
+  const d = (density ?? "").toLowerCase();
+  if (d.includes("sparse") || d.includes("air"))
+    return {
+      value: "Sparse",
+      rarity: 0.6,
+      detail: "Wide gaps between elements — a lot of space to breathe.",
+    };
+  if (d.includes("overgrown") || d.includes("full"))
+    return {
+      value: "Overgrown",
+      rarity: 0.85,
+      detail: "Every band of the spectrum is speaking — dense to the edges.",
+    };
+  if (d.includes("dense") || d.includes("thick"))
+    return {
+      value: "Dense",
+      rarity: 0.45,
+      detail: "A packed spectrum — layered, close, filled in.",
+    };
+  return {
+    value: "Balanced",
+    rarity: 0.2,
+    detail: "Mid-range fullness — nothing crowded, nothing hollow.",
+  };
+}
+
+function pulseTrait(band?: string): { value: string; rarity: number; detail: string } {
+  const b = (band ?? "").toLowerCase();
+  if (b.startsWith("slow") || b === "ballad")
+    return { value: "Ballad", rarity: 0.35, detail: "Long, patient phrasing — under head-nod tempo." };
+  if (b.startsWith("fast") || b === "frenzy")
+    return { value: "Frenzy", rarity: 0.75, detail: "Racing pulse — up in the run-out register." };
+  if (b.startsWith("mid") || b === "groove")
+    return { value: "Groove", rarity: 0.2, detail: "Mid-body tempo — the head-nod range songs live in." };
+  return { value: "Drive", rarity: 0.3, detail: "Steady forward momentum without breaking into a run." };
+}
+
+function rootTrait(t: TraitInput): { value: string; rarity: number; detail: string } {
+  const tonic = t.tonic ?? t.detectedKey ?? t.musicalKey ?? "";
+  const mode = t.mode ?? "";
+  if (!tonic)
+    return {
+      value: "Untuned",
+      rarity: 0.7,
+      detail: "No clear tonal center detected — likely percussive or noise-forward.",
+    };
   const label = mode ? `${tonic} ${mode}` : tonic;
-  // Sharp/flat keys are less common than C/G/D/A/F majors
   const isSharpFlat = /[#♯♭b]/.test(tonic);
   const isMinor = mode === "minor";
   let rarity = 0.25;
   if (isSharpFlat) rarity += 0.2;
   if (isMinor) rarity += 0.1;
-  return { label, rarity: Math.min(0.85, rarity) };
+  const mood =
+    isMinor && isSharpFlat
+      ? "sharp-key minor — tense, off-center, tends melancholic."
+      : isMinor
+        ? "minor key — leans introspective."
+        : isSharpFlat
+          ? "sharp/flat major — bright but slightly off the common center."
+          : "natural major — the most-used tonal center in popular music.";
+  return {
+    value: label,
+    rarity: Math.min(0.85, rarity),
+    detail: `Root ${label} — ${mood}`,
+  };
+}
+
+function hueTrait(colors: AuraPalette | undefined): {
+  value: string;
+  detail: string;
+} {
+  if (!colors) return { value: "Uncharted", detail: "No dominant hue family recovered." };
+  const fams = dominantHueFamilies(colors);
+  const primary = fams[0] ?? "neutral";
+  if (fams.length >= 2) {
+    const sec = fams[1];
+    return {
+      value: `${cap(primary)} & ${cap(sec)}`,
+      detail: `A two-hue split — the aura pulls between ${primary} and ${sec} instead of settling on one.`,
+    };
+  }
+  return {
+    value: cap(primary),
+    detail: `A single dominant family — ${primary} runs through the whole aura.`,
+  };
 }
 
 function tierFromScore(score: number): { tier: TraitTier; color: string } {
-  if (score >= 0.72) return { tier: "Mythic", color: "#f5c15a" };
-  if (score >= 0.58) return { tier: "Radiant", color: "#c48bff" };
-  if (score >= 0.44) return { tier: "Rare", color: "#5cc7ff" };
-  if (score >= 0.3) return { tier: "Uncommon", color: "#7be0a3" };
+  if (score >= 0.7) return { tier: "Mythic", color: "#f5c15a" };
+  if (score >= 0.56) return { tier: "Radiant", color: "#c48bff" };
+  if (score >= 0.42) return { tier: "Rare", color: "#5cc7ff" };
+  if (score >= 0.28) return { tier: "Uncommon", color: "#7be0a3" };
   return { tier: "Common", color: "#a8afbd" };
 }
 
-// ------------- main -------------
+// ---------- main ----------
 
 export function computeAuraTraits(track: TraitInput): AuraTraits {
   const p = getPersonality(track.palette);
   const motion = p.motion;
   const texture = p.texture;
 
-  const pal = paletteFamilyTrait(track.colors);
-  const energy = energyTier(track.energy ?? track.energyLevel ?? 50);
-  const density = densityFrom(track);
-  const tempo = tempoBand(track);
-  const key = keySignature(track);
+  const hue = hueTrait(track.colors);
+  const charge = chargeTrait(track.energy ?? track.energyLevel ?? 50);
+  const weight = weightTrait(track.density);
+  const pulse = pulseTrait(track.tempoBand);
+  const root = rootTrait(track);
 
+  // Ordered for reveal: signature identity first, then motion/grain, then
+  // measured intensities, then musical root.
   const traits: Trait[] = [
     {
-      id: "palette",
-      label: "Palette",
-      value: pal.label,
-      rarity: pal.rarity,
-      detail:
-        pal.families.length >= 2
-          ? "A two-hue split — the aura pulls between two color families instead of one."
-          : "The dominant color family this aura settled into.",
+      id: "hue",
+      label: "Hue",
+      value: hue.value,
+      // Hue is a signature — we don't claim rarity for palette taste. Use a
+      // neutral value so it doesn't skew the tier score.
+      rarity: 0.25,
+      detail: hue.detail,
     },
     {
-      id: "motion",
-      label: "Motion",
+      id: "cadence",
+      label: "Cadence",
       value: cap(motion),
       rarity: MOTION_RARITY[motion],
-      detail: `How the orb moves. "${cap(motion)}" is how this track breathes.`,
+      detail: `${cap(motion)} — how this aura moves. Read off the palette's inner behavior.`,
     },
     {
-      id: "texture",
-      label: "Texture",
+      id: "grain",
+      label: "Grain",
       value: cap(texture),
       rarity: TEXTURE_RARITY[texture],
-      detail: `The surface of the aura — how light sits on it.`,
+      detail: `${cap(texture)} — how light sits on the surface of the aura.`,
     },
     {
-      id: "energy",
-      label: "Energy",
-      value: energy.label,
-      rarity: energy.rarity,
-      detail: "Detected loudness and transient intensity blended together.",
+      id: "charge",
+      label: "Charge",
+      value: charge.value,
+      rarity: charge.rarity,
+      detail: charge.detail,
     },
     {
-      id: "density",
-      label: "Density",
-      value: density.label,
-      rarity: density.rarity,
-      detail: "How full the frequency spectrum is — sparse tracks feel open, dense tracks feel packed.",
+      id: "weight",
+      label: "Weight",
+      value: weight.value,
+      rarity: weight.rarity,
+      detail: weight.detail,
     },
     {
-      id: "tempo",
-      label: "Tempo",
-      value: tempo.label,
-      rarity: tempo.rarity,
-      detail: "The rhythmic register the analyzer locked onto.",
+      id: "pulse",
+      label: "Pulse",
+      value: pulse.value,
+      rarity: pulse.rarity,
+      detail: pulse.detail,
     },
     {
-      id: "key",
-      label: "Key",
-      value: key.label,
-      rarity: key.rarity,
-      detail: "The musical key detected from the audio.",
+      id: "root",
+      label: "Root",
+      value: root.value,
+      rarity: root.rarity,
+      detail: root.detail,
     },
   ];
 
-  // Weight rare traits a little heavier so a single mythic drag lifts the tier
-  const weighted = traits.reduce((acc, t) => acc + Math.pow(t.rarity, 0.9), 0) / traits.length;
-  const rarityScore = Math.min(0.99, weighted);
+  // Tier = blend of mean rarity + the top-two outliers, so a single genuine
+  // outlier can lift the sheet without letting seven mid values drag it down.
+  const mean = traits.reduce((a, t) => a + t.rarity, 0) / traits.length;
+  const sorted = [...traits].map((t) => t.rarity).sort((a, b) => b - a);
+  const topTwo = (sorted[0] + sorted[1]) / 2;
+  const rarityScore = Math.min(0.99, mean * 0.6 + topTwo * 0.4);
   const { tier, color } = tierFromScore(rarityScore);
 
   return {
@@ -259,7 +322,7 @@ export function computeAuraTraits(track: TraitInput): AuraTraits {
     rarityScore,
     tier,
     tierColor: color,
-    serial: toSerial(track.id),
+    serial: toSerial(track),
     signature: track.paletteName || track.auraName || "Untitled Aura",
   };
 }
