@@ -44,6 +44,7 @@ import {
 export const Route = createFileRoute("/aura/$id")({
   validateSearch: (s: Record<string, unknown>) => ({
     claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
+    reveal: s.reveal === "1" || s.reveal === 1 ? ("1" as const) : undefined,
   }),
   loader: async ({ params }) => {
     // Best-effort SSR meta — never throws so guest/local-only Auras still render.
@@ -110,7 +111,7 @@ export const Route = createFileRoute("/aura/$id")({
 
 function AuraPage() {
   const { id } = Route.useParams();
-  const { claim } = Route.useSearch();
+  const { claim, reveal } = Route.useSearch();
   const nav = useNavigate();
   const { profile, user } = useAuth();
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -127,6 +128,19 @@ function AuraPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
+  // Capture reveal intent once, then strip the URL param so refresh doesn't re-trigger.
+  const [revealActive] = useState(() => reveal === "1");
+  useEffect(() => {
+    if (reveal === "1") {
+      nav({
+        to: "/aura/$id",
+        params: { id },
+        search: { claim: claim ?? undefined },
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -439,7 +453,7 @@ function AuraPage() {
           </p>
         </div>
 
-        <TraitSheet traits={computeAuraTraits(track)} />
+        <TraitSheet traits={computeAuraTraits(track)} reveal={revealActive} />
 
 
 
