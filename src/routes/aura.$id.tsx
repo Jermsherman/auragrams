@@ -434,6 +434,10 @@ function AuraPage() {
           </p>
         </div>
 
+        <TraitSheet traits={computeAuraTraits(track)} />
+
+
+
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
           {!user && pendingId === id ? (
