@@ -453,7 +453,7 @@ function AuraPage() {
           </p>
         </div>
 
-        <TraitSheet traits={computeAuraTraits(track)} />
+        <TraitSheet traits={computeAuraTraits(track)} reveal={revealActive} />
 
 
 
