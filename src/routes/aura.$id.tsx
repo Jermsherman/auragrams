@@ -514,7 +514,25 @@ function AuraPage() {
           </p>
         </div>
 
+        {insightState === "ready" && insight ? (
+          <div className="mt-10">
+            <SongPersonalityProfile insight={insight} reveal={revealActive} />
+          </div>
+        ) : insightState === "loading" ? (
+          <div className="mt-10">
+            <SongPersonalityProfilePending />
+          </div>
+        ) : insightState === "failed" && isOwner ? (
+          <div className="mt-10">
+            <SongPersonalityProfilePending canRetry onRetry={retryInsight} />
+          </div>
+        ) : null}
+
         <TraitSheet traits={computeAuraTraits(track)} reveal={revealActive} />
+
+        <div className="mt-6">
+          <TraitProvenance />
+        </div>
 
 
 
