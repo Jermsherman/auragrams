@@ -6,7 +6,6 @@
 // Framing: this is a *visual reveal* system, not an NFT. No mint, no chain,
 // no re-rolls — one track produces one canonical trait sheet forever.
 
-import type { Track } from "@/lib/tracks";
 import {
   getPersonality,
   dominantHueFamilies,
@@ -14,7 +13,26 @@ import {
   type MotionKind,
   type TextureKind,
   type HueFamilyKey,
+  type PaletteKey,
 } from "@/lib/aura";
+
+/** Minimum shape needed to compute a trait sheet — satisfied by both
+ *  `Track` and `SavedAura`. */
+export type TraitInput = {
+  id: string;
+  palette: PaletteKey;
+  colors?: AuraPalette;
+  energy?: number;
+  energyLevel?: number;
+  musicalKey?: string;
+  tempoBand?: string;
+  density?: string;
+  tonic?: string;
+  mode?: "major" | "minor";
+  detectedKey?: string;
+  paletteName?: string;
+  auraName?: string;
+};
 
 export type TraitTier = "Common" | "Uncommon" | "Rare" | "Radiant" | "Mythic";
 
