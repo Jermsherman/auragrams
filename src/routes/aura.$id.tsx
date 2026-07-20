@@ -604,11 +604,6 @@ function AuraPage() {
           <div className="mt-10">
             <SongPersonalityProfilePending />
           </div>
-        ) : null}
-        ) : insightState === "loading" ? (
-          <div className="mt-10">
-            <SongPersonalityProfilePending />
-          </div>
         ) : insightState === "failed" && isOwner ? (
           <div className="mt-10">
             <SongPersonalityProfilePending canRetry onRetry={retryInsight} />
