@@ -652,12 +652,18 @@ function AuraPage() {
               >
                 <Share2 className="h-4 w-4" /> Share AuraLink
               </button>
+              <button
+                onClick={() => setAuraShareOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+              >
+                <Sparkles className="h-4 w-4" /> Share Aura
+              </button>
               {flags.enableStoryExport && (
               <button
                 onClick={() => setStoryOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium glass hover:bg-foreground/10 transition-colors"
+                className="col-span-2 sm:col-span-3 inline-flex items-center justify-center gap-2 rounded-full h-10 text-xs font-medium glass hover:bg-foreground/10 transition-colors text-muted-foreground"
               >
-                <Sparkles className="h-4 w-4" /> Story Preview
+                <Sparkles className="h-3.5 w-3.5" /> Legacy Story Preview
               </button>
               )}
             </>
@@ -705,6 +711,13 @@ function AuraPage() {
         )}
 
         <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
+        <AuraShareDialog
+          track={track}
+          insight={insight}
+          shareUrl={url}
+          open={auraShareOpen}
+          onOpenChange={setAuraShareOpen}
+        />
         <AddToAuracleDialog
           auraId={track.id}
           open={auracleOpen}
