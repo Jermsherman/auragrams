@@ -28,6 +28,11 @@ import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
 import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitSheet } from "@/components/TraitSheet";
+import { SongPersonalityProfile, SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
+import { TraitProvenance } from "@/components/TraitProvenance";
+import { generateAuraInsight } from "@/lib/auraInsight.functions";
+import { isAuraInsight, type AuraInsight } from "@/lib/auraInsight";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -125,6 +130,8 @@ function AuraPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [insight, setInsight] = useState<AuraInsight | null>(null);
+  const [insightState, setInsightState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
@@ -225,6 +232,60 @@ function AuraPage() {
   useEffect(() => {
     setPendingId(getPendingAura()?.id ?? null);
   }, [id, user?.id]);
+
+  // Load (or generate) the Song Personality Profile from the cloud row.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setInsight(null);
+    setInsightState("loading");
+    (async () => {
+      try {
+        const { data: row } = await supabase
+          .from("auras")
+          .select("insight")
+          .eq("id", id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (row && isAuraInsight(row.insight)) {
+          setInsight(row.insight as AuraInsight);
+          setInsightState("ready");
+          return;
+        }
+        // Row missing insight (or row not in cloud yet) — try to generate.
+        const res = await generateAuraInsight({ data: { auraId: id } });
+        if (cancelled) return;
+        if (res.insight) {
+          setInsight(res.insight);
+          setInsightState("ready");
+        } else {
+          setInsightState("failed");
+        }
+      } catch {
+        if (!cancelled) setInsightState("failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const retryInsight = async () => {
+    setInsightState("loading");
+    try {
+      const res = await generateAuraInsight({ data: { auraId: id } });
+      if (res.insight) {
+        setInsight(res.insight);
+        setInsightState("ready");
+      } else {
+        setInsightState("failed");
+        toast.error("Couldn't write the story just now — try again in a moment.");
+      }
+    } catch {
+      setInsightState("failed");
+      toast.error("Couldn't write the story just now — try again in a moment.");
+    }
+  };
 
   // Claim flow: after sign-in with ?claim=1, push the local guest Aura to cloud.
   useEffect(() => {
@@ -453,7 +514,25 @@ function AuraPage() {
           </p>
         </div>
 
+        {insightState === "ready" && insight ? (
+          <div className="mt-10">
+            <SongPersonalityProfile insight={insight} reveal={revealActive} />
+          </div>
+        ) : insightState === "loading" ? (
+          <div className="mt-10">
+            <SongPersonalityProfilePending />
+          </div>
+        ) : insightState === "failed" && isOwner ? (
+          <div className="mt-10">
+            <SongPersonalityProfilePending canRetry onRetry={retryInsight} />
+          </div>
+        ) : null}
+
         <TraitSheet traits={computeAuraTraits(track)} reveal={revealActive} />
+
+        <div className="mt-6">
+          <TraitProvenance />
+        </div>
 
 
 

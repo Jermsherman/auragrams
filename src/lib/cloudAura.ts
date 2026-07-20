@@ -37,6 +37,7 @@ export type CloudAuraRow = {
   audio_mime_type: string | null;
   audio_size_bytes: number | null;
   audio_duration_seconds: number | null;
+  insight: unknown;
   created_at: string;
   updated_at: string;
 };
@@ -147,6 +148,19 @@ export async function saveAuraToCloud(opts: {
   };
   const { error } = await supabase.from("auras").upsert(row);
   if (error) throw error;
+
+  // Fire-and-forget: kick off the Song Personality Profile generation.
+  // Idempotent server-side, so a duplicate call is a no-op.
+  void triggerInsightGeneration(saved.id);
+}
+
+async function triggerInsightGeneration(auraId: string) {
+  try {
+    const { generateAuraInsight } = await import("./auraInsight.functions");
+    await generateAuraInsight({ data: { auraId } });
+  } catch (e) {
+    console.warn("[triggerInsightGeneration] failed", e);
+  }
 }
 
 async function uploadAuraCover(auraId: string, dataUrl: string): Promise<string | null> {

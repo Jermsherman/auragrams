@@ -45,7 +45,15 @@ export function Footer() {
                 to="/farm"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                Farm
+                My Auras
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/for-artists"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                For Artists
               </Link>
             </li>
           </ul>
