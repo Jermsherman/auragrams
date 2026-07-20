@@ -104,6 +104,18 @@ function CreatePage() {
   const [auracleType, setAuracleType] = useState<AuracleProjectType>("ep");
   const [auracleDesc, setAuracleDesc] = useState("");
 
+  // Consume a file handed off from the landing page drop zone
+  useEffect(() => {
+    import("@/lib/landingHandoff").then(({ takeLandingFile }) => {
+      const f = takeLandingFile();
+      if (f) {
+        setAudio(f);
+        runAnalysis(f);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const runAnalysis = (f: File) => {
     setKeyDetection(null);
     setFeatures(null);
