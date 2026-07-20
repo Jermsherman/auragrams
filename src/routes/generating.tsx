@@ -41,7 +41,7 @@ function GeneratingPage() {
     };
     raf = requestAnimationFrame(tick);
     const tGo = setTimeout(() => {
-      if (id) nav({ to: "/aura/$id", params: { id } });
+      if (id) nav({ to: "/aura/$id", params: { id }, search: { reveal: "1" as const } });
       else nav({ to: "/" });
     }, TOTAL_MS + 150);
     return () => {
