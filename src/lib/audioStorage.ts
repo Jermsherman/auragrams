@@ -7,6 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const AUDIO_BUCKET = "auragram-audio";
 export const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
+// The storage bucket enforces this cap server-side. Keep the client aware so
+// we can reject before a 100 MB PUT round-trips and returns a misleading
+// "row-level security" 403.
+export const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 const ALLOWED_EXT = /\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i;
 
 export type UploadedAudio = {
@@ -18,14 +22,37 @@ export type UploadedAudio = {
   durationSeconds: number | null;
 };
 
+function fmtMB(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+}
+
 export function validateAudioFile(file: File): string | null {
   const okType = file.type.startsWith("audio/");
   const okExt = ALLOWED_EXT.test(file.name);
   if (!okType && !okExt) {
-    return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg, .webm).";
+    return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg, .webm, .flac).";
+  }
+  if (file.size > MAX_AUDIO_BYTES) {
+    return `This file is ${fmtMB(file.size)} — the current per-file limit is 100 MB. Export as MP3 (192–320 kbps) and try again.`;
   }
   return null;
 }
+
+/** Translate an opaque storage error into a message that reflects the real cause. */
+function friendlyStorageError(status: number | undefined, message: string, fileSize: number): string {
+  const rls = /row-level security|violates.*policy/i.test(message);
+  if (status === 403 && rls) {
+    if (fileSize > MAX_AUDIO_BYTES) {
+      return `Upload rejected — the file is ${fmtMB(fileSize)} and the per-file limit is 100 MB.`;
+    }
+    return "Upload rejected by storage. This usually means the file is over the 100 MB per-file limit or is an unsupported audio type.";
+  }
+  if (status === 413) {
+    return `Upload too large (${fmtMB(fileSize)}). The per-file limit is 100 MB.`;
+  }
+  return message || "Upload failed. Please try again.";
+}
+
 
 /** Mint a short-lived signed URL for a stored audio path. Returns null on failure. */
 export async function getSignedAudioUrl(
