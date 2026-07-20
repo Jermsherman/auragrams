@@ -486,12 +486,19 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <div className="animate-fade-up">
-          <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-            Your Aura is ready
-          </div>
+        {/* Cinematic reveal hero: eyebrow · Aura Name · song · pull-quote */}
+        <div className="w-full animate-fade-up">
+          <AuraRevealHero
+            auraName={insight?.auraName || track.auraName}
+            trackTitle={track.title}
+            artist={track.artist}
+            colors={track.colors}
+            insight={insight}
+            reveal={revealActive}
+          />
         </div>
-        <div className="relative mt-6 animate-fade-up">
+
+        <div className="relative mt-8 animate-fade-up">
           <Aurascope
             aura={aurascopeAuraFromTrack(track)}
             size="large"
