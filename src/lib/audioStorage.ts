@@ -166,14 +166,24 @@ export async function uploadAuraAudio(opts: {
             if (xhr.status >= 200 && xhr.status < 300) {
               onProgress(100);
               resolve();
-            } else reject(new Error(`Upload failed (${xhr.status})`));
+            } else {
+              reject(new Error(friendlyStorageError(xhr.status, xhr.responseText || "", file.size)));
+            }
           };
-          xhr.onerror = () => reject(new Error("Upload network error"));
+          xhr.onerror = () => reject(new Error("Upload network error — please check your connection and retry."));
           xhr.send(file);
         });
         uploaded = true;
+      } else if (signErr) {
+        // Signed-URL creation itself was rejected (usually RLS/size). Surface the real reason.
+        const status = (signErr as { status?: number; statusCode?: string }).status
+          ?? Number((signErr as { statusCode?: string }).statusCode);
+        throw new Error(friendlyStorageError(status, signErr.message, file.size));
       }
     } catch (e) {
+      if (e instanceof Error && /100 MB|per-file limit|unsupported audio/i.test(e.message)) {
+        throw e; // already a friendly message — don't fall back and mask it
+      }
       console.warn("[uploadAuraAudio] signed-url path failed, falling back", e);
     }
   }
@@ -181,9 +191,14 @@ export async function uploadAuraAudio(opts: {
     const { error } = await supabase.storage
       .from(AUDIO_BUCKET)
       .upload(storagePath, file, { upsert: true, contentType });
-    if (error) throw error;
+    if (error) {
+      const status = (error as { status?: number; statusCode?: string }).status
+        ?? Number((error as { statusCode?: string }).statusCode);
+      throw new Error(friendlyStorageError(status, error.message, file.size));
+    }
     onProgress?.(100);
   }
+
 
   // Bucket is private now — mint a signed URL for immediate playback after upload.
   const signedUrl = await getSignedAudioUrl(storagePath);
