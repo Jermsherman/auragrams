@@ -121,7 +121,7 @@ function energyTier(energy: number): { label: string; rarity: number } {
   return { label: `Volatile · ${energy}`, rarity: 0.85 };
 }
 
-function densityFrom(track: Track): { label: string; rarity: number } {
+function densityFrom(track: TraitInput): { label: string; rarity: number } {
   const d = (track.density || "").toLowerCase();
   if (d.includes("sparse") || d.includes("air")) return { label: "Sparse", rarity: 0.6 };
   if (d.includes("dense") || d.includes("thick")) return { label: "Dense", rarity: 0.45 };
@@ -129,7 +129,7 @@ function densityFrom(track: Track): { label: string; rarity: number } {
   return { label: "Balanced", rarity: 0.2 };
 }
 
-function tempoBand(track: Track): { label: string; rarity: number } {
+function tempoBand(track: TraitInput): { label: string; rarity: number } {
   const t = (track.tempoBand || "").toLowerCase();
   if (t.startsWith("slow") || t === "ballad") return { label: "Ballad", rarity: 0.35 };
   if (t.startsWith("fast") || t === "frenzy") return { label: "Frenzy", rarity: 0.75 };
@@ -159,7 +159,7 @@ function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-function keySignature(track: Track): { label: string; rarity: number } {
+function keySignature(track: TraitInput): { label: string; rarity: number } {
   const tonic = track.tonic ?? track.detectedKey ?? track.musicalKey ?? "";
   const mode = track.mode ?? "";
   if (!tonic) return { label: "Untuned", rarity: 0.7 };
@@ -183,7 +183,7 @@ function tierFromScore(score: number): { tier: TraitTier; color: string } {
 
 // ------------- main -------------
 
-export function computeAuraTraits(track: Track): AuraTraits {
+export function computeAuraTraits(track: TraitInput): AuraTraits {
   const p = getPersonality(track.palette);
   const motion = p.motion;
   const texture = p.texture;
