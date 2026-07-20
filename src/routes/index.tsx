@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, RefreshCw } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, RefreshCw, UploadCloud } from "lucide-react";
 import { FaqPreview } from "@/components/FaqPreview";
 import { useAuth } from "@/hooks/useAuth";
 import {
