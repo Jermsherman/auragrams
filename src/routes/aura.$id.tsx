@@ -23,6 +23,8 @@ import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
+import { AuraRevealHero } from "@/components/AuraRevealHero";
+import { AuraShareDialog } from "@/components/AuraShareDialog";
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
@@ -127,6 +129,7 @@ function AuraPage() {
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [auraShareOpen, setAuraShareOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
