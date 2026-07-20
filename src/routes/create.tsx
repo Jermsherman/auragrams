@@ -301,7 +301,7 @@ function CreatePage() {
               uploaded = await uploadAuraAudio({ authUserId: user.id, auraId: id, file });
             } catch (e) {
               console.error("audio upload", e);
-              toast.error("Upload failed. Please try again.");
+              toast.error(e instanceof Error ? e.message : "Upload failed. Please try again.");
               setBusy(false);
               return;
             }
