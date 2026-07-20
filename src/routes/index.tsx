@@ -213,9 +213,9 @@ function Index() {
           </h2>
           <div className="mt-12 grid sm:grid-cols-3 gap-5">
             {[
-              { n: "01", t: "Upload Audio", d: "Drop in a song." },
-              { n: "02", t: "Generate Aura", d: "Watch your music become visual." },
-              { n: "03", t: "Share Anywhere", d: "Turn it into a playable AuraLink." },
+              { n: "01", t: "Upload a song", d: "Any track you have the rights to. Audio only — links come later." },
+              { n: "02", t: "Reveal its Aura", d: "One canonical Aura per song. Deterministic — no rerolls, ever." },
+              { n: "03", t: "Share the artifact", d: "Put it on your AuraLink or share the page directly." },
             ].map((s) => (
               <div
                 key={s.n}
