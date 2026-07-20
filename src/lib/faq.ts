@@ -152,7 +152,7 @@ export const FAQ: FaqSection[] = [
     items: [
       {
         q: "My audio file will not upload. What should I do?",
-        a: "Try using a smaller MP3 or WAV file first. Make sure the file is a valid audio file and not too large.",
+        a: "Make sure it's a valid audio file (MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC) and that your connection is stable. Larger files take longer to upload — the progress bar keeps ticking until it's done.",
       },
       {
         q: "My Aura is not reacting strongly enough. Why?",

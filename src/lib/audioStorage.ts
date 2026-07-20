@@ -6,8 +6,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const AUDIO_BUCKET = "auragram-audio";
-export const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB — most 3-min MP3s fit
-export const AUDIO_SOFT_WARN_BYTES = 20 * 1024 * 1024; // warn ≥ 20 MB
 export const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 const ALLOWED_EXT = /\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i;
 
@@ -25,17 +23,6 @@ export function validateAudioFile(file: File): string | null {
   const okExt = ALLOWED_EXT.test(file.name);
   if (!okType && !okExt) {
     return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg, .webm).";
-  }
-  if (file.size > MAX_AUDIO_BYTES) {
-    return "This file is too large. Please use an audio file under 25 MB (MP3 recommended).";
-  }
-  return null;
-}
-
-/** Soft warning shown before submit; null if file is fine. */
-export function audioSoftWarning(file: File): string | null {
-  if (file.size >= AUDIO_SOFT_WARN_BYTES && file.size <= MAX_AUDIO_BYTES) {
-    return "That's a large audio file — an MP3 export will upload faster and cost less to host.";
   }
   return null;
 }
