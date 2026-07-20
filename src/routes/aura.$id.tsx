@@ -111,7 +111,7 @@ export const Route = createFileRoute("/aura/$id")({
 
 function AuraPage() {
   const { id } = Route.useParams();
-  const { claim } = Route.useSearch();
+  const { claim, reveal } = Route.useSearch();
   const nav = useNavigate();
   const { profile, user } = useAuth();
   const [pendingId, setPendingId] = useState<string | null>(null);
