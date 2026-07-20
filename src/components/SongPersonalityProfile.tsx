@@ -11,10 +11,12 @@ const SECTIONS = 5; // story · dna · traits · moment · visual
 export function SongPersonalityProfile({
   insight,
   reveal = false,
+  hideHeader = false,
   className = "",
 }: {
   insight: AuraInsight;
   reveal?: boolean;
+  hideHeader?: boolean;
   className?: string;
 }) {
   // Staged fade-in: 0 = hidden name, 1 = name, 2..6 = each section
@@ -36,17 +38,19 @@ export function SongPersonalityProfile({
       className={`w-full max-w-md mx-auto text-left ${className}`}
     >
       <div className="rounded-3xl glass-strong p-6 sm:p-7 relative overflow-hidden">
-        {/* Aura Name */}
-        <div
-          className={`text-center transition-all duration-500 ${stage >= 1 ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}`}
-        >
-          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-            Aura Name
+        {/* Aura Name — hidden when the reveal hero already displays it */}
+        {!hideHeader && (
+          <div
+            className={`text-center transition-all duration-500 ${stage >= 1 ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}`}
+          >
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+              Aura Name
+            </div>
+            <h2 className="mt-1 font-display text-3xl sm:text-4xl tracking-tight text-aura-gradient">
+              {insight.auraName}
+            </h2>
           </div>
-          <h2 className="mt-1 font-display text-3xl sm:text-4xl tracking-tight text-aura-gradient">
-            {insight.auraName}
-          </h2>
-        </div>
+        )}
 
         {/* Story */}
         <Section
