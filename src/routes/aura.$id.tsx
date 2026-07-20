@@ -28,6 +28,11 @@ import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
 import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitSheet } from "@/components/TraitSheet";
+import { SongPersonalityProfile, SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
+import { TraitProvenance } from "@/components/TraitProvenance";
+import { generateAuraInsight } from "@/lib/auraInsight.functions";
+import { isAuraInsight, type AuraInsight } from "@/lib/auraInsight";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -125,6 +130,8 @@ function AuraPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [insight, setInsight] = useState<AuraInsight | null>(null);
+  const [insightState, setInsightState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
