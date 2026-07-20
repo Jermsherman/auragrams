@@ -128,6 +128,19 @@ function AuraPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const metricsRef = useRef<React.MutableRefObject<AudioMetrics> | null>(null);
   const [, force] = useState(0);
+  // Capture reveal intent once, then strip the URL param so refresh doesn't re-trigger.
+  const [revealActive] = useState(() => reveal === "1");
+  useEffect(() => {
+    if (reveal === "1") {
+      nav({
+        to: "/aura/$id",
+        params: { id },
+        search: { claim: claim ?? undefined },
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
