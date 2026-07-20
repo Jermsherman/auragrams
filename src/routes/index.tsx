@@ -111,28 +111,19 @@ function Index() {
               <span className="text-aura-gradient">A Living Identity.</span>
             </h1>
 
-            <div className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md space-y-1">
-              <p>Upload a song.</p>
-              <p>Generate a living Aura.</p>
-              <p>Share it anywhere with AuraLink.</p>
-            </div>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-md">
+              Every song has an aura. Upload one and claim yours.
+            </p>
 
-            <div className="mt-10 w-full max-w-md flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/create"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.9)] hover:shadow-[0_0_80px_-6px_oklch(0.7_0.2_310/1)] transition-shadow"
-              >
-                See Your Sound <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a
-                href="#what-is-an-aura"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full px-7 h-14 text-base font-medium glass-strong hover:bg-foreground/[0.06] transition-colors"
-              >
-                View Example Aura
-              </a>
-            </div>
+            {/* Inline drop zone — the hero action */}
+            <HeroDropZone />
+
+            <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground/80">
+              Free · No account needed to preview
+            </p>
           </div>
         </section>
+
 
         {/* WHAT IS AN AURA */}
         <section
