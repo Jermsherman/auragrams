@@ -310,7 +310,7 @@ function Index() {
                 to="/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
               >
-                {user ? "Create Aura" : "See Your Sound"} <ArrowRight className="h-4 w-4" />
+                {user ? "Create Aura" : "Claim Your Aura"} <ArrowRight className="h-4 w-4" />
               </Link>
               {user && (
                 <Link
