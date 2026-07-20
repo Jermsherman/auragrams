@@ -421,7 +421,7 @@ function CreatePage() {
           });
         } catch (e) {
           console.error("audio upload", e);
-          toast.error("Upload failed. Please try again.");
+          toast.error(e instanceof Error ? e.message : "Upload failed. Please try again.");
           setBusy(false);
           setUploadPct(null);
           return;
