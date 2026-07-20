@@ -367,7 +367,7 @@ function HeroDropZone() {
         Drop a track. Get your Aura.
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
-        MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC
+        MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC · 100 MB max, larger files auto-compress
       </div>
       <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
         Claim Your Aura <ArrowRight className="h-4 w-4" />

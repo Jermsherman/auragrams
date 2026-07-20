@@ -43,7 +43,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
-import { uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
+import { MAX_AUDIO_BYTES, formatAudioSize, uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
 import { flags } from "@/lib/featureFlags";
 import { Progress } from "@/components/ui/progress";
@@ -90,6 +90,7 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [compressionStatus, setCompressionStatus] = useState<string | null>(null);
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
@@ -109,8 +110,7 @@ function CreatePage() {
     import("@/lib/landingHandoff").then(({ takeLandingFile }) => {
       const f = takeLandingFile();
       if (f) {
-        setAudio(f);
-        runAnalysis(f);
+        onPick(f);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,6 +140,10 @@ function CreatePage() {
       toast.error(err);
       return;
     }
+    if (f.size > MAX_AUDIO_BYTES) {
+      toast.info("Large file detected. Auragram will compress it before upload.");
+    }
+    setCompressionStatus(null);
     setAudio(f);
     runAnalysis(f);
   };
@@ -298,7 +302,7 @@ function CreatePage() {
           let uploaded: Awaited<ReturnType<typeof uploadAuraAudio>> | null = null;
           if (user) {
             try {
-              uploaded = await uploadAuraAudio({ authUserId: user.id, auraId: id, file });
+              uploaded = await uploadAuraAudio({ authUserId: user.id, auraId: id, file, onStatus: setCompressionStatus });
             } catch (e) {
               console.error("audio upload", e);
               toast.error(e instanceof Error ? e.message : "Upload failed. Please try again.");
@@ -412,12 +416,14 @@ function CreatePage() {
       if (user) {
         try {
           setUploadPct(0);
+          setCompressionStatus(null);
           uploaded = await uploadAuraAudio({
             authUserId: user.id,
             auraId: id,
             file: audio,
             rawRecording: mode === "raw",
             onProgress: (pct) => setUploadPct(pct),
+            onStatus: setCompressionStatus,
           });
         } catch (e) {
           console.error("audio upload", e);
@@ -694,7 +700,7 @@ function CreatePage() {
                         </div>
                         <p className="font-display text-base">Drop your track here</p>
                         <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                          .mp3 · .wav
+                          .mp3 · .wav · 100 MB limit
                         </p>
                       </div>
                     ) : (
@@ -705,7 +711,8 @@ function CreatePage() {
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-medium">{audio.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {(audio.size / 1024 / 1024).toFixed(2)} MB
+                            {formatAudioSize(audio.size)}
+                            {audio.size > MAX_AUDIO_BYTES ? " · will compress" : ""}
                           </p>
                         </div>
                         <button
@@ -731,12 +738,12 @@ function CreatePage() {
                     <div className="mt-2 mx-auto max-w-md">
                       <Progress value={uploadPct} />
                       <p className="mt-1 text-[11px] text-muted-foreground text-center tabular-nums">
-                        Uploading… {uploadPct}%
+                        {compressionStatus ?? `Uploading… ${uploadPct}%`}
                       </p>
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    Upload an audio file to generate your Aura. Add streaming links later after saving.
+                    Upload an audio file to generate your Aura. Max upload: 100 MB — larger files are compressed automatically. Add streaming links later after saving.
                   </p>
                 </>
               ) : (

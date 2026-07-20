@@ -4,6 +4,7 @@
 // signed URLs minted at read time.
 
 import { supabase } from "@/integrations/supabase/client";
+import { compressAudioForUpload } from "./audioCompression";
 
 export const AUDIO_BUCKET = "auragram-audio";
 export const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
@@ -26,14 +27,17 @@ function fmtMB(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
 }
 
+export function formatAudioSize(bytes: number): string {
+  return bytes < 10 * 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(2)} MB`
+    : fmtMB(bytes);
+}
+
 export function validateAudioFile(file: File): string | null {
   const okType = file.type.startsWith("audio/");
   const okExt = ALLOWED_EXT.test(file.name);
   if (!okType && !okExt) {
     return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg, .webm, .flac).";
-  }
-  if (file.size > MAX_AUDIO_BYTES) {
-    return `This file is ${fmtMB(file.size)} — the current per-file limit is 100 MB. Export as MP3 (192–320 kbps) and try again.`;
   }
   return null;
 }
@@ -41,11 +45,12 @@ export function validateAudioFile(file: File): string | null {
 /** Translate an opaque storage error into a message that reflects the real cause. */
 function friendlyStorageError(status: number | undefined, message: string, fileSize: number): string {
   const rls = /row-level security|violates.*policy/i.test(message);
-  if (status === 403 && rls) {
+  const parsedStatus = Number(message.match(/"statusCode"\s*:\s*"?(\d+)/i)?.[1]);
+  if ((status === 403 || parsedStatus === 403 || rls) && rls) {
     if (fileSize > MAX_AUDIO_BYTES) {
       return `Upload rejected — the file is ${fmtMB(fileSize)} and the per-file limit is 100 MB.`;
     }
-    return "Upload rejected by storage. This usually means the file is over the 100 MB per-file limit or is an unsupported audio type.";
+    return "Upload rejected by storage. Please sign in again, then retry the upload.";
   }
   if (status === 413) {
     return `Upload too large (${fmtMB(fileSize)}). The per-file limit is 100 MB.`;
@@ -127,10 +132,17 @@ export async function uploadAuraAudio(opts: {
   file: File;
   rawRecording?: boolean;
   onProgress?: (pct: number) => void;
+  onStatus?: (message: string) => void;
 }): Promise<UploadedAudio> {
-  const { authUserId, auraId, file, rawRecording, onProgress } = opts;
+  const { authUserId, auraId, rawRecording, onProgress, onStatus } = opts;
+  let file = opts.file;
   const validation = validateAudioFile(file);
   if (validation) throw new Error(validation);
+  const compressed = await compressAudioForUpload(file, MAX_AUDIO_BYTES, onStatus);
+  file = compressed.file;
+  if (compressed.compressed) {
+    onStatus?.(`Compressed to ${formatAudioSize(file.size)} for upload.`);
+  }
 
   const fileName = rawRecording
     ? `raw-recording-${safeName(file.name || "raw.webm")}`
