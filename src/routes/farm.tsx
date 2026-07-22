@@ -17,14 +17,19 @@ export const Route = createFileRoute("/farm")({
       { title: "My Auras — Auragram" },
       {
         name: "description",
-        content: "Your growing collection of sonic identities.",
+        content:
+          "Manage and explore your growing collection of sonic identities and living Auras on Auragram.",
       },
       { property: "og:title", content: "My Auras — Auragram" },
       {
         property: "og:description",
-        content: "Your growing collection of sonic identities.",
+        content:
+          "Manage and explore your growing collection of sonic identities and living Auras on Auragram.",
       },
+      { property: "og:url", content: "https://auragrams.lovable.app/farm" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://auragrams.lovable.app/farm" }],
   }),
   component: () => (<RequireAuth><FarmPage /></RequireAuth>),
 });
