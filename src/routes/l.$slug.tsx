@@ -48,16 +48,18 @@ export const Route = createFileRoute("/l/$slug")({
       ogImage: page.socialPreviewImage || page.profileImageUrl,
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ params, loaderData }) => {
     const d = loaderData as LoaderData | undefined;
     const title = d?.seoTitle ?? "AuraLink — Auragram";
     const description = d?.seoDescription ?? "A music-first link page built on Auragram.";
+    const url = `https://auragrams.lovable.app/l/${params.slug}`;
     const meta: Array<Record<string, string>> = [
       { title },
       { name: "description", content: description },
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "profile" },
+      { property: "og:url", content: url },
       { name: "twitter:card", content: d?.ogImage ? "summary_large_image" : "summary" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
@@ -66,7 +68,19 @@ export const Route = createFileRoute("/l/$slug")({
       meta.push({ property: "og:image", content: d.ogImage });
       meta.push({ name: "twitter:image", content: d.ogImage });
     }
-    return { meta };
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      url,
+      name: title,
+      description,
+    };
+    if (d?.ogImage) jsonLd.image = d.ogImage;
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    };
   },
   component: PublicAuraLink,
   errorComponent: () => (

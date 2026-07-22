@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /farm
+Disallow: /auralink
+Disallow: /auracle/
+Disallow: /onboarding
+Disallow: /generating
+Disallow: /settings/
+
+Sitemap: https://auragrams.lovable.app/sitemap.xml

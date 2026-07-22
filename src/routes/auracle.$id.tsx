@@ -31,18 +31,22 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/auracle/$id")({
-  head: ({ params }) => ({
+  head: () => ({
     meta: [
-      { title: `Auracle · ${params.id} — Auragram` },
+      { title: "Auracle Project — Auragram" },
       {
         name: "description",
-        content: "A living music project on Auragram.",
+        content:
+          "Explore this living music project on Auragram — a curated collection of unique Auras and sonic identities.",
       },
-      { property: "og:title", content: "An Auracle on Auragram" },
+      { property: "og:title", content: "Auracle Project — Auragram" },
       {
         property: "og:description",
-        content: "A curated collection of Auras — share it anywhere.",
+        content:
+          "A curated collection of Auras — share this living music project anywhere.",
       },
+      { property: "og:type", content: "website" },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: AuraclePage,

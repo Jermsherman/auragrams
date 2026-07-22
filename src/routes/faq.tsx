@@ -25,6 +25,24 @@ export const Route = createFileRoute("/faq")({
         content:
           "Create living music visuals, save them to your Farm, and share them anywhere with AuraLinks.",
       },
+      { property: "og:url", content: "https://auragrams.lovable.app/faq" },
+    ],
+    links: [{ rel: "canonical", href: "https://auragrams.lovable.app/faq" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQ.flatMap((s) =>
+            s.items.map((it) => ({
+              "@type": "Question",
+              name: it.q,
+              acceptedAnswer: { "@type": "Answer", text: it.a },
+            })),
+          ),
+        }),
+      },
     ],
   }),
   component: FaqPage,

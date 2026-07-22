@@ -81,12 +81,14 @@ export const Route = createFileRoute("/aura/$id")({
     const description =
       d?.seo?.description ??
       "A living link for this track. Listen, watch, and open it on your favorite platform.";
+    const url = `https://auragrams.lovable.app/aura/${params.id}`;
     const meta: Array<Record<string, string>> = [
       { title },
       { name: "description", content: description },
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "music.song" },
+      { property: "og:url", content: url },
       { name: "twitter:card", content: d?.seo?.image ? "summary_large_image" : "summary" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
@@ -95,7 +97,19 @@ export const Route = createFileRoute("/aura/$id")({
       meta.push({ property: "og:image", content: d.seo.image });
       meta.push({ name: "twitter:image", content: d.seo.image });
     }
-    return { meta };
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "MusicRecording",
+      name: title.split(" — ")[0],
+      description,
+      url,
+    };
+    if (d?.seo?.image) jsonLd.image = d.seo.image;
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    };
   },
   component: AuraPage,
   notFoundComponent: () => (
@@ -486,6 +500,8 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
+        {/* SEO/a11y primary heading (visually hidden — animated hero renders the styled title) */}
+        <h1 className="sr-only">{track.title}{track.artist ? ` — ${track.artist}` : ""}</h1>
         {/* Cinematic reveal hero: eyebrow · Aura Name · song · pull-quote */}
         <div className="w-full animate-fade-up">
           <AuraRevealHero
@@ -695,6 +711,7 @@ function AuraPage() {
               }}
               className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
               title="Reroll palette colors"
+              aria-label="Shuffle palette colors"
             >
               <Shuffle className="h-3.5 w-3.5" /> Shuffle
             </button>

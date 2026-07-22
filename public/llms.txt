@@ -1,0 +1,12 @@
+# Auragram
+
+> A music-first identity platform. Turn any song into a playable Aura and share your sound with an AuraLink — a music-first link page with playable Auras.
+
+Auragram is built for artists. Upload an audio file, and the app generates a deterministic living visual (an "Aura") from the audio itself — palette, mood, energy, key, and a written song-personality profile. Auras can be shared individually or grouped into an AuraLink: a public, music-first link page that replaces a generic linktree with playable visuals and streaming buttons.
+
+## Pages
+
+- [Home](/): What Auragram is and how it works.
+- [For Artists](/for-artists): Why every release should have its own living Aura identity.
+- [Create Aura](/create): Upload an audio file to generate a playable Aura.
+- [FAQ](/faq): How Auras, AuraLinks, palettes, moods, and the Farm work.

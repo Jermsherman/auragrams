@@ -30,15 +30,12 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Auragram — Give your music a living identity" },
+      { title: "Auragram — Music-first identity platform" },
       { name: "description", content: "Turn any song into a playable Aura. Share your sound with an AuraLink — a music-first link page with playable Auras." },
       { name: "author", content: "Auragram" },
-      { property: "og:title", content: "Auragram — Give your music a living identity" },
-      { property: "og:description", content: "Turn any song into a playable Aura and share it with a music-first AuraLink." },
+      { property: "og:site_name", content: "Auragram" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Auragram — Give your music a living identity" },
-      { name: "twitter:description", content: "Turn any song into a playable Aura and share it with a music-first AuraLink." },
     ],
     links: [
       {
@@ -50,6 +47,29 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://auragrams.lovable.app/#org",
+              name: "Auragram",
+              url: "https://auragrams.lovable.app/",
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://auragrams.lovable.app/#site",
+              url: "https://auragrams.lovable.app/",
+              name: "Auragram",
+              publisher: { "@id": "https://auragrams.lovable.app/#org" },
+            },
+          ],
+        }),
       },
     ],
   }),

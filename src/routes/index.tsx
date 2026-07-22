@@ -30,7 +30,9 @@ export const Route = createFileRoute("/")({
         content:
           "Turn songs into living Auras and share them with an AuraLink — a music-first link page with playable Auras.",
       },
+      { property: "og:url", content: "https://auragrams.lovable.app/" },
     ],
+    links: [{ rel: "canonical", href: "https://auragrams.lovable.app/" }],
   }),
   component: Index,
 });
