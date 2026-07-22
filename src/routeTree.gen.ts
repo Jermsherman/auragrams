@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as ForArtistsRouteImport } from './routes/for-artists'
@@ -26,6 +27,11 @@ import { Route as AuracleIdRouteImport } from './routes/auracle.$id'
 import { Route as AuraIdRouteImport } from './routes/aura.$id'
 import { Route as ApiPublicCronCleanupGuestAurasRouteImport } from './routes/api/public/cron/cleanup-guest-auras'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/for-artists': typeof ForArtistsRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/for-artists': typeof ForArtistsRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/for-artists': typeof ForArtistsRoute
   '/generating': typeof GeneratingRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/aura/$id': typeof AuraIdRoute
   '/auracle/$id': typeof AuracleIdRoute
   '/auracle/create': typeof AuracleCreateRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/for-artists'
     | '/generating'
     | '/onboarding'
+    | '/sitemap.xml'
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/for-artists'
     | '/generating'
     | '/onboarding'
+    | '/sitemap.xml'
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/for-artists'
     | '/generating'
     | '/onboarding'
+    | '/sitemap.xml'
     | '/aura/$id'
     | '/auracle/$id'
     | '/auracle/create'
@@ -230,6 +242,7 @@ export interface RootRouteChildren {
   ForArtistsRoute: typeof ForArtistsRoute
   GeneratingRoute: typeof GeneratingRoute
   OnboardingRoute: typeof OnboardingRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuraIdRoute: typeof AuraIdRoute
   AuracleIdRoute: typeof AuracleIdRoute
   AuracleCreateRoute: typeof AuracleCreateRoute
@@ -240,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -377,6 +397,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForArtistsRoute: ForArtistsRoute,
   GeneratingRoute: GeneratingRoute,
   OnboardingRoute: OnboardingRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuraIdRoute: AuraIdRoute,
   AuracleIdRoute: AuracleIdRoute,
   AuracleCreateRoute: AuracleCreateRoute,
