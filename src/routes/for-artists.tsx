@@ -19,8 +19,10 @@ export const Route = createFileRoute("/for-artists")({
           "Turn every release into a shareable visual identity. One song, one Aura, forever.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://auragrams.lovable.app/for-artists" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://auragrams.lovable.app/for-artists" }],
   }),
   component: ForArtistsPage,
 });
