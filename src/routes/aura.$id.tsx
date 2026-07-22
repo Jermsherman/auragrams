@@ -81,12 +81,14 @@ export const Route = createFileRoute("/aura/$id")({
     const description =
       d?.seo?.description ??
       "A living link for this track. Listen, watch, and open it on your favorite platform.";
+    const url = `https://auragrams.lovable.app/aura/${params.id}`;
     const meta: Array<Record<string, string>> = [
       { title },
       { name: "description", content: description },
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "music.song" },
+      { property: "og:url", content: url },
       { name: "twitter:card", content: d?.seo?.image ? "summary_large_image" : "summary" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
@@ -95,7 +97,19 @@ export const Route = createFileRoute("/aura/$id")({
       meta.push({ property: "og:image", content: d.seo.image });
       meta.push({ name: "twitter:image", content: d.seo.image });
     }
-    return { meta };
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "MusicRecording",
+      name: title.split(" — ")[0],
+      description,
+      url,
+    };
+    if (d?.seo?.image) jsonLd.image = d.seo.image;
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    };
   },
   component: AuraPage,
   notFoundComponent: () => (
