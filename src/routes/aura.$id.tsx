@@ -486,6 +486,8 @@ function AuraPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
+        {/* SEO/a11y primary heading (visually hidden — animated hero renders the styled title) */}
+        <h1 className="sr-only">{track.title}{track.artist ? ` — ${track.artist}` : ""}</h1>
         {/* Cinematic reveal hero: eyebrow · Aura Name · song · pull-quote */}
         <div className="w-full animate-fade-up">
           <AuraRevealHero
