@@ -252,9 +252,11 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     seed?: number;
     density?: string;
     hasVocals?: boolean;
+    bands?: unknown;
     tempoBand?: string;
     motionKeywords?: string[];
   };
+
   const extra = (row.extra ?? {}) as {
     coverDataUrl?: string;
     coverUrl?: string;
