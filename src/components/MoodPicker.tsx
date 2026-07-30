@@ -11,12 +11,14 @@ export function MoodPicker({
   glowColor,
   onDetect,
   canDetect,
+  detectLabel = "Detect Mood",
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   glowColor?: string;
   onDetect?: () => void | Promise<void>;
   canDetect?: boolean;
+  detectLabel?: string;
 }) {
   const [detecting, setDetecting] = useState(false);
 
@@ -54,8 +56,9 @@ export function MoodPicker({
               ) : (
                 <Sparkles className="h-3 w-3" />
               )}
-              Detect Mood
+              {detectLabel}
             </button>
+
           )}
           <span className="text-[10px] tabular-nums text-muted-foreground/80">
             {value.length}/{MAX}

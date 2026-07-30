@@ -688,7 +688,7 @@ function AuraPage() {
 
         {!user && pendingId === id && (
           <p className="mt-3 text-xs text-muted-foreground max-w-md mx-auto animate-fade-up">
-            Sign up to save it and build your music-first AuraLink.
+            Unsaved Auras are deleted after 72 hours. Save yours now to keep it and build your AuraLink.
           </p>
         )}
 

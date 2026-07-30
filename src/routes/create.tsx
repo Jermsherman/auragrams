@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import {
@@ -94,6 +94,8 @@ function CreatePage() {
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
+  // Guards the one-shot auto mood detection per uploaded file.
+  const autoMoodDoneRef = useRef(false);
   const [colorInfluence, setColorInfluence] = useState<UserColorInfluence>({
     mode: "surprise",
     colors: [],
@@ -117,6 +119,7 @@ function CreatePage() {
   }, []);
 
   const runAnalysis = (f: File) => {
+    autoMoodDoneRef.current = false;
     setKeyDetection(null);
     setFeatures(null);
     setPitchCenter(null);
@@ -226,6 +229,18 @@ function CreatePage() {
     setMoods(sug);
     toast.success("Moods detected. You can still adjust them.");
   };
+
+  // Auto-run mood detection once analysis lands — never overwrites manual picks.
+  useEffect(() => {
+    if (autoMoodDoneRef.current) return;
+    if (!audio || !features || !keyDetection) return;
+    if (moods.length > 0) return;
+    autoMoodDoneRef.current = true;
+    void handleDetectMood();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio, features, keyDetection]);
+
+
 
   const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
     if (!files) return;
@@ -745,6 +760,12 @@ function CreatePage() {
                   <p className="text-xs text-muted-foreground text-center mt-2">
                     Upload an audio file to generate your Aura. Max upload: 100 MB — larger files are compressed automatically. Add streaming links later after saving.
                   </p>
+                  {isGuest && (
+                    <p className="text-xs text-muted-foreground text-center mt-1">
+                      Previews are temporary. Sign up to keep this Aura permanently.
+                    </p>
+                  )}
+
                 </>
               ) : (
                 <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
@@ -773,7 +794,7 @@ function CreatePage() {
                   <IdentitySelector value={identity} onChange={setIdentity} onResolve={setResolvedIdentity} />
                   {identity.mode === "anonymous" && (
                     <p className="px-2 text-[11px] text-muted-foreground">
-                      Your AuraLink will not show your artist name or username, but it will still be saved privately to My Auras.
+                      Your AuraLink will not show your artist name or username. The Aura page itself stays publicly viewable by anyone with the link.
                     </p>
                   )}
                 </>
@@ -786,6 +807,7 @@ function CreatePage() {
                   onChange={setMoods}
                   glowColor={preview.colors?.glow}
                   onDetect={handleDetectMood}
+                  detectLabel={moods.length > 0 ? "Re-detect" : "Detect Mood"}
                   canDetect={canDetect}
                 />
 
