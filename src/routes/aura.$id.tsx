@@ -818,7 +818,7 @@ function AuraPage() {
                     setInsight(next);
                     const { error } = await supabase
                       .from("auras")
-                      .update({ insight: next as unknown as Record<string, unknown> })
+                      .update({ insight: next as never })
                       .eq("id", track.id);
                     if (error) toast.error("Couldn't save your story — try again.");
                     else toast.success("Aura Story saved");
