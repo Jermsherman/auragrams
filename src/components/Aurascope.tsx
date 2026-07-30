@@ -123,6 +123,20 @@ export function Aurascope({
     };
   }, [aura.colors, personality]);
 
+  // One deterministic atmosphere per Aura (smoke / water / ember / lightning).
+  const effect = useMemo(
+    () =>
+      pickAuraEffect({
+        moods: aura.moods,
+        energy: aura.energy ?? aura.profile?.energy,
+        palette: aura.palette,
+        seed: aura.seed,
+      }),
+    [aura.moods, aura.energy, aura.profile?.energy, aura.palette, aura.seed],
+  );
+
+
+
   // Ensure OrbVisual uses the saved per-aura colors at every call site, not
   // just where a full AuraProfile was built. Without this, cards/story/etc.
   // fall back to the generic mood swatches.
