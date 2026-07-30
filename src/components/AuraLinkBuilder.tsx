@@ -1329,7 +1329,7 @@ export function AuraLinkBuilder() {
                               ))}
                             </div>
                             <div className="mt-1.5 text-[11px] truncate max-w-[140px]">
-                              {a.auraName ?? a.title}
+                              {a.auraName ?? a.trackTitle}
                             </div>
                           </button>
                         );
