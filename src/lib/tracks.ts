@@ -38,6 +38,7 @@ export type Track = {
   embedUrl?: string;
   coverDataUrl?: string;
   seed: number;
+  hasVocals?: boolean;
   createdAt: number;
 
   // Phase 2
@@ -159,6 +160,7 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     embedUrl: t.embedUrl,
     coverDataUrl: t.coverDataUrl,
     seed: t.seed ?? seedFromId(t.id),
+    hasVocals: t.hasVocals,
     createdAt: t.createdAt ?? Date.now(),
     moods,
     palette: (t.palette as PaletteKey) ?? gen.palette,
