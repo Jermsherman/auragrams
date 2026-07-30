@@ -978,7 +978,7 @@ export function OrbVisual({
       ctx.globalCompositeOperation = "source-over";
     };
     return subscribeFrame(tick, 30);
-  }, [effect, hueShift, metricsRef, p.glow, p.stops]);
+  }, [effect, hueShift, metricsRef, p.glow, p.stops, pxSize]);
 
 
   const dim = typeof size === "number" ? `${size}px` : size;
