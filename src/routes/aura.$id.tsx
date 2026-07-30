@@ -528,6 +528,11 @@ function AuraPage() {
           />
         </div>
 
+        <div className="mt-4 w-full max-w-md animate-fade-up">
+          <BandDriveInfo bands={track.bands} hasVocals={track.hasVocals !== false} />
+        </div>
+
+
         <div className="mt-6 w-full animate-fade-up">
           {audioUrl ? (
             <AudioUploadPlayer
