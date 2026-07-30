@@ -783,7 +783,7 @@ export function OrbVisual({
     };
     // Idle motion is slow enough that 24fps is visually identical.
     return subscribeFrame(tick, 24);
-  }, [hero, isPlaying, hueShift]);
+  }, [hero, isPlaying, hueShift, animate]);
 
   // Atmosphere layer — smoke / water / ember / lightning. Deterministic per
   // Aura, gently modulated by live audio when it is available.
