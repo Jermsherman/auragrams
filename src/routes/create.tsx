@@ -117,6 +117,7 @@ function CreatePage() {
   }, []);
 
   const runAnalysis = (f: File) => {
+    autoMoodDoneRef.current = false;
     setKeyDetection(null);
     setFeatures(null);
     setPitchCenter(null);
