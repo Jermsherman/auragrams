@@ -14,10 +14,10 @@ export type PersonalityTraitEntry = {
 
 export type AuraInsight = {
   auraName: string;
-  story: string;
+  /** Written by the artist, not the model. Empty until they write it. */
+  story?: string;
   emotionalDNA: EmotionalDNAEntry[];
   personalityTraits: PersonalityTraitEntry[];
-  listenerMoment: string;
   visualMeaning: string;
   /** ISO string. Only set after a successful generation. */
   generatedAt?: string;
@@ -32,10 +32,8 @@ export function isAuraInsight(x: unknown): x is AuraInsight {
   const o = x as Record<string, unknown>;
   return (
     typeof o.auraName === "string" &&
-    typeof o.story === "string" &&
     Array.isArray(o.emotionalDNA) &&
     Array.isArray(o.personalityTraits) &&
-    typeof o.listenerMoment === "string" &&
     typeof o.visualMeaning === "string"
   );
 }
@@ -54,8 +52,8 @@ export function normalizeInsight(raw: unknown): AuraInsight | null {
   };
 
   const auraName = clamp(o.auraName ?? o.aura_name, 48);
+  // The story is artist-written; we only ever pass through an existing one.
   const story = clamp(o.story, 420);
-  const listenerMoment = clamp(o.listenerMoment ?? o.listener_moment, 220);
   const visualMeaning = clamp(o.visualMeaning ?? o.visual_meaning, 360);
 
   const rawDNA = (o.emotionalDNA ?? o.emotional_dna) as unknown;
@@ -88,15 +86,14 @@ export function normalizeInsight(raw: unknown): AuraInsight | null {
         .slice(0, 5)
     : [];
 
-  if (!auraName || !story || emotionalDNA.length === 0 || personalityTraits.length === 0) {
+  if (!auraName || emotionalDNA.length === 0 || personalityTraits.length === 0) {
     return null;
   }
   return {
     auraName,
-    story,
+    story: story || undefined,
     emotionalDNA,
     personalityTraits,
-    listenerMoment,
     visualMeaning,
   };
 }
@@ -133,20 +130,19 @@ export const INSIGHT_SYSTEM_PROMPT = [
   "- Keep it human. Short sentences. Concrete images. One good detail beats three vague ones.",
   "",
   "Return STRICT JSON only, with this exact shape:",
-  '{"auraName":"...","story":"...","emotionalDNA":[{"emotion":"...","why":"..."}],',
-  '"personalityTraits":[{"trait":"...","why":"..."}],"listenerMoment":"...","visualMeaning":"..."}',
+  '{"auraName":"...","emotionalDNA":[{"emotion":"...","why":"..."}],',
+  '"personalityTraits":[{"trait":"...","why":"..."}],"visualMeaning":"..."}',
   "",
   "Field requirements:",
   "- auraName: 2-4 words, cinematic title (e.g. 'Midnight Confession', 'Golden Memories',",
   "  'Neon Heartbreak'). Not the track title. Never a single generic word.",
-  "- story: 2-4 sentences about the song's personality and atmosphere.",
+  "- Do NOT write a story field. The artist writes the Aura Story themselves.",
   "- emotionalDNA: 2-3 entries. Each 'emotion' is one word or short phrase; each 'why'",
   "  is a single sentence explaining that emotion in human language (not 'sad' — 'a",
   "  quiet ache that isn't asking to be fixed').",
   "- personalityTraits: 3-5 entries. Each 'trait' is an archetype noun (Dreamer, Rebel,",
   "  Storyteller, Romantic, Fighter, Wanderer, Confidant, Believer...); 'why' is one",
   "  sentence tied to the audio features.",
-  "- listenerMoment: one vivid sentence about the moment/setting this song belongs to.",
   "- visualMeaning: 2-3 sentences tying the orb's palette, motion, and texture to the",
   "  emotional read. Reference the actual palette name / motion / texture you were given.",
 ].join("\n");
