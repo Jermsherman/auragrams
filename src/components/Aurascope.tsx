@@ -5,6 +5,7 @@ import { getPersonality, type AuraProfile, type AuraPalette } from "@/lib/aura";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import type { Track } from "@/lib/tracks";
 import type { BandsConfig } from "@/lib/auraBands";
+import { pickAuraEffect, type AuraEffect } from "@/lib/auraEffects";
 
 export type AurascopeSize = "large" | "medium" | "small" | "mini";
 export type AurascopeMode = "full" | "minimal" | "card" | "story";
@@ -21,6 +22,8 @@ export type AurascopeAura = {
   isAnonymous?: boolean;
   hasVocals?: boolean;
   bands?: BandsConfig | null;
+  moods?: string[];
+  energy?: number;
 };
 
 type AudioAnalysisData = {
@@ -67,6 +70,8 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
     seed: t.seed,
     hasVocals: t.hasVocals,
     bands: t.bands,
+    moods: t.moods,
+    energy: t.energy,
     auraName: t.auraName,
     trackTitle: t.title,
     artistName: t.artist,
@@ -118,6 +123,20 @@ export function Aurascope({
       swatches: personality.swatches,
     };
   }, [aura.colors, personality]);
+
+  // One deterministic atmosphere per Aura (smoke / water / ember / lightning).
+  const effect = useMemo(
+    () =>
+      pickAuraEffect({
+        moods: aura.moods,
+        energy: aura.energy ?? aura.profile?.energy,
+        palette: aura.palette,
+        seed: aura.seed,
+      }),
+    [aura.moods, aura.energy, aura.profile?.energy, aura.palette, aura.seed],
+  );
+
+
 
   // Ensure OrbVisual uses the saved per-aura colors at every call site, not
   // just where a full AuraProfile was built. Without this, cards/story/etc.
@@ -177,6 +196,7 @@ export function Aurascope({
             isCompact={false}
             showGrid
             colors={colors}
+            effect={effect}
           />
           {showLabelResolved && <Label aura={aura} mode={mode} />}
         </div>
@@ -204,6 +224,7 @@ export function Aurascope({
         isCompact={isCompact}
         showGrid={showGrid}
         colors={colors}
+        effect={effect}
       />
       {showLabelResolved && <Label aura={aura} mode={mode} />}
     </div>
@@ -221,6 +242,7 @@ function AurascopeLens({
   isCompact,
   showGrid,
   colors,
+  effect,
 }: {
   size: AurascopeSize;
   mode: AurascopeMode;
@@ -232,6 +254,7 @@ function AurascopeLens({
   isCompact: boolean;
   showGrid: boolean;
   colors: AuraPalette;
+  effect?: AuraEffect | null;
 }) {
   const dim = SIZE_PX[size];
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
@@ -308,6 +331,7 @@ function AurascopeLens({
           hero={hero}
           hasVocals={aura.hasVocals !== false}
           bands={aura.bands}
+          effect={effect}
           className={isPlaying || hero ? "" : "animate-breathe"}
         />
       </div>

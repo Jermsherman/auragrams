@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Sparkles, Share2, Wand2, AudioLines, Link2, UploadCloud } from "lucide-react";
+import { ArrowRight, Sparkles, Share2, Wand2, Link2, UploadCloud } from "lucide-react";
 
 import { FaqPreview } from "@/components/FaqPreview";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
         content:
           "Turn any song into a living, playable Aura. Share your sound with an AuraLink — a music-first link page with playable Auras.",
       },
-      { property: "og:title", content: "Auragram — See your sound" },
+      { property: "og:title", content: "Auragram — Give your music a living identity" },
       {
         property: "og:description",
         content:
@@ -84,19 +84,8 @@ function Index() {
                 showLabel={false}
               />
             </div>
+            <h1 className="mt-10 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
 
-
-
-
-            <a
-              href="#what-is-an-aura"
-              className="mt-8 sm:mt-10 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.3em] text-foreground/85 hover:border-foreground/20 transition-colors"
-            >
-              <AudioLines className="h-4 w-4 text-aura-gradient" />
-              See your sound
-            </a>
-
-            <h1 className="mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
               Give Your Music <br />
               <span className="text-aura-gradient">A Living Identity.</span>
             </h1>

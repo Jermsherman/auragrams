@@ -32,7 +32,7 @@ import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
 import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitSheet } from "@/components/TraitSheet";
-import { SongPersonalityProfile, SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
+import { SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
 import { TraitProvenance } from "@/components/TraitProvenance";
 import { generateAuraInsight } from "@/lib/auraInsight.functions";
 import { isAuraInsight, type AuraInsight } from "@/lib/auraInsight";
@@ -512,6 +512,7 @@ function AuraPage() {
             artist={track.artist}
             colors={track.colors}
             insight={insight}
+            vibeLine={track.vibeDescription}
             reveal={revealActive}
           />
         </div>
@@ -619,11 +620,7 @@ function AuraPage() {
           ) : null}
         </div>
 
-        {insightState === "ready" && insight ? (
-          <div className="mt-10">
-            <SongPersonalityProfile insight={insight} reveal={revealActive} hideHeader />
-          </div>
-        ) : insightState === "loading" ? (
+        {insightState === "loading" ? (
           <div className="mt-10">
             <SongPersonalityProfilePending />
           </div>
@@ -805,6 +802,29 @@ function AuraPage() {
             pitchCenter={track.pitchCenter}
             sourceType={track.sourceType}
             colorGuided={track.colorGuided}
+            insight={insight}
+            onSaveStory={
+              isOwner
+                ? async (text) => {
+                    const next: AuraInsight = insight
+                      ? { ...insight, story: text }
+                      : {
+                          auraName: track.auraName,
+                          story: text,
+                          emotionalDNA: [],
+                          personalityTraits: [],
+                          visualMeaning: "",
+                        };
+                    setInsight(next);
+                    const { error } = await supabase
+                      .from("auras")
+                      .update({ insight: next as never })
+                      .eq("id", track.id);
+                    if (error) toast.error("Couldn't save your story — try again.");
+                    else toast.success("Aura Story saved");
+                  }
+                : undefined
+            }
             editable={saved}
             onSaveVibe={async (text) => {
               updateTrack(track.id, { vibeDescription: text });

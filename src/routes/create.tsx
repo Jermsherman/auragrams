@@ -750,27 +750,22 @@ function CreatePage() {
                       </div>
                     )}
                   </label>
-                  {audio && analyzing && (
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground text-center mt-2">
-                      Analyzing audio…
-                    </p>
+                  {audio && (
+                    <UploadRail
+                      analyzing={analyzing}
+                      uploadPct={uploadPct}
+                      compressionStatus={compressionStatus}
+                    />
                   )}
-                  {uploadPct !== null && (
-                    <div className="mt-2 mx-auto max-w-md">
-                      <Progress value={uploadPct} />
-                      <p className="mt-1 text-[11px] text-muted-foreground text-center tabular-nums">
-                        {compressionStatus ?? `Uploading… ${uploadPct}%`}
-                      </p>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Upload an audio file to generate your Aura. Max upload: 100 MB — larger files are compressed automatically. Add streaming links later after saving.
+                  <p className="text-xs text-muted-foreground text-center mt-3">
+                    Upload an audio file to generate your Aura. Max 100 MB — larger files compress automatically. Add streaming links later after saving.
                   </p>
                   {isGuest && (
                     <p className="text-xs text-muted-foreground text-center mt-1">
                       Previews are temporary. Sign up to keep this Aura permanently.
                     </p>
                   )}
+
 
                 </>
               ) : (
@@ -987,5 +982,56 @@ function Field({
         className="mt-1.5 w-full glass rounded-2xl px-4 h-12 text-sm outline-none focus:border-foreground/25 focus:shadow-[0_0_30px_-12px_oklch(0.7_0.2_310/0.7)] transition-shadow"
       />
     </label>
+  );
+}
+
+// Single phased progress rail for the upload → compress → analyse flow, so the
+// user always sees one clear status instead of stacked messages.
+function UploadRail({
+  analyzing,
+  uploadPct,
+  compressionStatus,
+}: {
+  analyzing: boolean;
+  uploadPct: number | null;
+  compressionStatus: string | null;
+}) {
+  const compressing = !!compressionStatus;
+  const uploading = uploadPct !== null && !compressing;
+  const steps = [
+    { key: "file", label: "Track added", done: true, active: false },
+    { key: "prep", label: compressionStatus ?? "Prepared", done: !compressing && uploadPct !== null, active: compressing },
+    { key: "upload", label: uploading ? `Uploading ${uploadPct}%` : "Uploaded", done: uploadPct === 100, active: uploading },
+    { key: "analyze", label: analyzing ? "Reading the audio…" : "Analysed", done: !analyzing, active: analyzing },
+  ];
+  const pct = compressing
+    ? 30
+    : uploading
+      ? 30 + (uploadPct ?? 0) * 0.5
+      : analyzing
+        ? 85
+        : 100;
+
+  return (
+    <div className="mt-4 mx-auto max-w-md">
+      <Progress value={pct} />
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        {steps.map((s) => (
+          <span
+            key={s.key}
+            className={`inline-flex items-center gap-1.5 text-[11px] ${
+              s.active ? "text-foreground" : s.done ? "text-muted-foreground" : "text-muted-foreground/50"
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                s.active ? "bg-aura-gradient animate-pulse" : s.done ? "bg-foreground/50" : "bg-foreground/20"
+              }`}
+            />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

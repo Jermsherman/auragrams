@@ -2,6 +2,7 @@ import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
+import type { AuraEffect } from "@/lib/auraEffects";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 
@@ -25,7 +26,15 @@ type Props = {
   hasVocals?: boolean;
   /** Per-band visibility / color / intensity configuration. */
   bands?: BandsConfig | null;
+  /** Atmospheric effect layer — auto-picked per Aura. */
+  effect?: AuraEffect | null;
 };
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 
 
 function shapeStyle(shape: AuraPersonality["shape"]): React.CSSProperties {
@@ -78,12 +87,14 @@ export function OrbVisual({
   hero = false,
   hasVocals = true,
   bands,
+  effect = null,
 }: Props) {
 
   const ref = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
   const p: AuraPersonality = useMemo(() => {
@@ -141,15 +152,24 @@ export function OrbVisual({
     // an expanding ring with its own life.
     const radarRings: { r: number; life: number }[] = [];
     let onsetCooldown = 0;
-    let prevFlux = 0;
+    // Spectral-flux onset detection state (adaptive threshold).
+    let prevSpectrum: Float32Array | null = null;
+    let fluxAvg = 0;
+    let fluxVar = 0;
     // Independent slow rotation so the vocal core never phase-locks to the
     // full-mix waveform ring.
     let corePhase = 0;
+    // Auto-gain so quiet masters still move the waveform ring.
+    let volCeiling = 0.12;
+    // Slow low-band envelope for the bass halo.
+    let bassEnv = 0;
 
     // fallback analyser-only state
     const a = analyser?.current ?? null;
     const freq = a ? new Uint8Array(a.frequencyBinCount) : null;
     const wave = a ? new Uint8Array(a.fftSize) : null;
+    // Real nyquist — bin→Hz mapping must never assume 44.1kHz.
+    const nyquist = (a?.context?.sampleRate ?? 44100) / 2;
 
     const tick = () => {
       let vol = 0;
@@ -263,18 +283,22 @@ export function OrbVisual({
           const cx = w / 2;
           const cy = h / 2;
           const baseR = Math.min(w, h) * 0.42;
-          const deformGain = baseR * 0.32 + deform * 1.1;
+          // Auto-gain: track a slowly-decaying loudness ceiling so quiet
+          // masters still trace a visible ring.
+          volCeiling = Math.max(vol, volCeiling * 0.9995);
+          const volN = Math.min(1, vol / Math.max(0.05, volCeiling));
+          const deformGain = baseR * (0.22 + volN * 0.22) + deform * 1.1;
           const samples = 220;
           const step2 = waveData.length / samples;
 
-          // Ring 1: primary oscilloscope
+          // Band 1 — WAVEFORM RING: full-mix time domain, normalised.
           if (bandsCfg.waveform.enabled) {
             const g = bandGain(bandsCfg.waveform.intensity);
             ctx.lineWidth = 2.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
             ctx.shadowBlur = 14 * dpr * g.glow;
             ctx.shadowColor = p.glow;
-            ctx.globalAlpha = Math.min(1, (0.4 + Math.min(0.55, vol * 1.8)) * g.alpha);
+            ctx.globalAlpha = Math.min(1, (0.4 + volN * 0.55) * g.alpha);
             ctx.beginPath();
             for (let i = 0; i <= samples; i++) {
               const idx = Math.floor((i % samples) * step2);
@@ -290,21 +314,28 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 2: bass halo — contour comes from the LOW BAND only (sub–low
-          // mids), so it breathes slowly with the kick instead of retracing the
-          // full-mix waveform like ring 1.
+          // Band 2 — BASS HALO: only bins below 200 Hz, mapped with the real
+          // sample rate. Slow envelope, so it swells with the kick and sub.
           if (bandsCfg.bass.enabled) {
             const g = bandGain(bandsCfg.bass.intensity);
             ctx.lineWidth = 1.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("bass");
             ctx.shadowBlur = 0;
-            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
-            const baseR2 = baseR * (1.06 + bass * 0.12);
             const bn = freqData ? freqData.length : 0;
-            // ~20Hz – 200Hz on a 44.1kHz context.
-            const bLo = bn ? Math.max(1, Math.floor((20 / 22050) * bn)) : 0;
-            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / 22050) * bn)) : 0;
+            const bLo = bn ? Math.max(1, Math.floor((20 / nyquist) * bn)) : 0;
+            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / nyquist) * bn)) : 0;
             const bSpan = bHi - bLo;
+            // Measure the low band directly rather than trusting a generic
+            // "bass" metric that may include low mids.
+            let lowLevel = bass;
+            if (freqData && bSpan > 0) {
+              let s = 0;
+              for (let i = bLo; i <= bHi; i++) s += freqData[i];
+              lowLevel = s / (bSpan + 1) / 255;
+            }
+            bassEnv += (lowLevel - bassEnv) * (lowLevel > bassEnv ? 0.3 : 0.08);
+            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.45, bassEnv * 1.6)) * g.alpha);
+            const baseR2 = baseR * (1.06 + bassEnv * 0.14);
             ctx.beginPath();
             const bSegs = 120;
             for (let i = 0; i <= bSegs; i++) {
@@ -316,7 +347,7 @@ export function OrbVisual({
                 v = freqData[bLo + Math.floor(m * (bSpan - 1))] / 255;
               }
               const angle = u * Math.PI * 2 + 0.12;
-              const r = baseR2 + v * baseR * 0.16 * (0.4 + bass * 1.6);
+              const r = baseR2 + v * baseR * 0.16 * (0.4 + bassEnv * 1.6);
               const x = cx + Math.cos(angle) * r;
               const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
@@ -326,17 +357,36 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 3: radar pings — emitted on detected onsets (spectral flux /
-          // transients), not on a timer. Each ping expands and fades.
+          // Band 3 — RADAR PINGS: true spectral-flux onset detection with an
+          // adaptive threshold, so rings fire on attacks rather than loudness.
           if (bandsCfg.radar.enabled) {
             const g = bandGain(bandsCfg.radar.intensity);
-            const flux = vol * 0.6 + peak * 0.4;
-            const rise = flux - prevFlux;
-            prevFlux += (flux - prevFlux) * 0.35;
+            let flux = 0;
+            if (freqData && freqData.length > 0) {
+              const n = freqData.length;
+              if (!prevSpectrum || prevSpectrum.length !== n) {
+                prevSpectrum = new Float32Array(n);
+                for (let i = 0; i < n; i++) prevSpectrum[i] = freqData[i];
+              } else {
+                let sum = 0;
+                for (let i = 0; i < n; i++) {
+                  const d = freqData[i] - prevSpectrum[i];
+                  if (d > 0) sum += d;
+                  prevSpectrum[i] = prevSpectrum[i] + (freqData[i] - prevSpectrum[i]) * 0.55;
+                }
+                flux = sum / (n * 255);
+              }
+            }
+            // Running mean + variance → threshold adapts to the track.
+            const d = flux - fluxAvg;
+            fluxAvg += d * 0.05;
+            fluxVar += (d * d - fluxVar) * 0.05;
+            const threshold = fluxAvg + Math.sqrt(Math.max(fluxVar, 1e-9)) * 1.6 + 0.0015;
             onsetCooldown = Math.max(0, onsetCooldown - 1);
-            if ((rise > 0.035 || trans > 0.35) && onsetCooldown === 0 && radarRings.length < 6) {
+            const onset = flux > threshold || trans > 0.45;
+            if (onset && onsetCooldown === 0 && radarRings.length < 6) {
               radarRings.push({ r: baseR * 0.55, life: 1 });
-              onsetCooldown = 8;
+              onsetCooldown = 7;
             }
             ctx.shadowBlur = 0;
             ctx.lineWidth = 1.1 * dpr * g.width;
@@ -355,6 +405,7 @@ export function OrbVisual({
               ctx.stroke();
             }
           }
+
 
           // Vocal band: driven by energy in the vocal range (~200Hz–4kHz),
           // with the low band subtracted so kick/808 bleed can't pump it.
@@ -684,6 +735,236 @@ export function OrbVisual({
     return () => cancelAnimationFrame(raf);
   }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
+  // Idle micro-motion: keeps every orb quietly alive when nothing is playing.
+  useEffect(() => {
+    if (hero) return;
+    if (isPlaying) return;
+    if (prefersReducedMotion()) return;
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const start = performance.now();
+    const phase = ((hueShift % 97) / 97) * Math.PI * 2;
+    const tick = () => {
+      const t = (performance.now() - start) / 1000;
+      const breathe = Math.sin(t * 0.55 + phase);
+      const slow = Math.sin(t * 0.23 + phase * 1.7);
+      el.style.setProperty("--orb-scale", (1 + breathe * 0.012).toFixed(4));
+      el.style.setProperty("--orb-glow", (0.5 + breathe * 0.12).toFixed(3));
+      el.style.setProperty("--orb-bass", (1 + slow * 0.03).toFixed(4));
+      el.style.setProperty("--orb-shimmer", (0.45 + slow * 0.12).toFixed(3));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [hero, isPlaying, hueShift]);
+
+  // Atmosphere layer — smoke / water / ember / lightning. Deterministic per
+  // Aura, gently modulated by live audio when it is available.
+  useEffect(() => {
+    if (!effect) return;
+    if (prefersReducedMotion()) return;
+    const canvas = fxCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let raf = 0;
+    const start = performance.now();
+    let seed = Math.abs(Math.floor(hueShift)) + 7;
+    const rnd = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+
+    type Particle = { x: number; y: number; vx: number; vy: number; r: number; life: number; max: number };
+    const parts: Particle[] = [];
+    let arcs: { t: number; pts: { x: number; y: number }[] }[] = [];
+    let arcCooldown = 0;
+
+    const energyNow = () => {
+      const m = metricsRef?.current;
+      if (m?.ready) return Math.min(1, m.volume * 2.2);
+      return 0.28;
+    };
+
+    const spawn = (w: number, h: number, e: number) => {
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = Math.min(w, h) * 0.42;
+      if (effect === "smoke") {
+        if (parts.length < 46) {
+          const a = rnd() * Math.PI * 2;
+          const d = R * (0.2 + rnd() * 0.7);
+          parts.push({
+            x: cx + Math.cos(a) * d,
+            y: cy + Math.sin(a) * d,
+            vx: (rnd() - 0.5) * 0.25 * dpr,
+            vy: -(0.15 + rnd() * 0.35) * dpr * (0.6 + e),
+            r: (10 + rnd() * 26) * dpr,
+            life: 0,
+            max: 130 + rnd() * 120,
+          });
+        }
+      } else if (effect === "ember") {
+        if (parts.length < 60) {
+          const a = rnd() * Math.PI * 2;
+          const d = R * (0.1 + rnd() * 0.6);
+          parts.push({
+            x: cx + Math.cos(a) * d,
+            y: cy + Math.sin(a) * d * 0.6 + R * 0.25,
+            vx: (rnd() - 0.5) * 0.4 * dpr,
+            vy: -(0.5 + rnd() * 1.1) * dpr * (0.7 + e * 1.3),
+            r: (1 + rnd() * 2.4) * dpr,
+            life: 0,
+            max: 60 + rnd() * 70,
+          });
+        }
+      }
+    };
+
+    const tick = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (canvas.width !== Math.floor(rect.width * dpr)) {
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      }
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = Math.min(w, h) * 0.42;
+      const t = (performance.now() - start) / 1000;
+      const e = energyNow();
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      // Everything stays inside the sphere.
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+
+      if (effect === "water") {
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 3; i++) {
+          const phase = t * (0.35 + i * 0.12) + i * 1.9;
+          ctx.beginPath();
+          ctx.lineWidth = (1.1 + i * 0.5) * dpr;
+          ctx.strokeStyle = i % 2 === 0 ? p.glow : p.stops[2];
+          ctx.globalAlpha = 0.1 + 0.12 * e;
+          for (let x = -R; x <= R; x += R / 32) {
+            const amp = R * (0.035 + 0.05 * e) * (1 - Math.abs(x) / (R * 1.4));
+            const y = Math.sin(x / (R * 0.28) + phase) * amp + (i - 1) * R * 0.3;
+            if (x === -R) ctx.moveTo(cx + x, cy + y);
+            else ctx.lineTo(cx + x, cy + y);
+          }
+          ctx.stroke();
+        }
+        // Slow caustic bloom
+        const g = ctx.createRadialGradient(
+          cx + Math.sin(t * 0.4) * R * 0.25,
+          cy + Math.cos(t * 0.31) * R * 0.25,
+          0,
+          cx,
+          cy,
+          R,
+        );
+        g.addColorStop(0, p.glow);
+        g.addColorStop(1, "transparent");
+        ctx.globalAlpha = 0.12 + e * 0.12;
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+      } else if (effect === "lightning") {
+        ctx.globalCompositeOperation = "screen";
+        arcCooldown -= 1;
+        const m = metricsRef?.current;
+        const hit = (m?.ready ? m.transient > 0.5 : rnd() > 0.988) && arcCooldown <= 0;
+        if (hit && arcs.length < 3) {
+          const a0 = rnd() * Math.PI * 2;
+          const a1 = a0 + Math.PI * (0.6 + rnd() * 0.8);
+          const pts: { x: number; y: number }[] = [];
+          const segs = 9;
+          for (let i = 0; i <= segs; i++) {
+            const u = i / segs;
+            const a = a0 + (a1 - a0) * u;
+            const rr = R * (1 - u * 0.15) * (0.35 + 0.6 * Math.sin(u * Math.PI));
+            pts.push({
+              x: cx + Math.cos(a) * rr + (rnd() - 0.5) * R * 0.16,
+              y: cy + Math.sin(a) * rr + (rnd() - 0.5) * R * 0.16,
+            });
+          }
+          arcs.push({ t: 1, pts });
+          arcCooldown = 14;
+        }
+        arcs = arcs.filter((arc) => arc.t > 0);
+        for (const arc of arcs) {
+          arc.t -= 0.06;
+          ctx.globalAlpha = Math.max(0, arc.t) * 0.9;
+          ctx.strokeStyle = p.glow;
+          ctx.shadowColor = p.glow;
+          ctx.shadowBlur = 18 * dpr;
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.beginPath();
+          arc.pts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        // Charged haze between strikes
+        ctx.globalAlpha = 0.06 + e * 0.06;
+        ctx.fillStyle = p.stops[1];
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        // smoke / ember — particle systems
+        spawn(w, h, e);
+        ctx.globalCompositeOperation = effect === "ember" ? "screen" : "source-over";
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const pt = parts[i];
+          pt.life += 1;
+          pt.x += pt.vx + Math.sin((t + i) * 0.6) * 0.25 * dpr;
+          pt.y += pt.vy;
+          if (pt.life > pt.max) {
+            parts.splice(i, 1);
+            continue;
+          }
+          const u = pt.life / pt.max;
+          const fade = Math.sin(u * Math.PI);
+          if (effect === "smoke") {
+            const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, pt.r * (1 + u));
+            g.addColorStop(0, p.stops[1]);
+            g.addColorStop(1, "transparent");
+            ctx.globalAlpha = fade * (0.10 + e * 0.10);
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.r * (1 + u), 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.globalAlpha = fade * (0.5 + e * 0.4);
+            ctx.fillStyle = p.glow;
+            ctx.shadowColor = p.glow;
+            ctx.shadowBlur = 8 * dpr;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [effect, hueShift, metricsRef, p.glow, p.stops]);
+
+
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
 
@@ -808,6 +1089,16 @@ export function OrbVisual({
             "inset 0 0 60px oklch(0.18 0.05 290 / 0.55), inset 0 -22px 44px oklch(0.08 0.03 290 / 0.7)",
         }}
       />
+
+      {/* atmosphere layer — smoke / water / ember / lightning */}
+      {effect && (
+        <canvas
+          ref={fxCanvasRef}
+          className="pointer-events-none absolute inset-0 w-full h-full"
+          style={{ mixBlendMode: "screen", opacity: 0.9 }}
+          aria-hidden
+        />
+      )}
 
       {/* oscilloscope waveform ring (uploads only) */}
       {(metricsRef || analyser || hero) && (
