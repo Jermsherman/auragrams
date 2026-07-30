@@ -794,7 +794,7 @@ function CreatePage() {
                   <IdentitySelector value={identity} onChange={setIdentity} onResolve={setResolvedIdentity} />
                   {identity.mode === "anonymous" && (
                     <p className="px-2 text-[11px] text-muted-foreground">
-                      Your AuraLink will not show your artist name or username, but it will still be saved privately to My Auras.
+                      Your AuraLink will not show your artist name or username. The Aura page itself stays publicly viewable by anyone with the link.
                     </p>
                   )}
                 </>
@@ -807,6 +807,7 @@ function CreatePage() {
                   onChange={setMoods}
                   glowColor={preview.colors?.glow}
                   onDetect={handleDetectMood}
+                  detectLabel={moods.length > 0 ? "Re-detect" : "Detect Mood"}
                   canDetect={canDetect}
                 />
 
