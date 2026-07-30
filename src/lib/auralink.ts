@@ -455,10 +455,41 @@ export const DEFAULT_CUSTOM_THEME: AuraLinkTheme = {
   glowColor: "#A86BC8",
 };
 
+/** Minimal shape needed to derive a page palette from an Aura. */
+export type ThemeAuraSource = {
+  id: string;
+  auraName?: string;
+  palette?: string;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    glow?: string;
+    shadow?: string;
+  } | null;
+};
+
+/** Map an Aura's palette onto the AuraLink custom-theme color slots. */
+export function auraThemeColors(a: ThemeAuraSource) {
+  const c = a.colors ?? undefined;
+  const sw = getPersonality(a.palette ?? "").swatches ?? [];
+  return {
+    backgroundColor: c?.shadow ?? sw[3] ?? DEFAULT_CUSTOM_THEME.backgroundColor!,
+    primaryAccent: c?.accent ?? sw[0] ?? DEFAULT_CUSTOM_THEME.primaryAccent!,
+    secondaryAccent: c?.secondary ?? sw[1] ?? DEFAULT_CUSTOM_THEME.secondaryAccent!,
+    buttonColor: c?.primary ?? sw[2] ?? DEFAULT_CUSTOM_THEME.buttonColor!,
+    glowColor: c?.glow ?? sw[0] ?? DEFAULT_CUSTOM_THEME.glowColor!,
+  };
+}
+
 /** Resolve any theme value (legacy preset string or full object) into a ThemeDef.
  *  The returned object also carries any "deep customization" fields the caller set,
- *  so the renderer can read them in one place. */
-export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef & {
+ *  so the renderer can read them in one place.
+ *  Pass `auras` so an "auraMatch" theme can read live palette colors. */
+export function resolveTheme(
+  t: AuraLinkPage["theme"] | undefined,
+  auras?: ThemeAuraSource[],
+): ThemeDef & {
   extras: Pick<
     AuraLinkTheme,
     | "background"
@@ -489,10 +520,20 @@ export function resolveTheme(t: AuraLinkPage["theme"] | undefined): ThemeDef & {
   if (t.mode === "preset" && t.preset && t.preset !== "custom") {
     return { ...(PRESET_THEMES[t.preset] ?? PRESET_THEMES.midnight), extras };
   }
-  const bg = t.backgroundColor || DEFAULT_CUSTOM_THEME.backgroundColor!;
-  const accent = t.primaryAccent || DEFAULT_CUSTOM_THEME.primaryAccent!;
-  const button = t.buttonColor || DEFAULT_CUSTOM_THEME.buttonColor!;
-  const glow = t.glowColor || DEFAULT_CUSTOM_THEME.glowColor!;
+
+  let source = t;
+  if (t.mode === "auraMatch") {
+    const a = auras?.find((x) => x.id === t.sourceAuraId) ?? auras?.[0];
+    if (a) {
+      source = { ...t, ...auraThemeColors(a) };
+    }
+  }
+
+  const bg = source.backgroundColor || DEFAULT_CUSTOM_THEME.backgroundColor!;
+  const accent = source.primaryAccent || DEFAULT_CUSTOM_THEME.primaryAccent!;
+  const button = source.buttonColor || DEFAULT_CUSTOM_THEME.buttonColor!;
+  const glow = source.glowColor || DEFAULT_CUSTOM_THEME.glowColor!;
+
   return {
     key: "custom",
     name: t.name || "Custom",
