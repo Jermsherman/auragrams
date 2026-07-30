@@ -1090,6 +1090,16 @@ export function OrbVisual({
         }}
       />
 
+      {/* atmosphere layer — smoke / water / ember / lightning */}
+      {effect && (
+        <canvas
+          ref={fxCanvasRef}
+          className="pointer-events-none absolute inset-0 w-full h-full"
+          style={{ mixBlendMode: "screen", opacity: 0.9 }}
+          aria-hidden
+        />
+      )}
+
       {/* oscilloscope waveform ring (uploads only) */}
       {(metricsRef || analyser || hero) && (
         <canvas
