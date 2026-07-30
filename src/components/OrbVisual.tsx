@@ -735,6 +735,236 @@ export function OrbVisual({
     return () => cancelAnimationFrame(raf);
   }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
+  // Idle micro-motion: keeps every orb quietly alive when nothing is playing.
+  useEffect(() => {
+    if (hero) return;
+    if (isPlaying) return;
+    if (prefersReducedMotion()) return;
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const start = performance.now();
+    const phase = ((hueShift % 97) / 97) * Math.PI * 2;
+    const tick = () => {
+      const t = (performance.now() - start) / 1000;
+      const breathe = Math.sin(t * 0.55 + phase);
+      const slow = Math.sin(t * 0.23 + phase * 1.7);
+      el.style.setProperty("--orb-scale", (1 + breathe * 0.012).toFixed(4));
+      el.style.setProperty("--orb-glow", (0.5 + breathe * 0.12).toFixed(3));
+      el.style.setProperty("--orb-bass", (1 + slow * 0.03).toFixed(4));
+      el.style.setProperty("--orb-shimmer", (0.45 + slow * 0.12).toFixed(3));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [hero, isPlaying, hueShift]);
+
+  // Atmosphere layer — smoke / water / ember / lightning. Deterministic per
+  // Aura, gently modulated by live audio when it is available.
+  useEffect(() => {
+    if (!effect) return;
+    if (prefersReducedMotion()) return;
+    const canvas = fxCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let raf = 0;
+    const start = performance.now();
+    let seed = Math.abs(Math.floor(hueShift)) + 7;
+    const rnd = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+
+    type Particle = { x: number; y: number; vx: number; vy: number; r: number; life: number; max: number };
+    const parts: Particle[] = [];
+    let arcs: { t: number; pts: { x: number; y: number }[] }[] = [];
+    let arcCooldown = 0;
+
+    const energyNow = () => {
+      const m = metricsRef?.current;
+      if (m?.ready) return Math.min(1, m.volume * 2.2);
+      return 0.28;
+    };
+
+    const spawn = (w: number, h: number, e: number) => {
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = Math.min(w, h) * 0.42;
+      if (effect === "smoke") {
+        if (parts.length < 46) {
+          const a = rnd() * Math.PI * 2;
+          const d = R * (0.2 + rnd() * 0.7);
+          parts.push({
+            x: cx + Math.cos(a) * d,
+            y: cy + Math.sin(a) * d,
+            vx: (rnd() - 0.5) * 0.25 * dpr,
+            vy: -(0.15 + rnd() * 0.35) * dpr * (0.6 + e),
+            r: (10 + rnd() * 26) * dpr,
+            life: 0,
+            max: 130 + rnd() * 120,
+          });
+        }
+      } else if (effect === "ember") {
+        if (parts.length < 60) {
+          const a = rnd() * Math.PI * 2;
+          const d = R * (0.1 + rnd() * 0.6);
+          parts.push({
+            x: cx + Math.cos(a) * d,
+            y: cy + Math.sin(a) * d * 0.6 + R * 0.25,
+            vx: (rnd() - 0.5) * 0.4 * dpr,
+            vy: -(0.5 + rnd() * 1.1) * dpr * (0.7 + e * 1.3),
+            r: (1 + rnd() * 2.4) * dpr,
+            life: 0,
+            max: 60 + rnd() * 70,
+          });
+        }
+      }
+    };
+
+    const tick = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (canvas.width !== Math.floor(rect.width * dpr)) {
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      }
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = Math.min(w, h) * 0.42;
+      const t = (performance.now() - start) / 1000;
+      const e = energyNow();
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      // Everything stays inside the sphere.
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+
+      if (effect === "water") {
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 3; i++) {
+          const phase = t * (0.35 + i * 0.12) + i * 1.9;
+          ctx.beginPath();
+          ctx.lineWidth = (1.1 + i * 0.5) * dpr;
+          ctx.strokeStyle = i % 2 === 0 ? p.glow : p.stops[2];
+          ctx.globalAlpha = 0.1 + 0.12 * e;
+          for (let x = -R; x <= R; x += R / 32) {
+            const amp = R * (0.035 + 0.05 * e) * (1 - Math.abs(x) / (R * 1.4));
+            const y = Math.sin(x / (R * 0.28) + phase) * amp + (i - 1) * R * 0.3;
+            if (x === -R) ctx.moveTo(cx + x, cy + y);
+            else ctx.lineTo(cx + x, cy + y);
+          }
+          ctx.stroke();
+        }
+        // Slow caustic bloom
+        const g = ctx.createRadialGradient(
+          cx + Math.sin(t * 0.4) * R * 0.25,
+          cy + Math.cos(t * 0.31) * R * 0.25,
+          0,
+          cx,
+          cy,
+          R,
+        );
+        g.addColorStop(0, p.glow);
+        g.addColorStop(1, "transparent");
+        ctx.globalAlpha = 0.12 + e * 0.12;
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+      } else if (effect === "lightning") {
+        ctx.globalCompositeOperation = "screen";
+        arcCooldown -= 1;
+        const m = metricsRef?.current;
+        const hit = (m?.ready ? m.transient > 0.5 : rnd() > 0.988) && arcCooldown <= 0;
+        if (hit && arcs.length < 3) {
+          const a0 = rnd() * Math.PI * 2;
+          const a1 = a0 + Math.PI * (0.6 + rnd() * 0.8);
+          const pts: { x: number; y: number }[] = [];
+          const segs = 9;
+          for (let i = 0; i <= segs; i++) {
+            const u = i / segs;
+            const a = a0 + (a1 - a0) * u;
+            const rr = R * (1 - u * 0.15) * (0.35 + 0.6 * Math.sin(u * Math.PI));
+            pts.push({
+              x: cx + Math.cos(a) * rr + (rnd() - 0.5) * R * 0.16,
+              y: cy + Math.sin(a) * rr + (rnd() - 0.5) * R * 0.16,
+            });
+          }
+          arcs.push({ t: 1, pts });
+          arcCooldown = 14;
+        }
+        arcs = arcs.filter((arc) => arc.t > 0);
+        for (const arc of arcs) {
+          arc.t -= 0.06;
+          ctx.globalAlpha = Math.max(0, arc.t) * 0.9;
+          ctx.strokeStyle = p.glow;
+          ctx.shadowColor = p.glow;
+          ctx.shadowBlur = 18 * dpr;
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.beginPath();
+          arc.pts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        // Charged haze between strikes
+        ctx.globalAlpha = 0.06 + e * 0.06;
+        ctx.fillStyle = p.stops[1];
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        // smoke / ember — particle systems
+        spawn(w, h, e);
+        ctx.globalCompositeOperation = effect === "ember" ? "screen" : "source-over";
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const pt = parts[i];
+          pt.life += 1;
+          pt.x += pt.vx + Math.sin((t + i) * 0.6) * 0.25 * dpr;
+          pt.y += pt.vy;
+          if (pt.life > pt.max) {
+            parts.splice(i, 1);
+            continue;
+          }
+          const u = pt.life / pt.max;
+          const fade = Math.sin(u * Math.PI);
+          if (effect === "smoke") {
+            const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, pt.r * (1 + u));
+            g.addColorStop(0, p.stops[1]);
+            g.addColorStop(1, "transparent");
+            ctx.globalAlpha = fade * (0.10 + e * 0.10);
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.r * (1 + u), 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.globalAlpha = fade * (0.5 + e * 0.4);
+            ctx.fillStyle = p.glow;
+            ctx.shadowColor = p.glow;
+            ctx.shadowBlur = 8 * dpr;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [effect, hueShift, metricsRef, p.glow, p.stops]);
+
+
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
 
