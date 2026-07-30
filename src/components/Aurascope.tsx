@@ -4,6 +4,7 @@ import { OrbVisual } from "./OrbVisual";
 import { getPersonality, type AuraProfile, type AuraPalette } from "@/lib/aura";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import type { Track } from "@/lib/tracks";
+import type { BandsConfig } from "@/lib/auraBands";
 
 export type AurascopeSize = "large" | "medium" | "small" | "mini";
 export type AurascopeMode = "full" | "minimal" | "card" | "story";
@@ -19,6 +20,7 @@ export type AurascopeAura = {
   profile?: AuraProfile;
   isAnonymous?: boolean;
   hasVocals?: boolean;
+  bands?: BandsConfig | null;
 };
 
 type AudioAnalysisData = {
@@ -64,6 +66,7 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
     palette: t.palette,
     seed: t.seed,
     hasVocals: t.hasVocals,
+    bands: t.bands,
     auraName: t.auraName,
     trackTitle: t.title,
     artistName: t.artist,
@@ -304,6 +307,7 @@ function AurascopeLens({
           particles={!isCompact}
           hero={hero}
           hasVocals={aura.hasVocals !== false}
+          bands={aura.bands}
           className={isPlaying || hero ? "" : "animate-breathe"}
         />
       </div>

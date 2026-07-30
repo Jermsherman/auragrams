@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSignedAudioUrl, getSignedAudioUrls } from "./audioStorage";
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
+import { resolveBands } from "./auraBands";
 import type { Auracle } from "./auracle";
 
 export type CloudAuraRow = {
@@ -126,6 +127,8 @@ export async function saveAuraToCloud(opts: {
       palette: saved.palette,
       seed: saved.seed,
       hasVocals: saved.hasVocals !== false,
+      bands: saved.bands ?? null,
+
       density: saved.density,
       tempoBand: saved.tempoBand,
       motionKeywords: saved.motionKeywords,
@@ -250,9 +253,11 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     seed?: number;
     density?: string;
     hasVocals?: boolean;
+    bands?: unknown;
     tempoBand?: string;
     motionKeywords?: string[];
   };
+
   const extra = (row.extra ?? {}) as {
     coverDataUrl?: string;
     coverUrl?: string;
@@ -279,6 +284,8 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     palette: ((visual.palette ?? row.palette_name) as import("./aura").PaletteKey) ?? "amethyst",
     seed: Number(visual.seed ?? 0),
     hasVocals: visual.hasVocals !== false,
+    bands: visual.bands ? resolveBands(visual.bands) : undefined,
+
     coverDataUrl: extra.coverUrl ?? extra.coverDataUrl,
     musicalKey: row.detected_key ?? undefined,
     tempoBand: visual.tempoBand,

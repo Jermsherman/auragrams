@@ -1,7 +1,9 @@
 import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
+import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
+
 
 type Props = {
   size?: number | string;
@@ -19,9 +21,12 @@ type Props = {
   particles?: boolean;
   /** Hero mode: self-animates with synthetic waveform when no analyser is given. */
   hero?: boolean;
-  /** When false, the vocal band across the sphere is not drawn (instrumental tracks). */
+  /** When false, the vocal band is not drawn (instrumental tracks). */
   hasVocals?: boolean;
+  /** Per-band visibility / color / intensity configuration. */
+  bands?: BandsConfig | null;
 };
+
 
 function shapeStyle(shape: AuraPersonality["shape"]): React.CSSProperties {
   switch (shape) {
@@ -72,7 +77,9 @@ export function OrbVisual({
   particles = true,
   hero = false,
   hasVocals = true,
+  bands,
 }: Props) {
+
   const ref = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
@@ -96,6 +103,24 @@ export function OrbVisual({
       atmosphere: c.shadow,
     };
   }, [personality, palette, profile]);
+
+  const bandsCfg = useMemo(() => resolveBands(bands), [bands]);
+
+  // Resolve a band's stroke color: "auto" falls back to the palette default.
+  const bandColor = useMemo(() => {
+    const autoColor: Record<BandKey, string> = {
+      waveform: p.stops[3],
+      bass: p.stops[1],
+      radar: p.stops[1],
+      vocal: p.glow,
+    };
+    return (key: BandKey) => {
+      const c = bandsCfg[key].color;
+      return c && c !== "auto" ? c : autoColor[key];
+    };
+  }, [bandsCfg, p.stops, p.glow]);
+
+
 
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
@@ -234,48 +259,55 @@ export function OrbVisual({
           const step2 = waveData.length / samples;
 
           // Ring 1: primary oscilloscope
-          ctx.lineWidth = 2.2 * dpr;
-          ctx.strokeStyle = `${p.stops[3]}`;
-          ctx.shadowBlur = 14 * dpr;
-          ctx.shadowColor = p.glow;
-          ctx.globalAlpha = 0.4 + Math.min(0.55, vol * 1.8);
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * step2);
-            const v = (waveData[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2;
-            const r = baseR + v * deformGain;
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          if (bandsCfg.waveform.enabled) {
+            const g = bandGain(bandsCfg.waveform.intensity);
+            ctx.lineWidth = 2.2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("waveform");
+            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowColor = p.glow;
+            ctx.globalAlpha = Math.min(1, (0.4 + Math.min(0.55, vol * 1.8)) * g.alpha);
+            ctx.beginPath();
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * step2);
+              const v = (waveData[idx] - 128) / 128;
+              const angle = (i / samples) * Math.PI * 2;
+              const r = baseR + v * deformGain;
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
 
           // Ring 2: bass-driven outer halo ring
-          ctx.lineWidth = 1.2 * dpr;
-          ctx.strokeStyle = p.stops[1];
-          ctx.shadowBlur = 0;
-          ctx.globalAlpha = 0.18 + Math.min(0.4, bass * 1.4);
-          const baseR2 = baseR * (1.06 + bass * 0.12);
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * step2);
-            const v = (waveData[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2 + 0.12;
-            const r = baseR2 + v * deformGain * 0.6;
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          if (bandsCfg.bass.enabled) {
+            const g = bandGain(bandsCfg.bass.intensity);
+            ctx.lineWidth = 1.2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("bass");
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
+            const baseR2 = baseR * (1.06 + bass * 0.12);
+            ctx.beginPath();
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * step2);
+              const v = (waveData[idx] - 128) / 128;
+              const angle = (i / samples) * Math.PI * 2 + 0.12;
+              const r = baseR2 + v * deformGain * 0.6;
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
 
-          // Vocal band: bright horizontal streak across the equator, driven by
-          // energy in the vocal range (~200Hz–4kHz). Skipped for instrumentals.
-          if (hasVocals) {
+          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz).
+          // Rendered either as a centered core pulse or an equator streak.
+          if (hasVocals && bandsCfg.vocal.enabled) {
+            const g = bandGain(bandsCfg.vocal.intensity);
             const freqData = metricsRef?.current?.frequency ?? freq;
             let vocal = 0;
             if (freqData && freqData.length > 0) {
@@ -291,34 +323,69 @@ export function OrbVisual({
             const amp = Math.min(1, vocalLevel * 2.2);
 
             if (amp > 0.02) {
-              const streakW = baseR * 2.6;
-              const streakX0 = cx - streakW / 2;
-              const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
-              grad.addColorStop(0, "transparent");
-              grad.addColorStop(0.2, p.stops[2]);
-              grad.addColorStop(0.5, p.glow);
-              grad.addColorStop(0.8, p.stops[3]);
-              grad.addColorStop(1, "transparent");
-              ctx.strokeStyle = grad;
-              ctx.lineWidth = (1.6 + amp * 1.4) * dpr;
-              ctx.shadowBlur = 22 * dpr;
-              ctx.shadowColor = p.glow;
-              ctx.globalAlpha = Math.min(0.95, 0.25 + amp * 0.8);
-              ctx.beginPath();
-              const segs = 240;
-              for (let i = 0; i <= segs; i++) {
-                const u = i / segs;
-                const idx = Math.floor(u * (waveData.length - 1));
-                const v = (waveData[idx] - 128) / 128;
-                const x = streakX0 + u * streakW;
-                const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
-                const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+              const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
+              ctx.shadowBlur = 22 * dpr * g.glow;
+              ctx.shadowColor = solid ?? p.glow;
+              ctx.globalAlpha = Math.min(1, (0.25 + amp * 0.8) * g.alpha);
+
+              if (bandsCfg.vocalShape === "core") {
+                const coreR = baseR * (0.4 + amp * 0.22);
+                let stroke: string | CanvasGradient = solid ?? "";
+                if (!solid) {
+                  const rg = ctx.createRadialGradient(cx, cy, coreR * 0.2, cx, cy, coreR * 1.15);
+                  rg.addColorStop(0, p.glow);
+                  rg.addColorStop(1, p.stops[2]);
+                  stroke = rg;
+                }
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = (1.6 + amp * 2.4) * dpr * g.width;
+                ctx.beginPath();
+                const segs = 180;
+                for (let i = 0; i <= segs; i++) {
+                  const u = i / segs;
+                  const angle = u * Math.PI * 2;
+                  const idx = Math.floor(u * (waveData.length - 1));
+                  const v = (waveData[idx] - 128) / 128;
+                  const r = coreR * (1 + v * 0.2 * (0.4 + amp));
+                  const x = cx + Math.cos(angle) * r;
+                  const y = cy + Math.sin(angle) * r;
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+              } else {
+                const streakW = baseR * 2.6;
+                const streakX0 = cx - streakW / 2;
+                let stroke: string | CanvasGradient = solid ?? "";
+                if (!solid) {
+                  const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+                  grad.addColorStop(0, "transparent");
+                  grad.addColorStop(0.2, p.stops[2]);
+                  grad.addColorStop(0.5, p.glow);
+                  grad.addColorStop(0.8, p.stops[3]);
+                  grad.addColorStop(1, "transparent");
+                  stroke = grad;
+                }
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = (1.6 + amp * 1.4) * dpr * g.width;
+                ctx.beginPath();
+                const segs = 240;
+                for (let i = 0; i <= segs; i++) {
+                  const u = i / segs;
+                  const idx = Math.floor(u * (waveData.length - 1));
+                  const v = (waveData[idx] - 128) / 128;
+                  const x = streakX0 + u * streakW;
+                  const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+                  const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
               }
-              ctx.stroke();
             }
           }
+
 
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
@@ -329,7 +396,7 @@ export function OrbVisual({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow, hasVocals]);
+  }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   // Hero mode: synthetic self-animation when no real audio is connected.
   useEffect(() => {
@@ -429,70 +496,114 @@ export function OrbVisual({
           const baseR = Math.min(w, h) * 0.42;
 
           // Orbit oscilloscope
-          const samples = 220;
-          ctx.lineWidth = 2 * dpr;
-          ctx.strokeStyle = p.stops[3];
-          ctx.shadowBlur = 14 * dpr;
-          ctx.shadowColor = p.glow;
-          ctx.globalAlpha = 0.5 + 0.25 * breath;
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * (N / samples));
-            const v = (wave[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2;
-            const r = baseR + v * (baseR * 0.32);
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          ctx.stroke();
-
-          // Expanding rings (radar-style)
-          const ringCount = 3;
-          for (let k = 0; k < ringCount; k++) {
-            const phase = (t * 0.35 + k / ringCount) % 1;
-            const rr = baseR * (0.7 + phase * 0.7);
-            const alpha = (1 - phase) * 0.35;
-            ctx.globalAlpha = alpha;
-            ctx.lineWidth = 1.2 * dpr;
-            ctx.strokeStyle = p.stops[1];
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, rr, rr * 0.92, 0, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-
-          // Horizontal equator waveform streak (vocal band) — skipped for instrumentals
-          if (hasVocals) {
-            const streakW = baseR * 2.6;
-            const streakX0 = cx - streakW / 2;
-            const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
-            grad.addColorStop(0, "transparent");
-            grad.addColorStop(0.2, p.stops[2]);
-            grad.addColorStop(0.5, p.glow);
-            grad.addColorStop(0.8, p.stops[3]);
-            grad.addColorStop(1, "transparent");
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 2.2 * dpr;
-            ctx.shadowBlur = 22 * dpr;
+          if (bandsCfg.waveform.enabled) {
+            const g = bandGain(bandsCfg.waveform.intensity);
+            const samples = 220;
+            ctx.lineWidth = 2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("waveform");
+            ctx.shadowBlur = 14 * dpr * g.glow;
             ctx.shadowColor = p.glow;
-            ctx.globalAlpha = 0.95;
+            ctx.globalAlpha = Math.min(1, (0.5 + 0.25 * breath) * g.alpha);
             ctx.beginPath();
-            const segs = 240;
-            for (let i = 0; i <= segs; i++) {
-              const u = i / segs;
-              const idx = Math.floor(u * (N - 1));
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * (N / samples));
               const v = (wave[idx] - 128) / 128;
-              const x = streakX0 + u * streakW;
-              const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
-              const y = cy + v * baseR * 0.55 * env;
+              const angle = (i / samples) * Math.PI * 2;
+              const r = baseR + v * (baseR * 0.32);
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
               else ctx.lineTo(x, y);
             }
+            ctx.closePath();
             ctx.stroke();
           }
+
+          // Expanding rings (radar-style)
+          if (bandsCfg.radar.enabled) {
+            const g = bandGain(bandsCfg.radar.intensity);
+            const ringCount = 3;
+            for (let k = 0; k < ringCount; k++) {
+              const phase = (t * 0.35 + k / ringCount) % 1;
+              const rr = baseR * (0.7 + phase * 0.7);
+              const alpha = (1 - phase) * 0.35 * g.alpha;
+              ctx.globalAlpha = Math.min(1, alpha);
+              ctx.lineWidth = 1.2 * dpr * g.width;
+              ctx.strokeStyle = bandColor("radar");
+              ctx.shadowBlur = 0;
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, rr, rr * 0.92, 0, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+
+          // Vocal band — centered core pulse or equator streak
+          if (hasVocals && bandsCfg.vocal.enabled) {
+            const g = bandGain(bandsCfg.vocal.intensity);
+            const amp = 0.45 + 0.35 * breath;
+            const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
+            ctx.shadowBlur = 22 * dpr * g.glow;
+            ctx.shadowColor = solid ?? p.glow;
+            ctx.globalAlpha = Math.min(1, 0.95 * g.alpha);
+
+            if (bandsCfg.vocalShape === "core") {
+              const coreR = baseR * (0.44 + amp * 0.18);
+              const grad =
+                solid ??
+                (() => {
+                  const rg = ctx.createRadialGradient(cx, cy, coreR * 0.2, cx, cy, coreR * 1.15);
+                  rg.addColorStop(0, p.glow);
+                  rg.addColorStop(1, p.stops[2]);
+                  return rg;
+                })();
+              ctx.strokeStyle = grad as string | CanvasGradient;
+              ctx.lineWidth = (1.8 + amp * 2.2) * dpr * g.width;
+              ctx.beginPath();
+              const segs = 180;
+              for (let i = 0; i <= segs; i++) {
+                const u = i / segs;
+                const angle = u * Math.PI * 2;
+                const idx = Math.floor(u * (N - 1));
+                const v = (wave[idx] - 128) / 128;
+                const r = coreR * (1 + v * 0.18 * (0.5 + amp));
+                const x = cx + Math.cos(angle) * r;
+                const y = cy + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.closePath();
+              ctx.stroke();
+            } else {
+              const streakW = baseR * 2.6;
+              const streakX0 = cx - streakW / 2;
+              let stroke: string | CanvasGradient = solid ?? "";
+              if (!solid) {
+                const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+                grad.addColorStop(0, "transparent");
+                grad.addColorStop(0.2, p.stops[2]);
+                grad.addColorStop(0.5, p.glow);
+                grad.addColorStop(0.8, p.stops[3]);
+                grad.addColorStop(1, "transparent");
+                stroke = grad;
+              }
+              ctx.strokeStyle = stroke;
+              ctx.lineWidth = 2.2 * dpr * g.width;
+              ctx.beginPath();
+              const segs = 240;
+              for (let i = 0; i <= segs; i++) {
+                const u = i / segs;
+                const idx = Math.floor(u * (N - 1));
+                const v = (wave[idx] - 128) / 128;
+                const x = streakX0 + u * streakW;
+                const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+                const y = cy + v * baseR * 0.55 * env;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+            }
+          }
+
 
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
@@ -503,7 +614,7 @@ export function OrbVisual({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals]);
+  }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;

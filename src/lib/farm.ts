@@ -26,6 +26,7 @@ export type SavedAura = {
   palette: PaletteKey;
   seed: number;
   hasVocals?: boolean;
+  bands?: import("./auraBands").BandsConfig;
   coverDataUrl?: string;
   musicalKey?: string;
   tempoBand?: string;
@@ -114,6 +115,7 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     palette: t.palette,
     seed: t.seed,
     hasVocals: t.hasVocals,
+    bands: t.bands,
     coverDataUrl: t.coverDataUrl,
     musicalKey: t.musicalKey,
     tempoBand: t.tempoBand,

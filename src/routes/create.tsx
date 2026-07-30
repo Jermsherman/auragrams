@@ -26,6 +26,8 @@ import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect
 import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
 import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
+import { BandCustomizer } from "@/components/BandCustomizer";
+import { DEFAULT_BANDS, type BandsConfig } from "@/lib/auraBands";
 import { OrbVisual } from "@/components/OrbVisual";
 
 import { ColorInfluence } from "@/components/ColorInfluence";
@@ -87,6 +89,7 @@ function CreatePage() {
   const [cover, setCover] = useState<File | null>(null);
   const [moods, setMoods] = useState<string[]>([]);
   const [hasVocals, setHasVocals] = useState(true);
+  const [bands, setBands] = useState<BandsConfig>(DEFAULT_BANDS);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -408,6 +411,7 @@ function CreatePage() {
         coverDataUrl,
         seed: seedFromId(id),
         hasVocals,
+        bands,
         createdAt: Date.now(),
         moods,
         detectedKey: detectedKeyStr ?? undefined,
@@ -816,7 +820,7 @@ function CreatePage() {
                 <div className="rounded-2xl border border-border/60 bg-background/30 p-4">
                   <div className="text-sm font-medium">Does this track have vocals?</div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Vocals add a live band across the sphere that moves with the voice.
+                    Vocals add a live band to the orb that moves with the voice. Choose its shape under Aura bands.
                   </p>
                   <div className="mt-3 flex gap-2">
                     {[
@@ -840,6 +844,13 @@ function CreatePage() {
                     ))}
                   </div>
                 </div>
+
+                <BandCustomizer
+                  value={bands}
+                  onChange={setBands}
+                  swatches={preview.colors?.swatches}
+                  hasVocals={hasVocals}
+                />
 
                 {flags.enableColorInfluence && (
                   <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
