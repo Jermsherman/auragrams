@@ -139,10 +139,23 @@ export function AuraLinkBuilder() {
     background?: AuraLinkBackground;
     sectionOrder?: AuraLinkSectionKey[];
   }>({});
-  const themeValue: AuraLinkTheme =
-    theme === "custom"
+  /** When set, the page palette follows this Aura live (theme mode "auraMatch"). */
+  const [auraMatchId, setAuraMatchId] = useState<string | undefined>(undefined);
+  const themeValue: AuraLinkTheme = auraMatchId
+    ? {
+        name: "Aura palette",
+        mode: "auraMatch",
+        sourceAuraId: auraMatchId,
+        ...themeExtras,
+      }
+    : theme === "custom"
       ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom", ...themeExtras }
       : { name: theme, mode: "preset", preset: theme, ...themeExtras };
+  const pickTheme = (k: AuraLinkThemePreset) => {
+    setAuraMatchId(undefined);
+    setTheme(k);
+  };
+
   const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
   const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
   const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
@@ -173,9 +186,11 @@ export function AuraLinkBuilder() {
       buttonColor: c?.primary ?? sw[2] ?? prev.buttonColor,
       glowColor: c?.glow ?? sw[0] ?? prev.glowColor,
     }));
+    setAuraMatchId(undefined);
     setTheme("custom");
-    toast.success("Theme matched to Aura palette");
+    toast.success("Palette copied into your custom theme");
   };
+
 
 
 
@@ -197,8 +212,10 @@ export function AuraLinkBuilder() {
     setProfileImageUrl("");
     setSlug("");
     setTheme("midnight");
+    setAuraMatchId(undefined);
     setCustomTheme({ ...DEFAULT_CUSTOM_THEME });
     setThemeExtras({});
+
     setStreamingLinks([]);
     setSocialLinks([]);
     setCustomLinks([]);
@@ -225,15 +242,22 @@ export function AuraLinkBuilder() {
     setSlug(p.handleSlug);
     if (typeof p.theme === "string") {
       setTheme(p.theme);
+      setAuraMatchId(undefined);
       setThemeExtras({});
     } else {
       const t = p.theme;
-      if (t.mode === "custom") {
+      if (t.mode === "auraMatch") {
+        setAuraMatchId(t.sourceAuraId ?? p.featuredAuraId ?? p.selectedAuraIds[0]);
+        setTheme("custom");
+      } else if (t.mode === "custom") {
+        setAuraMatchId(undefined);
         setTheme("custom");
         setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...t });
       } else {
+        setAuraMatchId(undefined);
         setTheme((t.preset ?? "midnight") as AuraLinkThemePreset);
       }
+
       setThemeExtras({
         fontHeading: t.fontHeading,
         fontBody: t.fontBody,
@@ -595,7 +619,7 @@ export function AuraLinkBuilder() {
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
               {savedLinks.map((p) => {
-                const t = resolveTheme(p.theme);
+                const t = resolveTheme(p.theme, auras);
                 const isActive = editingId === p.id;
                 const featured =
                   auras.find(
@@ -1230,10 +1254,10 @@ export function AuraLinkBuilder() {
                 {THEME_LIST.map((t) => (
                   <button
                     key={t.key}
-                    onClick={() => setTheme(t.key)}
+                    onClick={() => pickTheme(t.key)}
                     className={
                       "rounded-xl p-3 border text-left transition-all min-h-[64px] " +
-                      (theme === t.key
+                      (!auraMatchId && theme === t.key
                         ? "border-foreground/40 ring-2 ring-foreground/30"
                         : "border-border/60 hover:border-foreground/20")
                     }
@@ -1249,10 +1273,10 @@ export function AuraLinkBuilder() {
                 ))}
                 {/* Custom tile */}
                 <button
-                  onClick={() => setTheme("custom")}
+                  onClick={() => pickTheme("custom")}
                   className={
                     "rounded-xl p-3 border text-left transition-all min-h-[64px] relative overflow-hidden " +
-                    (theme === "custom"
+                    (!auraMatchId && theme === "custom"
                       ? "border-foreground/40 ring-2 ring-foreground/30"
                       : "border-border/60 hover:border-foreground/20")
                   }
@@ -1304,20 +1328,51 @@ export function AuraLinkBuilder() {
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Pull the background, accent and glow straight from one of your Auras. You can
-                    fine-tune the colors afterwards.
+                    Copy an Aura&apos;s colors into your custom theme, or lock the page to follow one
+                    Aura live.
                   </p>
+
+                  <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/30 p-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={!!auraMatchId}
+                      onChange={(e) =>
+                        setAuraMatchId(
+                          e.target.checked
+                            ? (featuredAuraId ?? selectedAuraIds[0])
+                            : undefined,
+                        )
+                      }
+                    />
+                    <span>
+                      <span className="block text-xs font-medium">Always match this Aura</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        The page re-reads the Aura&apos;s palette every time it loads, so editing the
+                        Aura updates your AuraLink too.
+                      </span>
+                    </span>
+                  </label>
+
                   <div className="flex flex-wrap gap-2">
                     {auras
                       .filter((a) => selectedAuraIds.includes(a.id))
                       .map((a) => {
                         const sw = auraSwatches(a);
+                        const live = auraMatchId === a.id;
                         return (
                           <button
                             key={a.id}
                             type="button"
-                            onClick={() => applyAuraPalette(a)}
-                            className="rounded-xl border border-border/60 hover:border-foreground/25 bg-background/30 px-3 py-2 text-left transition-colors"
+                            onClick={() =>
+                              auraMatchId ? setAuraMatchId(a.id) : applyAuraPalette(a)
+                            }
+                            className={
+                              "rounded-xl border bg-background/30 px-3 py-2 text-left transition-colors " +
+                              (live
+                                ? "border-foreground/40 ring-2 ring-foreground/25"
+                                : "border-border/60 hover:border-foreground/25")
+                            }
                           >
                             <div className="flex gap-1">
                               {sw.map((c, i) => (
@@ -1335,10 +1390,11 @@ export function AuraLinkBuilder() {
                         );
                       })}
                   </div>
+
                 </div>
               )}
 
-              {theme === "custom" && (
+              {theme === "custom" && !auraMatchId && (
                 <div className="mt-4 rounded-2xl glass-strong p-4 space-y-3">
                   <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                     Build your custom vibe

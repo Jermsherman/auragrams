@@ -55,7 +55,34 @@ export const BAND_HINTS: Record<BandKey, string> = {
   vocal: "Voice range 200 Hz - 4 kHz, with the low end ducked out",
 };
 
+/** What actually drives each band, shown wherever bands are explained. */
+export type BandDrive = { source: string; range: string; behaviour: string };
+
+export const BAND_DRIVE: Record<BandKey, BandDrive> = {
+  waveform: {
+    source: "Full mix",
+    range: "All frequencies",
+    behaviour: "Traces the live waveform as a contour around the sphere.",
+  },
+  bass: {
+    source: "Low end",
+    range: "Below 200 Hz",
+    behaviour: "A slow, wide halo that swells with the kick and sub.",
+  },
+  radar: {
+    source: "Onsets",
+    range: "Transient detection",
+    behaviour: "Pings a ring outward every time the mix hits a new attack.",
+  },
+  vocal: {
+    source: "Voice range",
+    range: "200 Hz – 4 kHz",
+    behaviour: "Its own spectrum shape, with the low end ducked so the kick never pumps it.",
+  },
+};
+
 export const BAND_ORDER: BandKey[] = ["waveform", "bass", "radar", "vocal"];
+
 
 const INTENSITY_GAIN: Record<BandIntensity, { alpha: number; width: number; glow: number }> = {
   subtle: { alpha: 0.55, width: 0.7, glow: 0.5 },

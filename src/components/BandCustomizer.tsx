@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, Eye, EyeOff, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  BAND_DRIVE,
   BAND_HINTS,
   BAND_LABELS,
   BAND_ORDER,
@@ -98,10 +99,19 @@ export function BandCustomizer({ value, onChange, swatches = [], hasVocals = tru
                 <div className="flex items-center gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-medium">{BAND_LABELS[key]}</div>
-                    <div className="truncate text-[10px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] text-foreground/80">
+                        {BAND_DRIVE[key].source}
+                      </span>
+                      <span className="rounded-full bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">
+                        {BAND_DRIVE[key].range}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-muted-foreground">
                       {dimmed ? "Off — track marked as instrumental" : BAND_HINTS[key]}
                     </div>
                   </div>
+
                   <button
                     type="button"
                     onClick={() => setBand(key, { enabled: !b.enabled })}

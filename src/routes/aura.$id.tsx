@@ -1,6 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
+import { BandDriveInfo } from "@/components/BandDriveInfo";
+
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
@@ -527,6 +529,11 @@ function AuraPage() {
             showLabel={false}
           />
         </div>
+
+        <div className="mt-4 w-full max-w-md animate-fade-up">
+          <BandDriveInfo bands={track.bands} hasVocals={track.hasVocals !== false} />
+        </div>
+
 
         <div className="mt-6 w-full animate-fade-up">
           {audioUrl ? (
