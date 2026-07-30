@@ -137,6 +137,14 @@ export function OrbVisual({
     let deform = 0;
     let vocalLevel = 0;
     let burst = 0;
+    // Radar pings are emitted on detected onsets (real audio) — each entry is
+    // an expanding ring with its own life.
+    const radarRings: { r: number; life: number }[] = [];
+    let onsetCooldown = 0;
+    let prevFlux = 0;
+    // Independent slow rotation so the vocal core never phase-locks to the
+    // full-mix waveform ring.
+    let corePhase = 0;
 
     // fallback analyser-only state
     const a = analyser?.current ?? null;
@@ -214,6 +222,7 @@ export function OrbVisual({
       const waveData =
         metricsRef?.current?.waveform ??
         (a && wave ? (a.getByteTimeDomainData(wave!), wave) : null);
+      const freqData = metricsRef?.current?.frequency ?? freq;
 
       // Edge clip-path deformation on the shell + texture (oscilloscope silhouette)
       if (waveData && waveData.length > 0 && (shellRef.current || textureRef.current)) {
@@ -281,7 +290,9 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 2: bass-driven outer halo ring
+          // Ring 2: bass halo — contour comes from the LOW BAND only (sub–low
+          // mids), so it breathes slowly with the kick instead of retracing the
+          // full-mix waveform like ring 1.
           if (bandsCfg.bass.enabled) {
             const g = bandGain(bandsCfg.bass.intensity);
             ctx.lineWidth = 1.2 * dpr * g.width;
@@ -289,12 +300,23 @@ export function OrbVisual({
             ctx.shadowBlur = 0;
             ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
             const baseR2 = baseR * (1.06 + bass * 0.12);
+            const bn = freqData ? freqData.length : 0;
+            // ~20Hz – 200Hz on a 44.1kHz context.
+            const bLo = bn ? Math.max(1, Math.floor((20 / 22050) * bn)) : 0;
+            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / 22050) * bn)) : 0;
+            const bSpan = bHi - bLo;
             ctx.beginPath();
-            for (let i = 0; i <= samples; i++) {
-              const idx = Math.floor((i % samples) * step2);
-              const v = (waveData[idx] - 128) / 128;
-              const angle = (i / samples) * Math.PI * 2 + 0.12;
-              const r = baseR2 + v * deformGain * 0.6;
+            const bSegs = 120;
+            for (let i = 0; i <= bSegs; i++) {
+              const u = (i % bSegs) / bSegs;
+              // Mirror the low band around the circle so the ring stays smooth.
+              const m = u < 0.5 ? u * 2 : (1 - u) * 2;
+              let v = 0;
+              if (freqData && bSpan > 0) {
+                v = freqData[bLo + Math.floor(m * (bSpan - 1))] / 255;
+              }
+              const angle = u * Math.PI * 2 + 0.12;
+              const r = baseR2 + v * baseR * 0.16 * (0.4 + bass * 1.6);
               const x = cx + Math.cos(angle) * r;
               const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
@@ -304,23 +326,59 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz).
-          // Rendered either as a centered core pulse or an equator streak.
+          // Ring 3: radar pings — emitted on detected onsets (spectral flux /
+          // transients), not on a timer. Each ping expands and fades.
+          if (bandsCfg.radar.enabled) {
+            const g = bandGain(bandsCfg.radar.intensity);
+            const flux = vol * 0.6 + peak * 0.4;
+            const rise = flux - prevFlux;
+            prevFlux += (flux - prevFlux) * 0.35;
+            onsetCooldown = Math.max(0, onsetCooldown - 1);
+            if ((rise > 0.035 || trans > 0.35) && onsetCooldown === 0 && radarRings.length < 6) {
+              radarRings.push({ r: baseR * 0.55, life: 1 });
+              onsetCooldown = 8;
+            }
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1.1 * dpr * g.width;
+            ctx.strokeStyle = bandColor("radar");
+            for (let i = radarRings.length - 1; i >= 0; i--) {
+              const ring = radarRings[i];
+              ring.r += baseR * 0.018;
+              ring.life -= 0.02;
+              if (ring.life <= 0) {
+                radarRings.splice(i, 1);
+                continue;
+              }
+              ctx.globalAlpha = Math.min(1, ring.life * 0.45 * g.alpha);
+              ctx.beginPath();
+              ctx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+
+          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz),
+          // with the low band subtracted so kick/808 bleed can't pump it.
           if (hasVocals && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
-            const freqData = metricsRef?.current?.frequency ?? freq;
             let vocal = 0;
+            let vLo = 0;
+            let vHi = 0;
             if (freqData && freqData.length > 0) {
               const n = freqData.length;
               // Nyquist ~22.05kHz for a 44.1kHz context.
-              const lo = Math.max(1, Math.floor((200 / 22050) * n));
-              const hi = Math.min(n - 1, Math.floor((4000 / 22050) * n));
+              vLo = Math.max(1, Math.floor((200 / 22050) * n));
+              vHi = Math.min(n - 1, Math.floor((4000 / 22050) * n));
               let sum = 0;
-              for (let i = lo; i <= hi; i++) sum += freqData[i];
-              vocal = sum / Math.max(1, hi - lo + 1) / 255;
+              for (let i = vLo; i <= vHi; i++) sum += freqData[i];
+              vocal = sum / Math.max(1, vHi - vLo + 1) / 255;
+              // Duck by low-end energy: bass belongs to the halo, not the core.
+              vocal = Math.max(0, vocal - bass * 0.45);
             }
-            vocalLevel += (vocal - vocalLevel) * (vocal > vocalLevel ? 0.35 : 0.12);
-            const amp = Math.min(1, vocalLevel * 2.2);
+            // Fast attack, slow release — a voice-like envelope.
+            vocalLevel += (vocal - vocalLevel) * (vocal > vocalLevel ? 0.4 : 0.06);
+            const amp = Math.min(1, vocalLevel * 2.6);
+            corePhase += 0.0035 + amp * 0.004;
+
 
             if (amp > 0.02) {
               const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
@@ -341,12 +399,16 @@ export function OrbVisual({
                 ctx.lineWidth = (1.6 + amp * 2.4) * dpr * g.width;
                 ctx.beginPath();
                 const segs = 180;
+                const vSpan = Math.max(1, vHi - vLo);
                 for (let i = 0; i <= segs; i++) {
                   const u = i / segs;
-                  const angle = u * Math.PI * 2;
-                  const idx = Math.floor(u * (waveData.length - 1));
-                  const v = (waveData[idx] - 128) / 128;
-                  const r = coreR * (1 + v * 0.2 * (0.4 + amp));
+                  const angle = u * Math.PI * 2 + corePhase;
+                  // Shape comes from the VOCAL spectrum only (mirrored around
+                  // the circle), never from the full-mix waveform.
+                  const m = u < 0.5 ? u * 2 : (1 - u) * 2;
+                  const s = freqData ? freqData[vLo + Math.floor(m * (vSpan - 1))] / 255 : 0;
+                  const v = s - vocalLevel;
+                  const r = coreR * (1 + v * 0.55 * (0.4 + amp));
                   const x = cx + Math.cos(angle) * r;
                   const y = cy + Math.sin(angle) * r;
                   if (i === 0) ctx.moveTo(x, y);
@@ -354,6 +416,7 @@ export function OrbVisual({
                 }
                 ctx.closePath();
                 ctx.stroke();
+
               } else {
                 const streakW = baseR * 2.6;
                 const streakX0 = cx - streakW / 2;
@@ -371,10 +434,12 @@ export function OrbVisual({
                 ctx.lineWidth = (1.6 + amp * 1.4) * dpr * g.width;
                 ctx.beginPath();
                 const segs = 240;
+                const vSpan = Math.max(1, vHi - vLo);
                 for (let i = 0; i <= segs; i++) {
                   const u = i / segs;
-                  const idx = Math.floor(u * (waveData.length - 1));
-                  const v = (waveData[idx] - 128) / 128;
+                  // Vocal-only contour, alternating sign for a waveform look.
+                  const s = freqData ? freqData[vLo + Math.floor(u * (vSpan - 1))] / 255 : 0;
+                  const v = (s - vocalLevel) * (i % 2 === 0 ? 1 : -1) * 2.2;
                   const x = streakX0 + u * streakW;
                   const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
                   const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
@@ -537,10 +602,14 @@ export function OrbVisual({
             }
           }
 
-          // Vocal band — centered core pulse or equator streak
+          // Vocal band — centered core pulse or equator streak. Uses its own
+          // slower "voice" oscillator, independent of the mix waveform above.
           if (hasVocals && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
-            const amp = 0.45 + 0.35 * breath;
+            const amp = 0.4 + 0.4 * swell;
+            const vAt = (u: number) =>
+              Math.sin(u * Math.PI * 5 + t * 1.35) * 0.6 +
+              Math.sin(u * Math.PI * 11 - t * 0.75) * 0.4;
             const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
             ctx.shadowBlur = 22 * dpr * g.glow;
             ctx.shadowColor = solid ?? p.glow;
@@ -562,10 +631,9 @@ export function OrbVisual({
               const segs = 180;
               for (let i = 0; i <= segs; i++) {
                 const u = i / segs;
-                const angle = u * Math.PI * 2;
-                const idx = Math.floor(u * (N - 1));
-                const v = (wave[idx] - 128) / 128;
-                const r = coreR * (1 + v * 0.18 * (0.5 + amp));
+                const angle = u * Math.PI * 2 + t * 0.22;
+                const v = vAt(u);
+                const r = coreR * (1 + v * 0.16 * (0.5 + amp));
                 const x = cx + Math.cos(angle) * r;
                 const y = cy + Math.sin(angle) * r;
                 if (i === 0) ctx.moveTo(x, y);
@@ -573,6 +641,7 @@ export function OrbVisual({
               }
               ctx.closePath();
               ctx.stroke();
+
             } else {
               const streakW = baseR * 2.6;
               const streakX0 = cx - streakW / 2;
@@ -592,8 +661,7 @@ export function OrbVisual({
               const segs = 240;
               for (let i = 0; i <= segs; i++) {
                 const u = i / segs;
-                const idx = Math.floor(u * (N - 1));
-                const v = (wave[idx] - 128) / 128;
+                const v = vAt(u) * (0.5 + amp * 0.6);
                 const x = streakX0 + u * streakW;
                 const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
                 const y = cy + v * baseR * 0.55 * env;

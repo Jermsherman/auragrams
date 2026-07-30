@@ -149,6 +149,36 @@ export function AuraLinkBuilder() {
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
   const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
+  /** Four representative colors for an Aura (saved palette, else mood defaults). */
+  const auraSwatches = (a: SavedAura): string[] => {
+    if (a.colors) {
+      return [a.colors.shadow, a.colors.primary, a.colors.accent, a.colors.glow];
+    }
+    const p = getPersonality(a.palette);
+    return p.swatches.slice(0, 4);
+  };
+
+  /** Derive the custom theme colors from an Aura's palette. */
+  const applyAuraPalette = (a: SavedAura) => {
+    const c = a.colors;
+    const p = getPersonality(a.palette);
+    const sw = p.swatches;
+    setCustomTheme((prev) => ({
+      ...prev,
+      mode: "custom",
+      name: a.auraName ? `${a.auraName} palette` : prev.name || "Custom",
+      backgroundColor: c?.shadow ?? sw[3] ?? prev.backgroundColor,
+      primaryAccent: c?.accent ?? sw[0] ?? prev.primaryAccent,
+      secondaryAccent: c?.secondary ?? sw[1] ?? prev.secondaryAccent,
+      buttonColor: c?.primary ?? sw[2] ?? prev.buttonColor,
+      glowColor: c?.glow ?? sw[0] ?? prev.glowColor,
+    }));
+    setTheme("custom");
+    toast.success("Theme matched to Aura palette");
+  };
+
+
+
   // SEO & sharing
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
@@ -1253,12 +1283,68 @@ export function AuraLinkBuilder() {
                 </button>
               </div>
 
+              {/* Match Aura palette — derive the page look from one of your Auras */}
+              {selectedAuraIds.length > 0 && (
+                <div className="mt-4 rounded-2xl glass-strong p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                      Match Aura palette
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const f = auras.find(
+                          (a) => a.id === (featuredAuraId ?? selectedAuraIds[0]),
+                        );
+                        if (f) applyAuraPalette(f);
+                      }}
+                      className="text-[10px] uppercase tracking-[0.22em] text-foreground/70 hover:text-foreground transition-colors"
+                    >
+                      Use featured Aura
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pull the background, accent and glow straight from one of your Auras. You can
+                    fine-tune the colors afterwards.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {auras
+                      .filter((a) => selectedAuraIds.includes(a.id))
+                      .map((a) => {
+                        const sw = auraSwatches(a);
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => applyAuraPalette(a)}
+                            className="rounded-xl border border-border/60 hover:border-foreground/25 bg-background/30 px-3 py-2 text-left transition-colors"
+                          >
+                            <div className="flex gap-1">
+                              {sw.map((c, i) => (
+                                <span
+                                  key={i}
+                                  className="h-3 w-3 rounded-full ring-1 ring-foreground/15"
+                                  style={{ background: c }}
+                                />
+                              ))}
+                            </div>
+                            <div className="mt-1.5 text-[11px] truncate max-w-[140px]">
+                              {a.auraName ?? a.trackTitle}
+                            </div>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
               {theme === "custom" && (
                 <div className="mt-4 rounded-2xl glass-strong p-4 space-y-3">
                   <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                     Build your custom vibe
                   </div>
                   <div className="grid grid-cols-2 gap-3">
+
                     {[
                       { key: "backgroundColor", label: "Background" },
                       { key: "primaryAccent", label: "Primary accent" },

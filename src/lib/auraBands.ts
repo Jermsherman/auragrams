@@ -49,10 +49,10 @@ export const BAND_LABELS: Record<BandKey, string> = {
 };
 
 export const BAND_HINTS: Record<BandKey, string> = {
-  waveform: "Orbits the sphere with the full mix",
-  bass: "Wide outer ring driven by low end",
-  radar: "Expanding pulse rings when idle",
-  vocal: "Reacts to the voice (200 Hz - 4 kHz)",
+  waveform: "Full mix — traces the live waveform around the sphere",
+  bass: "Low end below 200 Hz — a slow, wide swell on the kick",
+  radar: "Beat onsets — a ring pings outward on each transient",
+  vocal: "Voice range 200 Hz - 4 kHz, with the low end ducked out",
 };
 
 export const BAND_ORDER: BandKey[] = ["waveform", "bass", "radar", "vocal"];
