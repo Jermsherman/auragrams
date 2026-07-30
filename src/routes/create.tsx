@@ -760,6 +760,12 @@ function CreatePage() {
                   <p className="text-xs text-muted-foreground text-center mt-2">
                     Upload an audio file to generate your Aura. Max upload: 100 MB — larger files are compressed automatically. Add streaming links later after saving.
                   </p>
+                  {isGuest && (
+                    <p className="text-xs text-muted-foreground text-center mt-1">
+                      Previews are temporary. Sign up to keep this Aura permanently.
+                    </p>
+                  )}
+
                 </>
               ) : (
                 <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
