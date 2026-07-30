@@ -43,7 +43,7 @@ function ensureFontPair(loadParam: string, key: string) {
 
 export function AuraLinkView({ page, auras, showLogo = true, className }: Props) {
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const theme = resolveTheme(page.theme);
+  const theme = resolveTheme(page.theme, auras);
   const extras = theme.extras;
   const featured = auras.find((a) => a.id === (page.featuredAuraId ?? page.selectedAuraIds[0]));
 
