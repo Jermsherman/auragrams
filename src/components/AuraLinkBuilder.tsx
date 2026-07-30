@@ -1254,7 +1254,7 @@ export function AuraLinkBuilder() {
                 {THEME_LIST.map((t) => (
                   <button
                     key={t.key}
-                    onClick={() => setTheme(t.key)}
+                    onClick={() => pickTheme(t.key)}
                     className={
                       "rounded-xl p-3 border text-left transition-all min-h-[64px] " +
                       (theme === t.key
