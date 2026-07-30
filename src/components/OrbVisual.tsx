@@ -602,10 +602,14 @@ export function OrbVisual({
             }
           }
 
-          // Vocal band — centered core pulse or equator streak
+          // Vocal band — centered core pulse or equator streak. Uses its own
+          // slower "voice" oscillator, independent of the mix waveform above.
           if (hasVocals && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
-            const amp = 0.45 + 0.35 * breath;
+            const amp = 0.4 + 0.4 * swell;
+            const vAt = (u: number) =>
+              Math.sin(u * Math.PI * 5 + t * 1.35) * 0.6 +
+              Math.sin(u * Math.PI * 11 - t * 0.75) * 0.4;
             const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
             ctx.shadowBlur = 22 * dpr * g.glow;
             ctx.shadowColor = solid ?? p.glow;
@@ -627,10 +631,9 @@ export function OrbVisual({
               const segs = 180;
               for (let i = 0; i <= segs; i++) {
                 const u = i / segs;
-                const angle = u * Math.PI * 2;
-                const idx = Math.floor(u * (N - 1));
-                const v = (wave[idx] - 128) / 128;
-                const r = coreR * (1 + v * 0.18 * (0.5 + amp));
+                const angle = u * Math.PI * 2 + t * 0.22;
+                const v = vAt(u);
+                const r = coreR * (1 + v * 0.16 * (0.5 + amp));
                 const x = cx + Math.cos(angle) * r;
                 const y = cy + Math.sin(angle) * r;
                 if (i === 0) ctx.moveTo(x, y);
@@ -638,6 +641,7 @@ export function OrbVisual({
               }
               ctx.closePath();
               ctx.stroke();
+
             } else {
               const streakW = baseR * 2.6;
               const streakX0 = cx - streakW / 2;
