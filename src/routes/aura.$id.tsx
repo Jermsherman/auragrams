@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { BandDriveInfo } from "@/components/BandDriveInfo";
 
