@@ -782,6 +782,8 @@ export function OrbVisual({
   // Aura, gently modulated by live audio when it is available.
   useEffect(() => {
     if (!effect) return;
+    // Card/mini-sized orbs skip the atmosphere canvas entirely.
+    if (pxSize < 220) return;
     if (prefersReducedMotion()) return;
     const canvas = fxCanvasRef.current;
     if (!canvas) return;
