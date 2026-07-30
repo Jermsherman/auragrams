@@ -1,7 +1,9 @@
 import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
+import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
+
 
 type Props = {
   size?: number | string;
