@@ -93,6 +93,8 @@ export function OrbVisual({
   hasVocals = true,
   bands,
   effect = null,
+  quality = "high",
+  animate = true,
 }: Props) {
 
   const ref = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ export function OrbVisual({
   const filterId = useId().replace(/:/g, "");
 
   // Small orbs (cards, minis) don't need retina decorative layers.
-  const pxSize = typeof size === "number" ? size : 320;
+  const pxSize = quality === "low" ? 180 : typeof size === "number" ? size : 320;
   const fxDpr = () => Math.min(pxSize >= 360 ? 2 : 1.5, window.devicePixelRatio || 1);
   // Canvas shadowBlur is the most expensive 2D path — keep it for hero-scale
   // orbs only; small cards read identically without it.
