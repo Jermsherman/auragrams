@@ -464,33 +464,35 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Horizontal equator waveform streak (the bright pink line)
-          const streakW = baseR * 2.6;
-          const streakX0 = cx - streakW / 2;
-          const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
-          grad.addColorStop(0, "transparent");
-          grad.addColorStop(0.2, p.stops[2]);
-          grad.addColorStop(0.5, p.glow);
-          grad.addColorStop(0.8, p.stops[3]);
-          grad.addColorStop(1, "transparent");
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 2.2 * dpr;
-          ctx.shadowBlur = 22 * dpr;
-          ctx.shadowColor = p.glow;
-          ctx.globalAlpha = 0.95;
-          ctx.beginPath();
-          const segs = 240;
-          for (let i = 0; i <= segs; i++) {
-            const u = i / segs;
-            const idx = Math.floor(u * (N - 1));
-            const v = (wave[idx] - 128) / 128;
-            const x = streakX0 + u * streakW;
-            const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
-            const y = cy + v * baseR * 0.55 * env;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          // Horizontal equator waveform streak (vocal band) — skipped for instrumentals
+          if (hasVocals) {
+            const streakW = baseR * 2.6;
+            const streakX0 = cx - streakW / 2;
+            const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+            grad.addColorStop(0, "transparent");
+            grad.addColorStop(0.2, p.stops[2]);
+            grad.addColorStop(0.5, p.glow);
+            grad.addColorStop(0.8, p.stops[3]);
+            grad.addColorStop(1, "transparent");
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2.2 * dpr;
+            ctx.shadowBlur = 22 * dpr;
+            ctx.shadowColor = p.glow;
+            ctx.globalAlpha = 0.95;
+            ctx.beginPath();
+            const segs = 240;
+            for (let i = 0; i <= segs; i++) {
+              const u = i / segs;
+              const idx = Math.floor(u * (N - 1));
+              const v = (wave[idx] - 128) / 128;
+              const x = streakX0 + u * streakW;
+              const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+              const y = cy + v * baseR * 0.55 * env;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
           }
-          ctx.stroke();
 
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
