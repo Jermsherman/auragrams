@@ -508,10 +508,8 @@ export function OrbVisual({
         }
       }
 
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return subscribeFrame(tick);
   }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   // Hero mode: synthetic self-animation when no real audio is connected.
