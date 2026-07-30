@@ -1273,7 +1273,7 @@ export function AuraLinkBuilder() {
                 ))}
                 {/* Custom tile */}
                 <button
-                  onClick={() => setTheme("custom")}
+                  onClick={() => pickTheme("custom")}
                   className={
                     "rounded-xl p-3 border text-left transition-all min-h-[64px] relative overflow-hidden " +
                     (theme === "custom"
