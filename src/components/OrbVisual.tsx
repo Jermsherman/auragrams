@@ -764,6 +764,7 @@ export function OrbVisual({
   // Idle micro-motion: keeps every orb quietly alive when nothing is playing.
   useEffect(() => {
     if (hero) return;
+    if (!animate) return;
     if (isPlaying) return;
     if (prefersReducedMotion()) return;
     const el = ref.current;
