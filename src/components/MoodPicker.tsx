@@ -56,8 +56,9 @@ export function MoodPicker({
               ) : (
                 <Sparkles className="h-3 w-3" />
               )}
-              Detect Mood
+              {detectLabel}
             </button>
+
           )}
           <span className="text-[10px] tabular-nums text-muted-foreground/80">
             {value.length}/{MAX}
