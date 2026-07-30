@@ -69,6 +69,8 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
     seed: t.seed,
     hasVocals: t.hasVocals,
     bands: t.bands,
+    moods: t.moods,
+    energy: t.energy,
     auraName: t.auraName,
     trackTitle: t.title,
     artistName: t.artist,
