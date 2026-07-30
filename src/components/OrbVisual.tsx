@@ -825,11 +825,9 @@ export function OrbVisual({
     };
 
     const tick = () => {
+      if (!visibleRef.current) return;
       const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
+      if (rect.width === 0) return;
       if (canvas.width !== Math.floor(rect.width * dpr)) {
         canvas.width = Math.floor(rect.width * dpr);
         canvas.height = Math.floor(rect.height * dpr);
