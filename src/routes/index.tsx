@@ -48,6 +48,48 @@ function Index() {
   }, []);
   const contrasting = pickContrastingShowcase(showcase.id);
 
+  // Interactive demo: a synthesized loop drives the hero orb's bands live.
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const demoRef = useRef<{ stop: () => void } | null>(null);
+  const [demoPlaying, setDemoPlaying] = useState(false);
+
+  const stopDemo = useCallback(() => {
+    demoRef.current?.stop();
+    demoRef.current = null;
+    analyserRef.current = null;
+    setDemoPlaying(false);
+  }, []);
+
+  useEffect(() => () => demoRef.current?.stop(), []);
+
+  const toggleDemo = useCallback(async () => {
+    if (demoRef.current) {
+      stopDemo();
+      return;
+    }
+    const { startDemoTone } = await import("@/lib/demoTone");
+    const t = startDemoTone();
+    if (!t) return;
+    demoRef.current = { stop: t.stop };
+    analyserRef.current = t.analyser;
+    setDemoPlaying(true);
+  }, [stopDemo]);
+
+  // Carousel: auto-advance while nothing is playing, so the page feels alive.
+  const step = useCallback((dir: 1 | -1) => {
+    setShowcase((cur) => {
+      const i = SHOWCASE_AURAS.findIndex((s) => s.id === cur.id);
+      const n = (i + dir + SHOWCASE_AURAS.length) % SHOWCASE_AURAS.length;
+      return SHOWCASE_AURAS[n];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (demoPlaying) return;
+    const t = window.setInterval(() => step(1), 7000);
+    return () => window.clearInterval(t);
+  }, [demoPlaying, step]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
@@ -55,13 +97,9 @@ function Index() {
         {/* HERO */}
         <section className="relative overflow-hidden">
           <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-6 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center animate-fade-up">
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/create" })}
-              aria-label={`Create your own Aura — example: ${showcase.trackTitle}`}
-              className="relative grid place-items-center group rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
-            >
+            <div className="relative grid place-items-center">
               <Aurascope
+                key={showcase.id}
                 aura={{
                   palette: showcase.palette,
                   colors: showcase.colors,
@@ -71,15 +109,44 @@ function Index() {
                 size="large"
                 mode="minimal"
                 hero
-                className="animate-float-y"
+                isPlaying={demoPlaying}
+                audioAnalysisData={{ analyser: analyserRef }}
+                className="animate-float-y animate-fade-in"
                 showLabel={false}
               />
+
+              {/* Carousel controls */}
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                aria-label="Previous example Aura"
+                className="absolute left-0 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full glass text-foreground/70 hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                aria-label="Next example Aura"
+                className="absolute right-0 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full glass text-foreground/70 hover:text-foreground transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleDemo}
+              className="mt-5 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.28em] text-foreground/85 hover:border-foreground/20 transition-colors"
+            >
+              {demoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {demoPlaying ? "Stop the demo" : "Hear it react"}
             </button>
 
             {/* Hero metadata — teaches "Auras come from music" in one glance */}
             <div className="mt-6 sm:mt-8 max-w-sm w-full">
               <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-                Generated From
+                {demoPlaying ? "Reacting to a demo loop" : "Generated From"}
               </div>
               <div className="mt-1.5 font-display text-xl sm:text-2xl tracking-tight text-aura-gradient">
                 &ldquo;{showcase.trackTitle}&rdquo;
@@ -91,6 +158,19 @@ function Index() {
                 <span className="mx-2 opacity-40">·</span>
                 <span className="text-foreground/80">Key:</span> {showcase.musicalKey}
               </div>
+              <div className="mt-3 flex items-center justify-center gap-1.5">
+                {SHOWCASE_AURAS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-label={`Show ${s.trackTitle}`}
+                    onClick={() => setShowcase(s)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      s.id === showcase.id ? "w-5 bg-foreground/70" : "w-1.5 bg-foreground/25"
+                    }`}
+                  />
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => setShowcase((cur) => pickRandomShowcase(cur.id))}
@@ -99,6 +179,7 @@ function Index() {
                 <RefreshCw className="h-3 w-3" /> Show another
               </button>
             </div>
+
 
             <a
               href="#what-is-an-aura"
