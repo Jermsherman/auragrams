@@ -355,6 +355,7 @@ export type Database = {
     }
     Functions: {
       current_profile_id: { Args: never; Returns: string }
+      is_username_available: { Args: { _username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
