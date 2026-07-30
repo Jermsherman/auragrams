@@ -84,19 +84,8 @@ function Index() {
                 showLabel={false}
               />
             </div>
+            <h1 className="mt-10 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
 
-
-
-
-            <a
-              href="#what-is-an-aura"
-              className="mt-8 sm:mt-10 inline-flex items-center gap-2 rounded-full glass px-5 h-10 text-[11px] uppercase tracking-[0.3em] text-foreground/85 hover:border-foreground/20 transition-colors"
-            >
-              <AudioLines className="h-4 w-4 text-aura-gradient" />
-              See your sound
-            </a>
-
-            <h1 className="mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
               Give Your Music <br />
               <span className="text-aura-gradient">A Living Identity.</span>
             </h1>
