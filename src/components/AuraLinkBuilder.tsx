@@ -1276,7 +1276,7 @@ export function AuraLinkBuilder() {
                   onClick={() => pickTheme("custom")}
                   className={
                     "rounded-xl p-3 border text-left transition-all min-h-[64px] relative overflow-hidden " +
-                    (theme === "custom"
+                    (!auraMatchId && theme === "custom"
                       ? "border-foreground/40 ring-2 ring-foreground/30"
                       : "border-border/60 hover:border-foreground/20")
                   }
