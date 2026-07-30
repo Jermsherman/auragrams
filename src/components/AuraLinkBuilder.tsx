@@ -186,9 +186,11 @@ export function AuraLinkBuilder() {
       buttonColor: c?.primary ?? sw[2] ?? prev.buttonColor,
       glowColor: c?.glow ?? sw[0] ?? prev.glowColor,
     }));
+    setAuraMatchId(undefined);
     setTheme("custom");
-    toast.success("Theme matched to Aura palette");
+    toast.success("Palette copied into your custom theme");
   };
+
 
 
 
