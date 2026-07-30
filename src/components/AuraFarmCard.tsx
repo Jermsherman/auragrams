@@ -73,6 +73,10 @@ export function AuraFarmCard({
   return (
     <div
       className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass ring-1 ring-foreground/10 hover:-translate-y-0.5 transition-transform overflow-hidden"
+      onPointerEnter={() => setLive(true)}
+      onPointerLeave={() => setLive(false)}
+      onFocus={() => setLive(true)}
+      onBlur={() => setLive(false)}
       style={{
         backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
       }}
@@ -116,6 +120,7 @@ export function AuraFarmCard({
           }}
           size="small"
           mode="minimal"
+          animate={live}
         />
       </div>
 
