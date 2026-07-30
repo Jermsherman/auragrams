@@ -1,6 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
+import { BandDriveInfo } from "@/components/BandDriveInfo";
+
 import { Logo } from "@/components/Logo";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope, aurascopeAuraFromTrack } from "@/components/Aurascope";
