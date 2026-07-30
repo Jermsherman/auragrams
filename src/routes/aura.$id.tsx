@@ -24,9 +24,14 @@ import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
-import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
+// Heavy export dialogs (html-to-image) load only when opened.
+const StoryPreviewDialog = lazy(() =>
+  import("@/components/StoryPreviewDialog").then((m) => ({ default: m.StoryPreviewDialog })),
+);
 import { AuraRevealHero } from "@/components/AuraRevealHero";
-import { AuraShareDialog } from "@/components/AuraShareDialog";
+const AuraShareDialog = lazy(() =>
+  import("@/components/AuraShareDialog").then((m) => ({ default: m.AuraShareDialog })),
+);
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
