@@ -21,6 +21,8 @@ export type AurascopeAura = {
   isAnonymous?: boolean;
   hasVocals?: boolean;
   bands?: BandsConfig | null;
+  moods?: string[];
+  energy?: number;
 };
 
 type AudioAnalysisData = {
