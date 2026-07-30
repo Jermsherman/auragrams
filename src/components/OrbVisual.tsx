@@ -133,13 +133,26 @@ export function OrbVisual({
 
 
 
+  // Pause every loop while the orb is off-screen.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visibleRef.current = entry.isIntersecting;
+      },
+      { rootMargin: "120px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (!metricsRef && !analyser?.current) return;
 
-    let raf = 0;
     // smoothed values for var output
     let scale = 1;
     let glow = 0.6;
