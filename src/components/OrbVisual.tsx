@@ -399,12 +399,16 @@ export function OrbVisual({
                 ctx.lineWidth = (1.6 + amp * 2.4) * dpr * g.width;
                 ctx.beginPath();
                 const segs = 180;
+                const vSpan = Math.max(1, vHi - vLo);
                 for (let i = 0; i <= segs; i++) {
                   const u = i / segs;
-                  const angle = u * Math.PI * 2;
-                  const idx = Math.floor(u * (waveData.length - 1));
-                  const v = (waveData[idx] - 128) / 128;
-                  const r = coreR * (1 + v * 0.2 * (0.4 + amp));
+                  const angle = u * Math.PI * 2 + corePhase;
+                  // Shape comes from the VOCAL spectrum only (mirrored around
+                  // the circle), never from the full-mix waveform.
+                  const m = u < 0.5 ? u * 2 : (1 - u) * 2;
+                  const s = freqData ? freqData[vLo + Math.floor(m * (vSpan - 1))] / 255 : 0;
+                  const v = s - vocalLevel;
+                  const r = coreR * (1 + v * 0.55 * (0.4 + amp));
                   const x = cx + Math.cos(angle) * r;
                   const y = cy + Math.sin(angle) * r;
                   if (i === 0) ctx.moveTo(x, y);
@@ -412,6 +416,7 @@ export function OrbVisual({
                 }
                 ctx.closePath();
                 ctx.stroke();
+
               } else {
                 const streakW = baseR * 2.6;
                 const streakX0 = cx - streakW / 2;
