@@ -619,7 +619,7 @@ export function AuraLinkBuilder() {
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
               {savedLinks.map((p) => {
-                const t = resolveTheme(p.theme);
+                const t = resolveTheme(p.theme, auras);
                 const isActive = editingId === p.id;
                 const featured =
                   auras.find(
