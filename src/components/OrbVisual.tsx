@@ -87,12 +87,14 @@ export function OrbVisual({
   hero = false,
   hasVocals = true,
   bands,
+  effect = null,
 }: Props) {
 
   const ref = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const filterId = useId().replace(/:/g, "");
 
   const p: AuraPersonality = useMemo(() => {
