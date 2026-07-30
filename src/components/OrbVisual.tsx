@@ -110,6 +110,7 @@ export function OrbVisual({
     let bassHalo = 1;
     let shimmer = 0.5;
     let deform = 0;
+    let vocalLevel = 0;
     let burst = 0;
 
     // fallback analyser-only state
