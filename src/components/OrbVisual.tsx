@@ -434,10 +434,12 @@ export function OrbVisual({
                 ctx.lineWidth = (1.6 + amp * 1.4) * dpr * g.width;
                 ctx.beginPath();
                 const segs = 240;
+                const vSpan = Math.max(1, vHi - vLo);
                 for (let i = 0; i <= segs; i++) {
                   const u = i / segs;
-                  const idx = Math.floor(u * (waveData.length - 1));
-                  const v = (waveData[idx] - 128) / 128;
+                  // Vocal-only contour, alternating sign for a waveform look.
+                  const s = freqData ? freqData[vLo + Math.floor(u * (vSpan - 1))] / 255 : 0;
+                  const v = (s - vocalLevel) * (i % 2 === 0 ? 1 : -1) * 2.2;
                   const x = streakX0 + u * streakW;
                   const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
                   const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
