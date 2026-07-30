@@ -30,6 +30,8 @@ export function AuraProfileCard({
   onSaveVibe,
   onRegenerateVibe,
   colorGuided = false,
+  insight,
+  onSaveStory,
 }: {
   name: string;
   moods: string[];
@@ -50,6 +52,10 @@ export function AuraProfileCard({
   onSaveVibe?: (text: string) => Promise<void> | void;
   onRegenerateVibe?: () => Promise<void> | void;
   colorGuided?: boolean;
+  /** AI reading of the song — merged into this one profile card. */
+  insight?: AuraInsight | null;
+  /** Artist-written Aura Story. Omit to hide the editor. */
+  onSaveStory?: (text: string) => Promise<void> | void;
 }) {
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
@@ -134,6 +140,48 @@ export function AuraProfileCard({
         )}
       </Section>
 
+      {(onSaveStory || insight?.story) && (
+        <Section title="Aura Story" defaultOpen>
+          <StoryEditor story={insight?.story} onSaveStory={onSaveStory} />
+        </Section>
+      )}
+
+      {insight && insight.emotionalDNA.length > 0 && (
+        <Section title="Emotional DNA" icon={<Heart className="h-3.5 w-3.5" />} defaultOpen>
+          <ul className="space-y-2.5">
+            {insight.emotionalDNA.map((e) => (
+              <li key={e.emotion} className="flex gap-3">
+                <span className="mt-0.5 shrink-0 inline-flex items-center rounded-full bg-aura-gradient/25 border border-foreground/15 px-2.5 h-6 text-[10px] uppercase tracking-[0.22em] text-foreground/90">
+                  {e.emotion}
+                </span>
+                <span className="text-[13px] leading-relaxed text-muted-foreground">{e.why}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {insight && insight.personalityTraits.length > 0 && (
+        <Section title="Personality" icon={<User className="h-3.5 w-3.5" />}>
+          <ul className="space-y-2.5">
+            {insight.personalityTraits.map((t) => (
+              <li key={t.trait} className="flex gap-3">
+                <span className="mt-0.5 shrink-0 inline-flex items-center rounded-full border border-foreground/20 bg-background/30 px-2.5 h-6 text-[10px] uppercase tracking-[0.22em] text-foreground/90">
+                  {t.trait}
+                </span>
+                <span className="text-[13px] leading-relaxed text-muted-foreground">{t.why}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {insight?.visualMeaning && (
+        <Section title="Aura Meaning" icon={<PaletteIcon className="h-3.5 w-3.5" />}>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">{insight.visualMeaning}</p>
+        </Section>
+      )}
+
       <Section title={paletteName ? `Palette · ${paletteName}` : "Palette"}>
         <div className="flex items-center gap-2 flex-wrap">
           {swatches.map((c, i) => (
@@ -171,10 +219,12 @@ function Section({
   title,
   children,
   defaultOpen = false,
+  icon,
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  icon?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -184,7 +234,10 @@ function Section({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors"
       >
-        <span>{title}</span>
+        <span className="inline-flex items-center gap-1.5">
+          {icon}
+          {title}
+        </span>
         <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
       </button>
       {open && <div className="mt-3">{children}</div>}
@@ -298,6 +351,98 @@ function VibeEditor({
             Generate the vibe
           </button>
         </div>
+      )}
+    </>
+  );
+}
+
+// Artist-written Aura Story. The model never writes this.
+function StoryEditor({
+  story,
+  onSaveStory,
+}: {
+  story?: string;
+  onSaveStory?: (text: string) => Promise<void> | void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(story ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(story ?? "");
+  }, [story, editing]);
+
+  if (editing) {
+    return (
+      <div className="space-y-2">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.slice(0, 420))}
+          rows={4}
+          maxLength={420}
+          placeholder="What is this song about? Write it in your own words…"
+          className="w-full rounded-xl bg-background/40 border border-border/60 px-3 py-2 text-sm outline-none focus:border-foreground/25 resize-none"
+        />
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            {draft.length}/420
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setDraft(story ?? "");
+              }}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const t = draft.trim();
+                if (!t || !onSaveStory) return;
+                setSaving(true);
+                try {
+                  await onSaveStory(t);
+                  setEditing(false);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving || !draft.trim()}
+              className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-8 px-3.5 text-[11px] disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Save story
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {story ? (
+        <p className="text-sm leading-relaxed text-foreground/90">{story}</p>
+      ) : (
+        onSaveStory && (
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            No story yet. Tell people what this song is about — in your words.
+          </p>
+        )
+      )}
+      {onSaveStory && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" /> {story ? "Edit your story" : "Write your story"}
+        </button>
       )}
     </>
   );
