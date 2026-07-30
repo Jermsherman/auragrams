@@ -126,6 +126,8 @@ export async function saveAuraToCloud(opts: {
       palette: saved.palette,
       seed: saved.seed,
       hasVocals: saved.hasVocals !== false,
+      bands: saved.bands ?? null,
+
       density: saved.density,
       tempoBand: saved.tempoBand,
       motionKeywords: saved.motionKeywords,
