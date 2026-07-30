@@ -1394,7 +1394,7 @@ export function AuraLinkBuilder() {
                 </div>
               )}
 
-              {theme === "custom" && (
+              {theme === "custom" && !auraMatchId && (
                 <div className="mt-4 rounded-2xl glass-strong p-4 space-y-3">
                   <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                     Build your custom vibe
