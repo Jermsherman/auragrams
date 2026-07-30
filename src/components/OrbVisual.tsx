@@ -742,10 +742,10 @@ export function OrbVisual({
     if (prefersReducedMotion()) return;
     const el = ref.current;
     if (!el) return;
-    let raf = 0;
     const start = performance.now();
     const phase = ((hueShift % 97) / 97) * Math.PI * 2;
     const tick = () => {
+      if (!visibleRef.current) return;
       const t = (performance.now() - start) / 1000;
       const breathe = Math.sin(t * 0.55 + phase);
       const slow = Math.sin(t * 0.23 + phase * 1.7);
@@ -753,10 +753,9 @@ export function OrbVisual({
       el.style.setProperty("--orb-glow", (0.5 + breathe * 0.12).toFixed(3));
       el.style.setProperty("--orb-bass", (1 + slow * 0.03).toFixed(4));
       el.style.setProperty("--orb-shimmer", (0.45 + slow * 0.12).toFixed(3));
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Idle motion is slow enough that 24fps is visually identical.
+    return subscribeFrame(tick, 24);
   }, [hero, isPlaying, hueShift]);
 
   // Atmosphere layer — smoke / water / ember / lightning. Deterministic per
