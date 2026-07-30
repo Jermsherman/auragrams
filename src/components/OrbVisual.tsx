@@ -290,7 +290,9 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 2: bass-driven outer halo ring
+          // Ring 2: bass halo — contour comes from the LOW BAND only (sub–low
+          // mids), so it breathes slowly with the kick instead of retracing the
+          // full-mix waveform like ring 1.
           if (bandsCfg.bass.enabled) {
             const g = bandGain(bandsCfg.bass.intensity);
             ctx.lineWidth = 1.2 * dpr * g.width;
@@ -298,12 +300,23 @@ export function OrbVisual({
             ctx.shadowBlur = 0;
             ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
             const baseR2 = baseR * (1.06 + bass * 0.12);
+            const bn = freqData ? freqData.length : 0;
+            // ~20Hz – 200Hz on a 44.1kHz context.
+            const bLo = bn ? Math.max(1, Math.floor((20 / 22050) * bn)) : 0;
+            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / 22050) * bn)) : 0;
+            const bSpan = bHi - bLo;
             ctx.beginPath();
-            for (let i = 0; i <= samples; i++) {
-              const idx = Math.floor((i % samples) * step2);
-              const v = (waveData[idx] - 128) / 128;
-              const angle = (i / samples) * Math.PI * 2 + 0.12;
-              const r = baseR2 + v * deformGain * 0.6;
+            const bSegs = 120;
+            for (let i = 0; i <= bSegs; i++) {
+              const u = (i % bSegs) / bSegs;
+              // Mirror the low band around the circle so the ring stays smooth.
+              const m = u < 0.5 ? u * 2 : (1 - u) * 2;
+              let v = 0;
+              if (freqData && bSpan > 0) {
+                v = freqData[bLo + Math.floor(m * (bSpan - 1))] / 255;
+              }
+              const angle = u * Math.PI * 2 + 0.12;
+              const r = baseR2 + v * baseR * 0.16 * (0.4 + bass * 1.6);
               const x = cx + Math.cos(angle) * r;
               const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
@@ -313,23 +326,59 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz).
-          // Rendered either as a centered core pulse or an equator streak.
+          // Ring 3: radar pings — emitted on detected onsets (spectral flux /
+          // transients), not on a timer. Each ping expands and fades.
+          if (bandsCfg.radar.enabled) {
+            const g = bandGain(bandsCfg.radar.intensity);
+            const flux = vol * 0.6 + peak * 0.4;
+            const rise = flux - prevFlux;
+            prevFlux += (flux - prevFlux) * 0.35;
+            onsetCooldown = Math.max(0, onsetCooldown - 1);
+            if ((rise > 0.035 || trans > 0.35) && onsetCooldown === 0 && radarRings.length < 6) {
+              radarRings.push({ r: baseR * 0.55, life: 1 });
+              onsetCooldown = 8;
+            }
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1.1 * dpr * g.width;
+            ctx.strokeStyle = bandColor("radar");
+            for (let i = radarRings.length - 1; i >= 0; i--) {
+              const ring = radarRings[i];
+              ring.r += baseR * 0.018;
+              ring.life -= 0.02;
+              if (ring.life <= 0) {
+                radarRings.splice(i, 1);
+                continue;
+              }
+              ctx.globalAlpha = Math.min(1, ring.life * 0.45 * g.alpha);
+              ctx.beginPath();
+              ctx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+
+          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz),
+          // with the low band subtracted so kick/808 bleed can't pump it.
           if (hasVocals && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
-            const freqData = metricsRef?.current?.frequency ?? freq;
             let vocal = 0;
+            let vLo = 0;
+            let vHi = 0;
             if (freqData && freqData.length > 0) {
               const n = freqData.length;
               // Nyquist ~22.05kHz for a 44.1kHz context.
-              const lo = Math.max(1, Math.floor((200 / 22050) * n));
-              const hi = Math.min(n - 1, Math.floor((4000 / 22050) * n));
+              vLo = Math.max(1, Math.floor((200 / 22050) * n));
+              vHi = Math.min(n - 1, Math.floor((4000 / 22050) * n));
               let sum = 0;
-              for (let i = lo; i <= hi; i++) sum += freqData[i];
-              vocal = sum / Math.max(1, hi - lo + 1) / 255;
+              for (let i = vLo; i <= vHi; i++) sum += freqData[i];
+              vocal = sum / Math.max(1, vHi - vLo + 1) / 255;
+              // Duck by low-end energy: bass belongs to the halo, not the core.
+              vocal = Math.max(0, vocal - bass * 0.45);
             }
-            vocalLevel += (vocal - vocalLevel) * (vocal > vocalLevel ? 0.35 : 0.12);
-            const amp = Math.min(1, vocalLevel * 2.2);
+            // Fast attack, slow release — a voice-like envelope.
+            vocalLevel += (vocal - vocalLevel) * (vocal > vocalLevel ? 0.4 : 0.06);
+            const amp = Math.min(1, vocalLevel * 2.6);
+            corePhase += 0.0035 + amp * 0.004;
+
 
             if (amp > 0.02) {
               const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
