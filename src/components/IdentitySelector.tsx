@@ -180,7 +180,7 @@ export function IdentitySelector({ value, onChange, onResolve }: Props) {
         <div className="flex-1 min-w-0">
           <p className="text-sm">Post anonymously</p>
           <p className="text-[11px] text-muted-foreground">
-            Public AuraLink shows "Anonymous Aura" — still saved privately to your Farm.
+            Hides your name — the Aura page is still publicly viewable by anyone with the link.
           </p>
         </div>
         {value.mode === "anonymous" && <Check className="h-4 w-4 text-foreground/70" />}
