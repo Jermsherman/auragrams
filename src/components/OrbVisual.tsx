@@ -272,6 +272,53 @@ export function OrbVisual({
           ctx.closePath();
           ctx.stroke();
 
+          // Vocal band: bright horizontal streak across the equator, driven by
+          // energy in the vocal range (~200Hz–4kHz). Skipped for instrumentals.
+          if (hasVocals) {
+            const freqData = metricsRef?.current?.frequency ?? freq;
+            let vocal = 0;
+            if (freqData && freqData.length > 0) {
+              const n = freqData.length;
+              // Nyquist ~22.05kHz for a 44.1kHz context.
+              const lo = Math.max(1, Math.floor((200 / 22050) * n));
+              const hi = Math.min(n - 1, Math.floor((4000 / 22050) * n));
+              let sum = 0;
+              for (let i = lo; i <= hi; i++) sum += freqData[i];
+              vocal = sum / Math.max(1, hi - lo + 1) / 255;
+            }
+            vocalLevel += (vocal - vocalLevel) * (vocal > vocalLevel ? 0.35 : 0.12);
+            const amp = Math.min(1, vocalLevel * 2.2);
+
+            if (amp > 0.02) {
+              const streakW = baseR * 2.6;
+              const streakX0 = cx - streakW / 2;
+              const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+              grad.addColorStop(0, "transparent");
+              grad.addColorStop(0.2, p.stops[2]);
+              grad.addColorStop(0.5, p.glow);
+              grad.addColorStop(0.8, p.stops[3]);
+              grad.addColorStop(1, "transparent");
+              ctx.strokeStyle = grad;
+              ctx.lineWidth = (1.6 + amp * 1.4) * dpr;
+              ctx.shadowBlur = 22 * dpr;
+              ctx.shadowColor = p.glow;
+              ctx.globalAlpha = Math.min(0.95, 0.25 + amp * 0.8);
+              ctx.beginPath();
+              const segs = 240;
+              for (let i = 0; i <= segs; i++) {
+                const u = i / segs;
+                const idx = Math.floor(u * (waveData.length - 1));
+                const v = (waveData[idx] - 128) / 128;
+                const x = streakX0 + u * streakW;
+                const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+                const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+            }
+          }
+
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
         }
