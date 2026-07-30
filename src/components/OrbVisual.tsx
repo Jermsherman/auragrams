@@ -2,6 +2,7 @@ import { useEffect, useRef, useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
+import type { AuraEffect } from "@/lib/auraEffects";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 
@@ -25,7 +26,15 @@ type Props = {
   hasVocals?: boolean;
   /** Per-band visibility / color / intensity configuration. */
   bands?: BandsConfig | null;
+  /** Atmospheric effect layer — auto-picked per Aura. */
+  effect?: AuraEffect | null;
 };
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 
 
 function shapeStyle(shape: AuraPersonality["shape"]): React.CSSProperties {
