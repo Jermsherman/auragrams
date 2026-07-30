@@ -281,18 +281,22 @@ export function OrbVisual({
           const cx = w / 2;
           const cy = h / 2;
           const baseR = Math.min(w, h) * 0.42;
-          const deformGain = baseR * 0.32 + deform * 1.1;
+          // Auto-gain: track a slowly-decaying loudness ceiling so quiet
+          // masters still trace a visible ring.
+          volCeiling = Math.max(vol, volCeiling * 0.9995);
+          const volN = Math.min(1, vol / Math.max(0.05, volCeiling));
+          const deformGain = baseR * (0.22 + volN * 0.22) + deform * 1.1;
           const samples = 220;
           const step2 = waveData.length / samples;
 
-          // Ring 1: primary oscilloscope
+          // Band 1 — WAVEFORM RING: full-mix time domain, normalised.
           if (bandsCfg.waveform.enabled) {
             const g = bandGain(bandsCfg.waveform.intensity);
             ctx.lineWidth = 2.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
             ctx.shadowBlur = 14 * dpr * g.glow;
             ctx.shadowColor = p.glow;
-            ctx.globalAlpha = Math.min(1, (0.4 + Math.min(0.55, vol * 1.8)) * g.alpha);
+            ctx.globalAlpha = Math.min(1, (0.4 + volN * 0.55) * g.alpha);
             ctx.beginPath();
             for (let i = 0; i <= samples; i++) {
               const idx = Math.floor((i % samples) * step2);
@@ -308,21 +312,28 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 2: bass halo — contour comes from the LOW BAND only (sub–low
-          // mids), so it breathes slowly with the kick instead of retracing the
-          // full-mix waveform like ring 1.
+          // Band 2 — BASS HALO: only bins below 200 Hz, mapped with the real
+          // sample rate. Slow envelope, so it swells with the kick and sub.
           if (bandsCfg.bass.enabled) {
             const g = bandGain(bandsCfg.bass.intensity);
             ctx.lineWidth = 1.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("bass");
             ctx.shadowBlur = 0;
-            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
-            const baseR2 = baseR * (1.06 + bass * 0.12);
             const bn = freqData ? freqData.length : 0;
-            // ~20Hz – 200Hz on a 44.1kHz context.
-            const bLo = bn ? Math.max(1, Math.floor((20 / 22050) * bn)) : 0;
-            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / 22050) * bn)) : 0;
+            const bLo = bn ? Math.max(1, Math.floor((20 / nyquist) * bn)) : 0;
+            const bHi = bn ? Math.max(bLo + 1, Math.floor((200 / nyquist) * bn)) : 0;
             const bSpan = bHi - bLo;
+            // Measure the low band directly rather than trusting a generic
+            // "bass" metric that may include low mids.
+            let lowLevel = bass;
+            if (freqData && bSpan > 0) {
+              let s = 0;
+              for (let i = bLo; i <= bHi; i++) s += freqData[i];
+              lowLevel = s / (bSpan + 1) / 255;
+            }
+            bassEnv += (lowLevel - bassEnv) * (lowLevel > bassEnv ? 0.3 : 0.08);
+            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.45, bassEnv * 1.6)) * g.alpha);
+            const baseR2 = baseR * (1.06 + bassEnv * 0.14);
             ctx.beginPath();
             const bSegs = 120;
             for (let i = 0; i <= bSegs; i++) {
@@ -334,7 +345,7 @@ export function OrbVisual({
                 v = freqData[bLo + Math.floor(m * (bSpan - 1))] / 255;
               }
               const angle = u * Math.PI * 2 + 0.12;
-              const r = baseR2 + v * baseR * 0.16 * (0.4 + bass * 1.6);
+              const r = baseR2 + v * baseR * 0.16 * (0.4 + bassEnv * 1.6);
               const x = cx + Math.cos(angle) * r;
               const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
@@ -344,17 +355,36 @@ export function OrbVisual({
             ctx.stroke();
           }
 
-          // Ring 3: radar pings — emitted on detected onsets (spectral flux /
-          // transients), not on a timer. Each ping expands and fades.
+          // Band 3 — RADAR PINGS: true spectral-flux onset detection with an
+          // adaptive threshold, so rings fire on attacks rather than loudness.
           if (bandsCfg.radar.enabled) {
             const g = bandGain(bandsCfg.radar.intensity);
-            const flux = vol * 0.6 + peak * 0.4;
-            const rise = flux - prevFlux;
-            prevFlux += (flux - prevFlux) * 0.35;
+            let flux = 0;
+            if (freqData && freqData.length > 0) {
+              const n = freqData.length;
+              if (!prevSpectrum || prevSpectrum.length !== n) {
+                prevSpectrum = new Float32Array(n);
+                for (let i = 0; i < n; i++) prevSpectrum[i] = freqData[i];
+              } else {
+                let sum = 0;
+                for (let i = 0; i < n; i++) {
+                  const d = freqData[i] - prevSpectrum[i];
+                  if (d > 0) sum += d;
+                  prevSpectrum[i] = prevSpectrum[i] + (freqData[i] - prevSpectrum[i]) * 0.55;
+                }
+                flux = sum / (n * 255);
+              }
+            }
+            // Running mean + variance → threshold adapts to the track.
+            const d = flux - fluxAvg;
+            fluxAvg += d * 0.05;
+            fluxVar += (d * d - fluxVar) * 0.05;
+            const threshold = fluxAvg + Math.sqrt(Math.max(fluxVar, 1e-9)) * 1.6 + 0.0015;
             onsetCooldown = Math.max(0, onsetCooldown - 1);
-            if ((rise > 0.035 || trans > 0.35) && onsetCooldown === 0 && radarRings.length < 6) {
+            const onset = flux > threshold || trans > 0.45;
+            if (onset && onsetCooldown === 0 && radarRings.length < 6) {
               radarRings.push({ r: baseR * 0.55, life: 1 });
-              onsetCooldown = 8;
+              onsetCooldown = 7;
             }
             ctx.shadowBlur = 0;
             ctx.lineWidth = 1.1 * dpr * g.width;
@@ -373,6 +403,7 @@ export function OrbVisual({
               ctx.stroke();
             }
           }
+
 
           // Vocal band: driven by energy in the vocal range (~200Hz–4kHz),
           // with the low band subtracted so kick/808 bleed can't pump it.
