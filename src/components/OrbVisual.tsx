@@ -152,15 +152,22 @@ export function OrbVisual({
     // an expanding ring with its own life.
     const radarRings: { r: number; life: number }[] = [];
     let onsetCooldown = 0;
-    let prevFlux = 0;
+    // Spectral-flux onset detection state (adaptive threshold).
+    let prevSpectrum: Float32Array | null = null;
+    let fluxAvg = 0;
+    let fluxVar = 0;
     // Independent slow rotation so the vocal core never phase-locks to the
     // full-mix waveform ring.
     let corePhase = 0;
+    // Auto-gain so quiet masters still move the waveform ring.
+    let volCeiling = 0.12;
 
     // fallback analyser-only state
     const a = analyser?.current ?? null;
     const freq = a ? new Uint8Array(a.frequencyBinCount) : null;
     const wave = a ? new Uint8Array(a.fftSize) : null;
+    // Real nyquist — bin→Hz mapping must never assume 44.1kHz.
+    const nyquist = (a?.context?.sampleRate ?? 44100) / 2;
 
     const tick = () => {
       let vol = 0;
