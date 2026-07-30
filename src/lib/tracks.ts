@@ -39,6 +39,7 @@ export type Track = {
   coverDataUrl?: string;
   seed: number;
   hasVocals?: boolean;
+  bands?: import("./auraBands").BandsConfig;
   createdAt: number;
 
   // Phase 2
@@ -161,6 +162,7 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     coverDataUrl: t.coverDataUrl,
     seed: t.seed ?? seedFromId(t.id),
     hasVocals: t.hasVocals,
+    bands: t.bands,
     createdAt: t.createdAt ?? Date.now(),
     moods,
     palette: (t.palette as PaletteKey) ?? gen.palette,

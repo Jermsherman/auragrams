@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSignedAudioUrl, getSignedAudioUrls } from "./audioStorage";
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
+import { resolveBands } from "./auraBands";
 import type { Auracle } from "./auracle";
 
 export type CloudAuraRow = {
