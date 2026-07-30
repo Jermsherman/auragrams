@@ -736,14 +736,20 @@ function AuraPage() {
         </div>
         )}
 
-        <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
-        <AuraShareDialog
-          track={track}
-          insight={insight}
-          shareUrl={url}
-          open={auraShareOpen}
-          onOpenChange={setAuraShareOpen}
-        />
+        <Suspense fallback={null}>
+          {storyOpen && (
+            <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
+          )}
+          {auraShareOpen && (
+            <AuraShareDialog
+              track={track}
+              insight={insight}
+              shareUrl={url}
+              open={auraShareOpen}
+              onOpenChange={setAuraShareOpen}
+            />
+          )}
+        </Suspense>
         <AddToAuracleDialog
           auraId={track.id}
           open={auracleOpen}
