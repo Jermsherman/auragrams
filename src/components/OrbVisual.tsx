@@ -522,13 +522,13 @@ export function OrbVisual({
     const el = ref.current;
     if (!el) return;
 
-    let raf = 0;
     const start = performance.now();
     const N = 256;
     const wave = new Uint8Array(N);
     let scale = 1, glow = 0.6, bassHalo = 1, shimmer = 0.5, deform = 8, burst = 0;
 
     const tick = (now: number) => {
+      if (!visibleRef.current) return;
       const t = (now - start) / 1000;
 
       // Synthetic envelopes (slow breathing + occasional swells)
