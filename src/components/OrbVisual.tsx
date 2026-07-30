@@ -71,6 +71,7 @@ export function OrbVisual({
   profile,
   particles = true,
   hero = false,
+  hasVocals = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
