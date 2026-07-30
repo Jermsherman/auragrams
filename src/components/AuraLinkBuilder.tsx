@@ -242,15 +242,22 @@ export function AuraLinkBuilder() {
     setSlug(p.handleSlug);
     if (typeof p.theme === "string") {
       setTheme(p.theme);
+      setAuraMatchId(undefined);
       setThemeExtras({});
     } else {
       const t = p.theme;
-      if (t.mode === "custom") {
+      if (t.mode === "auraMatch") {
+        setAuraMatchId(t.sourceAuraId ?? p.featuredAuraId ?? p.selectedAuraIds[0]);
+        setTheme("custom");
+      } else if (t.mode === "custom") {
+        setAuraMatchId(undefined);
         setTheme("custom");
         setCustomTheme({ ...DEFAULT_CUSTOM_THEME, ...t });
       } else {
+        setAuraMatchId(undefined);
         setTheme((t.preset ?? "midnight") as AuraLinkThemePreset);
       }
+
       setThemeExtras({
         fontHeading: t.fontHeading,
         fontBody: t.fontBody,
