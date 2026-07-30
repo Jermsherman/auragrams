@@ -820,7 +820,7 @@ function CreatePage() {
                 <div className="rounded-2xl border border-border/60 bg-background/30 p-4">
                   <div className="text-sm font-medium">Does this track have vocals?</div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Vocals add a live band across the sphere that moves with the voice.
+                    Vocals add a live band to the orb that moves with the voice. Choose its shape under Aura bands.
                   </p>
                   <div className="mt-3 flex gap-2">
                     {[
