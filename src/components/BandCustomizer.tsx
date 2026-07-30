@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, Eye, EyeOff, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  BAND_DRIVE,
   BAND_HINTS,
   BAND_LABELS,
   BAND_ORDER,
