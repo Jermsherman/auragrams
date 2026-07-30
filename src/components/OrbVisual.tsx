@@ -161,6 +161,8 @@ export function OrbVisual({
     let corePhase = 0;
     // Auto-gain so quiet masters still move the waveform ring.
     let volCeiling = 0.12;
+    // Slow low-band envelope for the bass halo.
+    let bassEnv = 0;
 
     // fallback analyser-only state
     const a = analyser?.current ?? null;
