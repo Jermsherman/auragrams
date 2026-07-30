@@ -104,6 +104,24 @@ export function OrbVisual({
     };
   }, [personality, palette, profile]);
 
+  const bandsCfg = useMemo(() => resolveBands(bands), [bands]);
+
+  // Resolve a band's stroke color: "auto" falls back to the palette default.
+  const bandColor = useMemo(() => {
+    const autoColor: Record<BandKey, string> = {
+      waveform: p.stops[3],
+      bass: p.stops[1],
+      radar: p.stops[1],
+      vocal: p.glow,
+    };
+    return (key: BandKey) => {
+      const c = bandsCfg[key].color;
+      return c && c !== "auto" ? c : autoColor[key];
+    };
+  }, [bandsCfg, p.stops, p.glow]);
+
+
+
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
     const el = ref.current;
