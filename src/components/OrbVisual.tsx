@@ -729,10 +729,8 @@ export function OrbVisual({
         }
       }
 
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return subscribeFrame(tick);
   }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   // Idle micro-motion: keeps every orb quietly alive when nothing is playing.
