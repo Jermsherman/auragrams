@@ -21,9 +21,12 @@ type Props = {
   particles?: boolean;
   /** Hero mode: self-animates with synthetic waveform when no analyser is given. */
   hero?: boolean;
-  /** When false, the vocal band across the sphere is not drawn (instrumental tracks). */
+  /** When false, the vocal band is not drawn (instrumental tracks). */
   hasVocals?: boolean;
+  /** Per-band visibility / color / intensity configuration. */
+  bands?: BandsConfig | null;
 };
+
 
 function shapeStyle(shape: AuraPersonality["shape"]): React.CSSProperties {
   switch (shape) {
