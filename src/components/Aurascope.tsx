@@ -41,6 +41,8 @@ type Props = {
   showControls?: boolean;
   interactive?: boolean;
   hero?: boolean;
+  /** When false, the orb renders a static frame instead of idle micro-motion. */
+  animate?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -106,6 +108,7 @@ export function Aurascope({
   showLabel,
   hero = false,
   interactive = false,
+  animate = true,
   className,
   style,
 }: Props) {
@@ -197,6 +200,7 @@ export function Aurascope({
             showGrid
             colors={colors}
             effect={effect}
+            animate={animate}
           />
           {showLabelResolved && <Label aura={aura} mode={mode} />}
         </div>
@@ -225,6 +229,7 @@ export function Aurascope({
         showGrid={showGrid}
         colors={colors}
         effect={effect}
+        animate={animate}
       />
       {showLabelResolved && <Label aura={aura} mode={mode} />}
     </div>
@@ -243,6 +248,7 @@ function AurascopeLens({
   showGrid,
   colors,
   effect,
+  animate,
 }: {
   size: AurascopeSize;
   mode: AurascopeMode;
@@ -255,6 +261,7 @@ function AurascopeLens({
   showGrid: boolean;
   colors: AuraPalette;
   effect?: AuraEffect | null;
+  animate: boolean;
 }) {
   const dim = SIZE_PX[size];
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
@@ -332,6 +339,8 @@ function AurascopeLens({
           hasVocals={aura.hasVocals !== false}
           bands={aura.bands}
           effect={effect}
+          quality={size === "large" || hero ? "high" : "low"}
+          animate={animate}
           className={isPlaying || hero ? "" : "animate-breathe"}
         />
       </div>
