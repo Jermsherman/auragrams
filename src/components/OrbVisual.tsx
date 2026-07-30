@@ -769,8 +769,7 @@ export function OrbVisual({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let raf = 0;
+    const dpr = fxDpr();
     const start = performance.now();
     let seed = Math.abs(Math.floor(hueShift)) + 7;
     const rnd = () => {
