@@ -230,6 +230,18 @@ function CreatePage() {
     toast.success("Moods detected. You can still adjust them.");
   };
 
+  // Auto-run mood detection once analysis lands — never overwrites manual picks.
+  useEffect(() => {
+    if (autoMoodDoneRef.current) return;
+    if (!audio || !features || !keyDetection) return;
+    if (moods.length > 0) return;
+    autoMoodDoneRef.current = true;
+    void handleDetectMood();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio, features, keyDetection]);
+
+
+
   const onPickAuracleFiles = (files: FileList | File[] | null | undefined) => {
     if (!files) return;
     const arr = Array.from(files).filter((f) => {
