@@ -196,6 +196,7 @@ export function Aurascope({
             isCompact={false}
             showGrid
             colors={colors}
+            effect={effect}
           />
           {showLabelResolved && <Label aura={aura} mode={mode} />}
         </div>
@@ -223,6 +224,7 @@ export function Aurascope({
         isCompact={isCompact}
         showGrid={showGrid}
         colors={colors}
+        effect={effect}
       />
       {showLabelResolved && <Label aura={aura} mode={mode} />}
     </div>
@@ -240,6 +242,7 @@ function AurascopeLens({
   isCompact,
   showGrid,
   colors,
+  effect,
 }: {
   size: AurascopeSize;
   mode: AurascopeMode;
@@ -251,6 +254,7 @@ function AurascopeLens({
   isCompact: boolean;
   showGrid: boolean;
   colors: AuraPalette;
+  effect?: AuraEffect | null;
 }) {
   const dim = SIZE_PX[size];
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
@@ -327,6 +331,7 @@ function AurascopeLens({
           hero={hero}
           hasVocals={aura.hasVocals !== false}
           bands={aura.bands}
+          effect={effect}
           className={isPlaying || hero ? "" : "animate-breathe"}
         />
       </div>
