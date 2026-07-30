@@ -18,6 +18,7 @@ export type AurascopeAura = {
   colors?: AuraPalette;
   profile?: AuraProfile;
   isAnonymous?: boolean;
+  hasVocals?: boolean;
 };
 
 type AudioAnalysisData = {
@@ -62,6 +63,7 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
     id: t.id,
     palette: t.palette,
     seed: t.seed,
+    hasVocals: t.hasVocals,
     auraName: t.auraName,
     trackTitle: t.title,
     artistName: t.artist,
@@ -301,6 +303,7 @@ function AurascopeLens({
           profile={aura.profile}
           particles={!isCompact}
           hero={hero}
+          hasVocals={aura.hasVocals !== false}
           className={isPlaying || hero ? "" : "animate-breathe"}
         />
       </div>

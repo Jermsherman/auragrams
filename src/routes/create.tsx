@@ -86,6 +86,7 @@ function CreatePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [moods, setMoods] = useState<string[]>([]);
+  const [hasVocals, setHasVocals] = useState(true);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -406,6 +407,7 @@ function CreatePage() {
         artistHandle: slugify(artist.trim()) || "artist",
         coverDataUrl,
         seed: seedFromId(id),
+        hasVocals,
         createdAt: Date.now(),
         moods,
         detectedKey: detectedKeyStr ?? undefined,
@@ -810,6 +812,34 @@ function CreatePage() {
                   detectLabel={moods.length > 0 ? "Re-detect" : "Detect Mood"}
                   canDetect={canDetect}
                 />
+
+                <div className="rounded-2xl border border-border/60 bg-background/30 p-4">
+                  <div className="text-sm font-medium">Does this track have vocals?</div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Vocals add a live band across the sphere that moves with the voice.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    {[
+                      { label: "Yes", value: true },
+                      { label: "No", value: false },
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => setHasVocals(opt.value)}
+                        aria-pressed={hasVocals === opt.value}
+                        className={
+                          "rounded-full px-4 py-1.5 text-xs font-medium transition-colors " +
+                          (hasVocals === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/40 text-muted-foreground hover:text-foreground")
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {flags.enableColorInfluence && (
                   <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
