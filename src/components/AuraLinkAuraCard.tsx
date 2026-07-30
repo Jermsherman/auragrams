@@ -142,7 +142,6 @@ export function AuraLinkAuraCard({
                 palette: aura.palette,
                 seed: aura.seed,
                 hasVocals: aura.hasVocals,
-            hasVocals: aura.hasVocals,
                 auraName: aura.auraName,
                 colors: aura.colors,
               }}
@@ -219,7 +218,6 @@ export function AuraLinkAuraCard({
                   palette: aura.palette,
                   seed: aura.seed,
                 hasVocals: aura.hasVocals,
-            hasVocals: aura.hasVocals,
                   auraName: aura.auraName,
                   colors: aura.colors,
                 }}
