@@ -289,7 +289,7 @@ export function OrbVisual({
       if (canvas && waveData && waveData.length > 0) {
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const dpr = fxDpr();
           const rect = canvas.getBoundingClientRect();
           const need =
             canvas.width !== Math.floor(rect.width * dpr) ||
@@ -317,7 +317,7 @@ export function OrbVisual({
             const g = bandGain(bandsCfg.waveform.intensity);
             ctx.lineWidth = 2.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
-            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowBlur = 14 * dpr * g.glow * shadowScale;
             ctx.shadowColor = p.glow;
             ctx.globalAlpha = Math.min(1, (0.4 + volN * 0.55) * g.alpha);
             ctx.beginPath();
@@ -454,7 +454,7 @@ export function OrbVisual({
 
             if (amp > 0.02) {
               const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
-              ctx.shadowBlur = 22 * dpr * g.glow;
+              ctx.shadowBlur = 22 * dpr * g.glow * shadowScale;
               ctx.shadowColor = solid ?? p.glow;
               ctx.globalAlpha = Math.min(1, (0.25 + amp * 0.8) * g.alpha);
 
@@ -614,7 +614,7 @@ export function OrbVisual({
       if (canvas) {
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const dpr = fxDpr();
           const rect = canvas.getBoundingClientRect();
           if (
             canvas.width !== Math.floor(rect.width * dpr) ||
@@ -636,7 +636,7 @@ export function OrbVisual({
             const samples = 220;
             ctx.lineWidth = 2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
-            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowBlur = 14 * dpr * g.glow * shadowScale;
             ctx.shadowColor = p.glow;
             ctx.globalAlpha = Math.min(1, (0.5 + 0.25 * breath) * g.alpha);
             ctx.beginPath();
@@ -681,7 +681,7 @@ export function OrbVisual({
               Math.sin(u * Math.PI * 5 + t * 1.35) * 0.6 +
               Math.sin(u * Math.PI * 11 - t * 0.75) * 0.4;
             const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
-            ctx.shadowBlur = 22 * dpr * g.glow;
+            ctx.shadowBlur = 22 * dpr * g.glow * shadowScale;
             ctx.shadowColor = solid ?? p.glow;
             ctx.globalAlpha = Math.min(1, 0.95 * g.alpha);
 
@@ -920,7 +920,7 @@ export function OrbVisual({
           ctx.globalAlpha = Math.max(0, arc.t) * 0.9;
           ctx.strokeStyle = p.glow;
           ctx.shadowColor = p.glow;
-          ctx.shadowBlur = 18 * dpr;
+          ctx.shadowBlur = 18 * dpr * shadowScale;
           ctx.lineWidth = 1.6 * dpr;
           ctx.beginPath();
           arc.pts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
@@ -959,7 +959,7 @@ export function OrbVisual({
             ctx.globalAlpha = fade * (0.5 + e * 0.4);
             ctx.fillStyle = p.glow;
             ctx.shadowColor = p.glow;
-            ctx.shadowBlur = 8 * dpr;
+            ctx.shadowBlur = 8 * dpr * shadowScale;
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
             ctx.fill();
