@@ -429,70 +429,114 @@ export function OrbVisual({
           const baseR = Math.min(w, h) * 0.42;
 
           // Orbit oscilloscope
-          const samples = 220;
-          ctx.lineWidth = 2 * dpr;
-          ctx.strokeStyle = p.stops[3];
-          ctx.shadowBlur = 14 * dpr;
-          ctx.shadowColor = p.glow;
-          ctx.globalAlpha = 0.5 + 0.25 * breath;
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * (N / samples));
-            const v = (wave[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2;
-            const r = baseR + v * (baseR * 0.32);
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          ctx.stroke();
-
-          // Expanding rings (radar-style)
-          const ringCount = 3;
-          for (let k = 0; k < ringCount; k++) {
-            const phase = (t * 0.35 + k / ringCount) % 1;
-            const rr = baseR * (0.7 + phase * 0.7);
-            const alpha = (1 - phase) * 0.35;
-            ctx.globalAlpha = alpha;
-            ctx.lineWidth = 1.2 * dpr;
-            ctx.strokeStyle = p.stops[1];
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, rr, rr * 0.92, 0, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-
-          // Horizontal equator waveform streak (vocal band) — skipped for instrumentals
-          if (hasVocals) {
-            const streakW = baseR * 2.6;
-            const streakX0 = cx - streakW / 2;
-            const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
-            grad.addColorStop(0, "transparent");
-            grad.addColorStop(0.2, p.stops[2]);
-            grad.addColorStop(0.5, p.glow);
-            grad.addColorStop(0.8, p.stops[3]);
-            grad.addColorStop(1, "transparent");
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 2.2 * dpr;
-            ctx.shadowBlur = 22 * dpr;
+          if (bandsCfg.waveform.enabled) {
+            const g = bandGain(bandsCfg.waveform.intensity);
+            const samples = 220;
+            ctx.lineWidth = 2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("waveform");
+            ctx.shadowBlur = 14 * dpr * g.glow;
             ctx.shadowColor = p.glow;
-            ctx.globalAlpha = 0.95;
+            ctx.globalAlpha = Math.min(1, (0.5 + 0.25 * breath) * g.alpha);
             ctx.beginPath();
-            const segs = 240;
-            for (let i = 0; i <= segs; i++) {
-              const u = i / segs;
-              const idx = Math.floor(u * (N - 1));
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * (N / samples));
               const v = (wave[idx] - 128) / 128;
-              const x = streakX0 + u * streakW;
-              const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
-              const y = cy + v * baseR * 0.55 * env;
+              const angle = (i / samples) * Math.PI * 2;
+              const r = baseR + v * (baseR * 0.32);
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
               if (i === 0) ctx.moveTo(x, y);
               else ctx.lineTo(x, y);
             }
+            ctx.closePath();
             ctx.stroke();
           }
+
+          // Expanding rings (radar-style)
+          if (bandsCfg.radar.enabled) {
+            const g = bandGain(bandsCfg.radar.intensity);
+            const ringCount = 3;
+            for (let k = 0; k < ringCount; k++) {
+              const phase = (t * 0.35 + k / ringCount) % 1;
+              const rr = baseR * (0.7 + phase * 0.7);
+              const alpha = (1 - phase) * 0.35 * g.alpha;
+              ctx.globalAlpha = Math.min(1, alpha);
+              ctx.lineWidth = 1.2 * dpr * g.width;
+              ctx.strokeStyle = bandColor("radar");
+              ctx.shadowBlur = 0;
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, rr, rr * 0.92, 0, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+
+          // Vocal band — centered core pulse or equator streak
+          if (hasVocals && bandsCfg.vocal.enabled) {
+            const g = bandGain(bandsCfg.vocal.intensity);
+            const amp = 0.45 + 0.35 * breath;
+            const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
+            ctx.shadowBlur = 22 * dpr * g.glow;
+            ctx.shadowColor = solid ?? p.glow;
+            ctx.globalAlpha = Math.min(1, 0.95 * g.alpha);
+
+            if (bandsCfg.vocalShape === "core") {
+              const coreR = baseR * (0.3 + amp * 0.22);
+              const grad =
+                solid ??
+                (() => {
+                  const rg = ctx.createRadialGradient(cx, cy, coreR * 0.2, cx, cy, coreR * 1.15);
+                  rg.addColorStop(0, p.glow);
+                  rg.addColorStop(1, p.stops[2]);
+                  return rg;
+                })();
+              ctx.strokeStyle = grad as string | CanvasGradient;
+              ctx.lineWidth = (1.8 + amp * 2.2) * dpr * g.width;
+              ctx.beginPath();
+              const segs = 180;
+              for (let i = 0; i <= segs; i++) {
+                const u = i / segs;
+                const angle = u * Math.PI * 2;
+                const idx = Math.floor(u * (N - 1));
+                const v = (wave[idx] - 128) / 128;
+                const r = coreR * (1 + v * 0.18 * (0.5 + amp));
+                const x = cx + Math.cos(angle) * r;
+                const y = cy + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.closePath();
+              ctx.stroke();
+            } else {
+              const streakW = baseR * 2.6;
+              const streakX0 = cx - streakW / 2;
+              let stroke: string | CanvasGradient = solid ?? "";
+              if (!solid) {
+                const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+                grad.addColorStop(0, "transparent");
+                grad.addColorStop(0.2, p.stops[2]);
+                grad.addColorStop(0.5, p.glow);
+                grad.addColorStop(0.8, p.stops[3]);
+                grad.addColorStop(1, "transparent");
+                stroke = grad;
+              }
+              ctx.strokeStyle = stroke;
+              ctx.lineWidth = 2.2 * dpr * g.width;
+              ctx.beginPath();
+              const segs = 240;
+              for (let i = 0; i <= segs; i++) {
+                const u = i / segs;
+                const idx = Math.floor(u * (N - 1));
+                const v = (wave[idx] - 128) / 128;
+                const x = streakX0 + u * streakW;
+                const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+                const y = cy + v * baseR * 0.55 * env;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+            }
+          }
+
 
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
