@@ -33,6 +33,7 @@ export function AuraFarmCard({
   const [open, setOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [live, setLive] = useState(false);
   const p = getPersonality(aura.palette);
 
   const isRaw = aura.sourceType === "raw_recording";
