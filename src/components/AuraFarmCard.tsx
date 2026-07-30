@@ -108,6 +108,7 @@ export function AuraFarmCard({
             palette: aura.palette,
             seed: aura.seed,
             hasVocals: aura.hasVocals,
+            bands: aura.bands,
             auraName: aura.auraName,
             trackTitle: aura.trackTitle,
             artistName: aura.artistName,
