@@ -137,6 +137,14 @@ export function OrbVisual({
     let deform = 0;
     let vocalLevel = 0;
     let burst = 0;
+    // Radar pings are emitted on detected onsets (real audio) — each entry is
+    // an expanding ring with its own life.
+    const radarRings: { r: number; life: number }[] = [];
+    let onsetCooldown = 0;
+    let prevFlux = 0;
+    // Independent slow rotation so the vocal core never phase-locks to the
+    // full-mix waveform ring.
+    let corePhase = 0;
 
     // fallback analyser-only state
     const a = analyser?.current ?? null;
