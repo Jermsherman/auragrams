@@ -11,12 +11,14 @@ export function MoodPicker({
   glowColor,
   onDetect,
   canDetect,
+  detectLabel = "Detect Mood",
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   glowColor?: string;
   onDetect?: () => void | Promise<void>;
   canDetect?: boolean;
+  detectLabel?: string;
 }) {
   const [detecting, setDetecting] = useState(false);
 
