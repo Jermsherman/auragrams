@@ -661,8 +661,7 @@ export function OrbVisual({
               const segs = 240;
               for (let i = 0; i <= segs; i++) {
                 const u = i / segs;
-                const idx = Math.floor(u * (N - 1));
-                const v = (wave[idx] - 128) / 128;
+                const v = vAt(u) * (0.5 + amp * 0.6);
                 const x = streakX0 + u * streakW;
                 const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
                 const y = cy + v * baseR * 0.55 * env;
