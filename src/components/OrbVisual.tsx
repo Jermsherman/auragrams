@@ -222,6 +222,7 @@ export function OrbVisual({
       const waveData =
         metricsRef?.current?.waveform ??
         (a && wave ? (a.getByteTimeDomainData(wave!), wave) : null);
+      const freqData = metricsRef?.current?.frequency ?? freq;
 
       // Edge clip-path deformation on the shell + texture (oscilloscope silhouette)
       if (waveData && waveData.length > 0 && (shellRef.current || textureRef.current)) {
