@@ -212,8 +212,10 @@ export function AuraLinkBuilder() {
     setProfileImageUrl("");
     setSlug("");
     setTheme("midnight");
+    setAuraMatchId(undefined);
     setCustomTheme({ ...DEFAULT_CUSTOM_THEME });
     setThemeExtras({});
+
     setStreamingLinks([]);
     setSocialLinks([]);
     setCustomLinks([]);
