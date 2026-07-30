@@ -185,6 +185,7 @@ export function OrbVisual({
     const nyquist = (a?.context?.sampleRate ?? 44100) / 2;
 
     const tick = () => {
+      if (!visibleRef.current) return;
       let vol = 0;
       let bass = 0;
       let mid = 0;
