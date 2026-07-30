@@ -95,7 +95,13 @@ export function OrbVisual({
   const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
+  const visibleRef = useRef(true);
   const filterId = useId().replace(/:/g, "");
+
+  // Small orbs (cards, minis) don't need retina decorative layers.
+  const pxSize = typeof size === "number" ? size : 320;
+  const fxDpr = () => Math.min(pxSize >= 360 ? 2 : 1.5, window.devicePixelRatio || 1);
+
 
   const p: AuraPersonality = useMemo(() => {
     const base =
