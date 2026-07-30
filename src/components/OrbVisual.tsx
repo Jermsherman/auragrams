@@ -234,48 +234,55 @@ export function OrbVisual({
           const step2 = waveData.length / samples;
 
           // Ring 1: primary oscilloscope
-          ctx.lineWidth = 2.2 * dpr;
-          ctx.strokeStyle = `${p.stops[3]}`;
-          ctx.shadowBlur = 14 * dpr;
-          ctx.shadowColor = p.glow;
-          ctx.globalAlpha = 0.4 + Math.min(0.55, vol * 1.8);
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * step2);
-            const v = (waveData[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2;
-            const r = baseR + v * deformGain;
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          if (bandsCfg.waveform.enabled) {
+            const g = bandGain(bandsCfg.waveform.intensity);
+            ctx.lineWidth = 2.2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("waveform");
+            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowColor = p.glow;
+            ctx.globalAlpha = Math.min(1, (0.4 + Math.min(0.55, vol * 1.8)) * g.alpha);
+            ctx.beginPath();
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * step2);
+              const v = (waveData[idx] - 128) / 128;
+              const angle = (i / samples) * Math.PI * 2;
+              const r = baseR + v * deformGain;
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
 
           // Ring 2: bass-driven outer halo ring
-          ctx.lineWidth = 1.2 * dpr;
-          ctx.strokeStyle = p.stops[1];
-          ctx.shadowBlur = 0;
-          ctx.globalAlpha = 0.18 + Math.min(0.4, bass * 1.4);
-          const baseR2 = baseR * (1.06 + bass * 0.12);
-          ctx.beginPath();
-          for (let i = 0; i <= samples; i++) {
-            const idx = Math.floor((i % samples) * step2);
-            const v = (waveData[idx] - 128) / 128;
-            const angle = (i / samples) * Math.PI * 2 + 0.12;
-            const r = baseR2 + v * deformGain * 0.6;
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          if (bandsCfg.bass.enabled) {
+            const g = bandGain(bandsCfg.bass.intensity);
+            ctx.lineWidth = 1.2 * dpr * g.width;
+            ctx.strokeStyle = bandColor("bass");
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = Math.min(1, (0.18 + Math.min(0.4, bass * 1.4)) * g.alpha);
+            const baseR2 = baseR * (1.06 + bass * 0.12);
+            ctx.beginPath();
+            for (let i = 0; i <= samples; i++) {
+              const idx = Math.floor((i % samples) * step2);
+              const v = (waveData[idx] - 128) / 128;
+              const angle = (i / samples) * Math.PI * 2 + 0.12;
+              const r = baseR2 + v * deformGain * 0.6;
+              const x = cx + Math.cos(angle) * r;
+              const y = cy + Math.sin(angle) * r;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
 
-          // Vocal band: bright horizontal streak across the equator, driven by
-          // energy in the vocal range (~200Hz–4kHz). Skipped for instrumentals.
-          if (hasVocals) {
+          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz).
+          // Rendered either as a centered core pulse or an equator streak.
+          if (hasVocals && bandsCfg.vocal.enabled) {
+            const g = bandGain(bandsCfg.vocal.intensity);
             const freqData = metricsRef?.current?.frequency ?? freq;
             let vocal = 0;
             if (freqData && freqData.length > 0) {
@@ -291,34 +298,69 @@ export function OrbVisual({
             const amp = Math.min(1, vocalLevel * 2.2);
 
             if (amp > 0.02) {
-              const streakW = baseR * 2.6;
-              const streakX0 = cx - streakW / 2;
-              const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
-              grad.addColorStop(0, "transparent");
-              grad.addColorStop(0.2, p.stops[2]);
-              grad.addColorStop(0.5, p.glow);
-              grad.addColorStop(0.8, p.stops[3]);
-              grad.addColorStop(1, "transparent");
-              ctx.strokeStyle = grad;
-              ctx.lineWidth = (1.6 + amp * 1.4) * dpr;
-              ctx.shadowBlur = 22 * dpr;
-              ctx.shadowColor = p.glow;
-              ctx.globalAlpha = Math.min(0.95, 0.25 + amp * 0.8);
-              ctx.beginPath();
-              const segs = 240;
-              for (let i = 0; i <= segs; i++) {
-                const u = i / segs;
-                const idx = Math.floor(u * (waveData.length - 1));
-                const v = (waveData[idx] - 128) / 128;
-                const x = streakX0 + u * streakW;
-                const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
-                const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+              const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
+              ctx.shadowBlur = 22 * dpr * g.glow;
+              ctx.shadowColor = solid ?? p.glow;
+              ctx.globalAlpha = Math.min(1, (0.25 + amp * 0.8) * g.alpha);
+
+              if (bandsCfg.vocalShape === "core") {
+                const coreR = baseR * (0.26 + amp * 0.26);
+                let stroke: string | CanvasGradient = solid ?? "";
+                if (!solid) {
+                  const rg = ctx.createRadialGradient(cx, cy, coreR * 0.2, cx, cy, coreR * 1.15);
+                  rg.addColorStop(0, p.glow);
+                  rg.addColorStop(1, p.stops[2]);
+                  stroke = rg;
+                }
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = (1.6 + amp * 2.4) * dpr * g.width;
+                ctx.beginPath();
+                const segs = 180;
+                for (let i = 0; i <= segs; i++) {
+                  const u = i / segs;
+                  const angle = u * Math.PI * 2;
+                  const idx = Math.floor(u * (waveData.length - 1));
+                  const v = (waveData[idx] - 128) / 128;
+                  const r = coreR * (1 + v * 0.2 * (0.4 + amp));
+                  const x = cx + Math.cos(angle) * r;
+                  const y = cy + Math.sin(angle) * r;
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+              } else {
+                const streakW = baseR * 2.6;
+                const streakX0 = cx - streakW / 2;
+                let stroke: string | CanvasGradient = solid ?? "";
+                if (!solid) {
+                  const grad = ctx.createLinearGradient(streakX0, cy, streakX0 + streakW, cy);
+                  grad.addColorStop(0, "transparent");
+                  grad.addColorStop(0.2, p.stops[2]);
+                  grad.addColorStop(0.5, p.glow);
+                  grad.addColorStop(0.8, p.stops[3]);
+                  grad.addColorStop(1, "transparent");
+                  stroke = grad;
+                }
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = (1.6 + amp * 1.4) * dpr * g.width;
+                ctx.beginPath();
+                const segs = 240;
+                for (let i = 0; i <= segs; i++) {
+                  const u = i / segs;
+                  const idx = Math.floor(u * (waveData.length - 1));
+                  const v = (waveData[idx] - 128) / 128;
+                  const x = streakX0 + u * streakW;
+                  const env = Math.exp(-Math.pow((u - 0.5) * 2.4, 2));
+                  const y = cy + v * baseR * 0.55 * env * (0.35 + amp);
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
               }
-              ctx.stroke();
             }
           }
+
 
           ctx.globalAlpha = 1;
           ctx.shadowBlur = 0;
