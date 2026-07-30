@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
         content:
           "Turn any song into a living, playable Aura. Share your sound with an AuraLink — a music-first link page with playable Auras.",
       },
-      { property: "og:title", content: "Auragram — See your sound" },
+      { property: "og:title", content: "Auragram — Give your music a living identity" },
       {
         property: "og:description",
         content:
