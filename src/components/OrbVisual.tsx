@@ -29,6 +29,10 @@ type Props = {
   bands?: BandsConfig | null;
   /** Atmospheric effect layer — auto-picked per Aura. */
   effect?: AuraEffect | null;
+  /** Render tier — "low" skips retina buffers, canvas glow and atmosphere. */
+  quality?: "high" | "low";
+  /** When false, the orb renders a static frame instead of idle micro-motion. */
+  animate?: boolean;
 };
 
 function prefersReducedMotion() {
