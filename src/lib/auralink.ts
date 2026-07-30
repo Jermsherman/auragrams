@@ -2,6 +2,9 @@
 // Music-first link page builder: streaming links, social links, custom
 // links, selected Auras, and a themed look (preset or custom).
 
+import { getPersonality } from "./aura";
+
+
 export type AuraLinkMode = "streaming_links" | "auras" | "mixed";
 export type AuraLinkThemePreset =
   | "midnight"
