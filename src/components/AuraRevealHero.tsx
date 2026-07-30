@@ -12,6 +12,8 @@ type Props = {
   artist: string;
   colors?: AuraPalette;
   insight?: AuraInsight | null;
+  /** Shown when the artist hasn't written their Aura Story yet. */
+  vibeLine?: string;
   reveal?: boolean;
 };
 
@@ -28,6 +30,7 @@ export function AuraRevealHero({
   artist,
   colors,
   insight,
+  vibeLine,
   reveal = false,
 }: Props) {
   // Stage: 0=idle, 1=eyebrow, 2=name, 3=subtitle, 4=pullquote
@@ -49,7 +52,11 @@ export function AuraRevealHero({
   const backdrop = `radial-gradient(ellipse 60% 40% at 50% 20%, ${c1} 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 50% 100%, ${c2} 0%, transparent 60%)`;
 
   const chars = auraName.split("");
-  const pull = insight?.story ? firstSentence(insight.story) : null;
+  const pull = insight?.story
+    ? firstSentence(insight.story)
+    : vibeLine
+      ? firstSentence(vibeLine)
+      : null;
 
   return (
     <div className="relative w-full max-w-2xl mx-auto text-center">
