@@ -283,6 +283,8 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     palette: ((visual.palette ?? row.palette_name) as import("./aura").PaletteKey) ?? "amethyst",
     seed: Number(visual.seed ?? 0),
     hasVocals: visual.hasVocals !== false,
+    bands: visual.bands ? resolveBands(visual.bands) : undefined,
+
     coverDataUrl: extra.coverUrl ?? extra.coverDataUrl,
     musicalKey: row.detected_key ?? undefined,
     tempoBand: visual.tempoBand,
