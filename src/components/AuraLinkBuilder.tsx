@@ -139,10 +139,23 @@ export function AuraLinkBuilder() {
     background?: AuraLinkBackground;
     sectionOrder?: AuraLinkSectionKey[];
   }>({});
-  const themeValue: AuraLinkTheme =
-    theme === "custom"
+  /** When set, the page palette follows this Aura live (theme mode "auraMatch"). */
+  const [auraMatchId, setAuraMatchId] = useState<string | undefined>(undefined);
+  const themeValue: AuraLinkTheme = auraMatchId
+    ? {
+        name: "Aura palette",
+        mode: "auraMatch",
+        sourceAuraId: auraMatchId,
+        ...themeExtras,
+      }
+    : theme === "custom"
       ? { ...customTheme, mode: "custom", name: customTheme.name || "Custom", ...themeExtras }
       : { name: theme, mode: "preset", preset: theme, ...themeExtras };
+  const pickTheme = (k: AuraLinkThemePreset) => {
+    setAuraMatchId(undefined);
+    setTheme(k);
+  };
+
   const [streamingLinks, setStreamingLinks] = useState<AuraLinkStreamingLink[]>([]);
   const [socialLinks, setSocialLinks] = useState<AuraLinkSocialLink[]>([]);
   const [customLinks, setCustomLinks] = useState<AuraLinkCustomLink[]>([]);
