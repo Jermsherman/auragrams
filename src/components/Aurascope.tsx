@@ -5,6 +5,7 @@ import { getPersonality, type AuraProfile, type AuraPalette } from "@/lib/aura";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import type { Track } from "@/lib/tracks";
 import type { BandsConfig } from "@/lib/auraBands";
+import { pickAuraEffect, type AuraEffect } from "@/lib/auraEffects";
 
 export type AurascopeSize = "large" | "medium" | "small" | "mini";
 export type AurascopeMode = "full" | "minimal" | "card" | "story";
