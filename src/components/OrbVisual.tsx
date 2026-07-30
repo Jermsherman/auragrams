@@ -614,7 +614,7 @@ export function OrbVisual({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals]);
+  }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   const dim = typeof size === "number" ? `${size}px` : size;
   const [s0, s1, s2, s3, s4] = p.stops;
