@@ -1328,20 +1328,51 @@ export function AuraLinkBuilder() {
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Pull the background, accent and glow straight from one of your Auras. You can
-                    fine-tune the colors afterwards.
+                    Copy an Aura&apos;s colors into your custom theme, or lock the page to follow one
+                    Aura live.
                   </p>
+
+                  <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/30 p-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={!!auraMatchId}
+                      onChange={(e) =>
+                        setAuraMatchId(
+                          e.target.checked
+                            ? (featuredAuraId ?? selectedAuraIds[0])
+                            : undefined,
+                        )
+                      }
+                    />
+                    <span>
+                      <span className="block text-xs font-medium">Always match this Aura</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        The page re-reads the Aura&apos;s palette every time it loads, so editing the
+                        Aura updates your AuraLink too.
+                      </span>
+                    </span>
+                  </label>
+
                   <div className="flex flex-wrap gap-2">
                     {auras
                       .filter((a) => selectedAuraIds.includes(a.id))
                       .map((a) => {
                         const sw = auraSwatches(a);
+                        const live = auraMatchId === a.id;
                         return (
                           <button
                             key={a.id}
                             type="button"
-                            onClick={() => applyAuraPalette(a)}
-                            className="rounded-xl border border-border/60 hover:border-foreground/25 bg-background/30 px-3 py-2 text-left transition-colors"
+                            onClick={() =>
+                              auraMatchId ? setAuraMatchId(a.id) : applyAuraPalette(a)
+                            }
+                            className={
+                              "rounded-xl border bg-background/30 px-3 py-2 text-left transition-colors " +
+                              (live
+                                ? "border-foreground/40 ring-2 ring-foreground/25"
+                                : "border-border/60 hover:border-foreground/25")
+                            }
                           >
                             <div className="flex gap-1">
                               {sw.map((c, i) => (
@@ -1359,6 +1390,7 @@ export function AuraLinkBuilder() {
                         );
                       })}
                   </div>
+
                 </div>
               )}
 
