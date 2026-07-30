@@ -512,6 +512,7 @@ function AuraPage() {
             artist={track.artist}
             colors={track.colors}
             insight={insight}
+            vibeLine={track.vibeDescription}
             reveal={revealActive}
           />
         </div>
