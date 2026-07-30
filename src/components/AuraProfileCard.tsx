@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Pencil, Sparkles, Loader2, Check, X } from "lucide-react";
+import { ChevronDown, Pencil, Sparkles, Loader2, Check, X, Heart, User, Palette as PaletteIcon } from "lucide-react";
 import { getPersonality, type PaletteKey, type AuraPalette, type PitchCenter, type SourceType } from "@/lib/aura";
+import type { AuraInsight } from "@/lib/auraInsight";
 import { cn } from "@/lib/utils";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
