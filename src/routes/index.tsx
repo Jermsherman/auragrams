@@ -40,7 +40,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+
+
 
   // SSR-safe: pick the first showcase on the server, then randomize on the client.
   const [showcase, setShowcase] = useState<ShowcaseAura>(SHOWCASE_AURAS[0]);
