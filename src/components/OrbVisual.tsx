@@ -958,10 +958,8 @@ export function OrbVisual({
       ctx.restore();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return subscribeFrame(tick, 30);
   }, [effect, hueShift, metricsRef, p.glow, p.stops]);
 
 
