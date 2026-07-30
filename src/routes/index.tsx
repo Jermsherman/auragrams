@@ -292,10 +292,8 @@ function Index() {
             <div className="absolute inset-0 -z-10 grid place-items-center">
               <OrbVisual size={520} className="opacity-50 blur-md" />
             </div>
-            <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
-              Give your music a <span className="text-aura-gradient">living identity.</span>
-            </h2>
-            <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
               <Link
                 to="/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-7 h-12 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)]"
