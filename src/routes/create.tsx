@@ -94,6 +94,8 @@ function CreatePage() {
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
+  // Guards the one-shot auto mood detection per uploaded file.
+  const autoMoodDoneRef = useRef(false);
   const [colorInfluence, setColorInfluence] = useState<UserColorInfluence>({
     mode: "surprise",
     colors: [],
