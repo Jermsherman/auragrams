@@ -59,17 +59,42 @@ function friendlyStorageError(status: number | undefined, message: string, fileS
 }
 
 
+// In-memory signed-URL cache. Repeat plays and route navigations reuse a live
+// URL instead of paying another round trip. Expires slightly early on purpose.
+const signedCache = new Map<string, { url: string; expiresAt: number }>();
+const CACHE_SAFETY_MS = 30_000;
+
+function cacheGet(path: string): string | null {
+  const hit = signedCache.get(path);
+  if (!hit) return null;
+  if (hit.expiresAt <= Date.now()) {
+    signedCache.delete(path);
+    return null;
+  }
+  return hit.url;
+}
+
+function cacheSet(path: string, url: string, expiresInSec: number) {
+  signedCache.set(path, {
+    url,
+    expiresAt: Date.now() + expiresInSec * 1000 - CACHE_SAFETY_MS,
+  });
+}
+
 /** Mint a short-lived signed URL for a stored audio path. Returns null on failure. */
 export async function getSignedAudioUrl(
   storagePath: string | null | undefined,
   expiresInSec: number = SIGNED_URL_TTL_SEC,
 ): Promise<string | null> {
   if (!storagePath) return null;
+  const cached = cacheGet(storagePath);
+  if (cached) return cached;
   try {
     const { data, error } = await supabase.storage
       .from(AUDIO_BUCKET)
       .createSignedUrl(storagePath, expiresInSec);
     if (error || !data?.signedUrl) return null;
+    cacheSet(storagePath, data.signedUrl, expiresInSec);
     return data.signedUrl;
   } catch {
     return null;
@@ -81,15 +106,25 @@ export async function getSignedAudioUrls(
   storagePaths: (string | null | undefined)[],
   expiresInSec: number = SIGNED_URL_TTL_SEC,
 ): Promise<Map<string, string>> {
-  const paths = Array.from(new Set(storagePaths.filter((p): p is string => !!p)));
+  const all = Array.from(new Set(storagePaths.filter((p): p is string => !!p)));
   const out = new Map<string, string>();
+  if (all.length === 0) return out;
+  const paths: string[] = [];
+  for (const p of all) {
+    const hit = cacheGet(p);
+    if (hit) out.set(p, hit);
+    else paths.push(p);
+  }
   if (paths.length === 0) return out;
   try {
     const { data } = await supabase.storage
       .from(AUDIO_BUCKET)
       .createSignedUrls(paths, expiresInSec);
     for (const entry of data ?? []) {
-      if (entry.path && entry.signedUrl) out.set(entry.path, entry.signedUrl);
+      if (entry.path && entry.signedUrl) {
+        out.set(entry.path, entry.signedUrl);
+        cacheSet(entry.path, entry.signedUrl, expiresInSec);
+      }
     }
   } catch {
     /* best-effort */

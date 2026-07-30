@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
 import type { AuraEffect } from "@/lib/auraEffects";
+import { subscribeFrame } from "@/lib/rafTicker";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 
 
@@ -28,6 +29,10 @@ type Props = {
   bands?: BandsConfig | null;
   /** Atmospheric effect layer — auto-picked per Aura. */
   effect?: AuraEffect | null;
+  /** Render tier — "low" skips retina buffers, canvas glow and atmosphere. */
+  quality?: "high" | "low";
+  /** When false, the orb renders a static frame instead of idle micro-motion. */
+  animate?: boolean;
 };
 
 function prefersReducedMotion() {
@@ -88,6 +93,8 @@ export function OrbVisual({
   hasVocals = true,
   bands,
   effect = null,
+  quality = "high",
+  animate = true,
 }: Props) {
 
   const ref = useRef<HTMLDivElement>(null);
@@ -95,7 +102,16 @@ export function OrbVisual({
   const textureRef = useRef<HTMLDivElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
+  const visibleRef = useRef(true);
   const filterId = useId().replace(/:/g, "");
+
+  // Small orbs (cards, minis) don't need retina decorative layers.
+  const pxSize = quality === "low" ? 180 : typeof size === "number" ? size : 320;
+  const fxDpr = () => Math.min(pxSize >= 360 ? 2 : 1.5, window.devicePixelRatio || 1);
+  // Canvas shadowBlur is the most expensive 2D path — keep it for hero-scale
+  // orbs only; small cards read identically without it.
+  const shadowScale = pxSize >= 300 ? 1 : 0;
+
 
   const p: AuraPersonality = useMemo(() => {
     const base =
@@ -133,13 +149,26 @@ export function OrbVisual({
 
 
 
+  // Pause every loop while the orb is off-screen.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visibleRef.current = entry.isIntersecting;
+      },
+      { rootMargin: "120px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   // Drive CSS vars from metrics (preferred) or analyser (fallback).
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (!metricsRef && !analyser?.current) return;
 
-    let raf = 0;
     // smoothed values for var output
     let scale = 1;
     let glow = 0.6;
@@ -172,6 +201,7 @@ export function OrbVisual({
     const nyquist = (a?.context?.sampleRate ?? 44100) / 2;
 
     const tick = () => {
+      if (!visibleRef.current) return;
       let vol = 0;
       let bass = 0;
       let mid = 0;
@@ -268,7 +298,7 @@ export function OrbVisual({
       if (canvas && waveData && waveData.length > 0) {
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const dpr = fxDpr();
           const rect = canvas.getBoundingClientRect();
           const need =
             canvas.width !== Math.floor(rect.width * dpr) ||
@@ -296,7 +326,7 @@ export function OrbVisual({
             const g = bandGain(bandsCfg.waveform.intensity);
             ctx.lineWidth = 2.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
-            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowBlur = 14 * dpr * g.glow * shadowScale;
             ctx.shadowColor = p.glow;
             ctx.globalAlpha = Math.min(1, (0.4 + volN * 0.55) * g.alpha);
             ctx.beginPath();
@@ -433,7 +463,7 @@ export function OrbVisual({
 
             if (amp > 0.02) {
               const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
-              ctx.shadowBlur = 22 * dpr * g.glow;
+              ctx.shadowBlur = 22 * dpr * g.glow * shadowScale;
               ctx.shadowColor = solid ?? p.glow;
               ctx.globalAlpha = Math.min(1, (0.25 + amp * 0.8) * g.alpha);
 
@@ -508,10 +538,8 @@ export function OrbVisual({
         }
       }
 
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return subscribeFrame(tick);
   }, [analyser, metricsRef, isPlaying, p.motion, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   // Hero mode: synthetic self-animation when no real audio is connected.
@@ -522,13 +550,13 @@ export function OrbVisual({
     const el = ref.current;
     if (!el) return;
 
-    let raf = 0;
     const start = performance.now();
     const N = 256;
     const wave = new Uint8Array(N);
     let scale = 1, glow = 0.6, bassHalo = 1, shimmer = 0.5, deform = 8, burst = 0;
 
     const tick = (now: number) => {
+      if (!visibleRef.current) return;
       const t = (now - start) / 1000;
 
       // Synthetic envelopes (slow breathing + occasional swells)
@@ -595,7 +623,7 @@ export function OrbVisual({
       if (canvas) {
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const dpr = fxDpr();
           const rect = canvas.getBoundingClientRect();
           if (
             canvas.width !== Math.floor(rect.width * dpr) ||
@@ -617,7 +645,7 @@ export function OrbVisual({
             const samples = 220;
             ctx.lineWidth = 2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
-            ctx.shadowBlur = 14 * dpr * g.glow;
+            ctx.shadowBlur = 14 * dpr * g.glow * shadowScale;
             ctx.shadowColor = p.glow;
             ctx.globalAlpha = Math.min(1, (0.5 + 0.25 * breath) * g.alpha);
             ctx.beginPath();
@@ -662,7 +690,7 @@ export function OrbVisual({
               Math.sin(u * Math.PI * 5 + t * 1.35) * 0.6 +
               Math.sin(u * Math.PI * 11 - t * 0.75) * 0.4;
             const solid = bandsCfg.vocal.color !== "auto" ? bandsCfg.vocal.color : null;
-            ctx.shadowBlur = 22 * dpr * g.glow;
+            ctx.shadowBlur = 22 * dpr * g.glow * shadowScale;
             ctx.shadowColor = solid ?? p.glow;
             ctx.globalAlpha = Math.min(1, 0.95 * g.alpha);
 
@@ -729,23 +757,22 @@ export function OrbVisual({
         }
       }
 
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return subscribeFrame(tick);
   }, [hero, analyser, metricsRef, p.stops, p.glow, hasVocals, bandsCfg, bandColor]);
 
   // Idle micro-motion: keeps every orb quietly alive when nothing is playing.
   useEffect(() => {
     if (hero) return;
+    if (!animate) return;
     if (isPlaying) return;
     if (prefersReducedMotion()) return;
     const el = ref.current;
     if (!el) return;
-    let raf = 0;
     const start = performance.now();
     const phase = ((hueShift % 97) / 97) * Math.PI * 2;
     const tick = () => {
+      if (!visibleRef.current) return;
       const t = (performance.now() - start) / 1000;
       const breathe = Math.sin(t * 0.55 + phase);
       const slow = Math.sin(t * 0.23 + phase * 1.7);
@@ -753,24 +780,24 @@ export function OrbVisual({
       el.style.setProperty("--orb-glow", (0.5 + breathe * 0.12).toFixed(3));
       el.style.setProperty("--orb-bass", (1 + slow * 0.03).toFixed(4));
       el.style.setProperty("--orb-shimmer", (0.45 + slow * 0.12).toFixed(3));
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [hero, isPlaying, hueShift]);
+    // Idle motion is slow enough that 24fps is visually identical.
+    return subscribeFrame(tick, 24);
+  }, [hero, isPlaying, hueShift, animate]);
 
   // Atmosphere layer — smoke / water / ember / lightning. Deterministic per
   // Aura, gently modulated by live audio when it is available.
   useEffect(() => {
     if (!effect) return;
+    // Card/mini-sized orbs skip the atmosphere canvas entirely.
+    if (pxSize < 220) return;
     if (prefersReducedMotion()) return;
     const canvas = fxCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let raf = 0;
+    const dpr = fxDpr();
     const start = performance.now();
     let seed = Math.abs(Math.floor(hueShift)) + 7;
     const rnd = () => {
@@ -825,11 +852,9 @@ export function OrbVisual({
     };
 
     const tick = () => {
+      if (!visibleRef.current) return;
       const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
+      if (rect.width === 0) return;
       if (canvas.width !== Math.floor(rect.width * dpr)) {
         canvas.width = Math.floor(rect.width * dpr);
         canvas.height = Math.floor(rect.height * dpr);
@@ -907,7 +932,7 @@ export function OrbVisual({
           ctx.globalAlpha = Math.max(0, arc.t) * 0.9;
           ctx.strokeStyle = p.glow;
           ctx.shadowColor = p.glow;
-          ctx.shadowBlur = 18 * dpr;
+          ctx.shadowBlur = 18 * dpr * shadowScale;
           ctx.lineWidth = 1.6 * dpr;
           ctx.beginPath();
           arc.pts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
@@ -946,7 +971,7 @@ export function OrbVisual({
             ctx.globalAlpha = fade * (0.5 + e * 0.4);
             ctx.fillStyle = p.glow;
             ctx.shadowColor = p.glow;
-            ctx.shadowBlur = 8 * dpr;
+            ctx.shadowBlur = 8 * dpr * shadowScale;
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
             ctx.fill();
@@ -958,11 +983,9 @@ export function OrbVisual({
       ctx.restore();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [effect, hueShift, metricsRef, p.glow, p.stops]);
+    return subscribeFrame(tick, 30);
+  }, [effect, hueShift, metricsRef, p.glow, p.stops, pxSize]);
 
 
   const dim = typeof size === "number" ? `${size}px` : size;

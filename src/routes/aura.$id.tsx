@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { BandDriveInfo } from "@/components/BandDriveInfo";
 
@@ -24,9 +24,14 @@ import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
-import { StoryPreviewDialog } from "@/components/StoryPreviewDialog";
+// Heavy export dialogs (html-to-image) load only when opened.
+const StoryPreviewDialog = lazy(() =>
+  import("@/components/StoryPreviewDialog").then((m) => ({ default: m.StoryPreviewDialog })),
+);
 import { AuraRevealHero } from "@/components/AuraRevealHero";
-import { AuraShareDialog } from "@/components/AuraShareDialog";
+const AuraShareDialog = lazy(() =>
+  import("@/components/AuraShareDialog").then((m) => ({ default: m.AuraShareDialog })),
+);
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
@@ -731,14 +736,20 @@ function AuraPage() {
         </div>
         )}
 
-        <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
-        <AuraShareDialog
-          track={track}
-          insight={insight}
-          shareUrl={url}
-          open={auraShareOpen}
-          onOpenChange={setAuraShareOpen}
-        />
+        <Suspense fallback={null}>
+          {storyOpen && (
+            <StoryPreviewDialog track={track} open={storyOpen} onOpenChange={setStoryOpen} />
+          )}
+          {auraShareOpen && (
+            <AuraShareDialog
+              track={track}
+              insight={insight}
+              shareUrl={url}
+              open={auraShareOpen}
+              onOpenChange={setAuraShareOpen}
+            />
+          )}
+        </Suspense>
         <AddToAuracleDialog
           auraId={track.id}
           open={auracleOpen}
