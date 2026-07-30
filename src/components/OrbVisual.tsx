@@ -329,7 +329,7 @@ export function OrbVisual({
               ctx.globalAlpha = Math.min(1, (0.25 + amp * 0.8) * g.alpha);
 
               if (bandsCfg.vocalShape === "core") {
-                const coreR = baseR * (0.26 + amp * 0.26);
+                const coreR = baseR * (0.4 + amp * 0.22);
                 let stroke: string | CanvasGradient = solid ?? "";
                 if (!solid) {
                   const rg = ctx.createRadialGradient(cx, cy, coreR * 0.2, cx, cy, coreR * 1.15);
@@ -547,7 +547,7 @@ export function OrbVisual({
             ctx.globalAlpha = Math.min(1, 0.95 * g.alpha);
 
             if (bandsCfg.vocalShape === "core") {
-              const coreR = baseR * (0.3 + amp * 0.22);
+              const coreR = baseR * (0.44 + amp * 0.18);
               const grad =
                 solid ??
                 (() => {
