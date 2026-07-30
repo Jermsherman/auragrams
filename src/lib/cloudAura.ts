@@ -367,13 +367,12 @@ export async function deleteAuracleCloud(id: string) {
 
 // ------------- Profile maintenance -------------
 
-export async function checkUsernameAvailable(username: string, currentProfileId?: string) {
+// Profiles are owner-read only; availability is checked through a security-definer
+// RPC so no other user's row is ever exposed to the client.
+export async function checkUsernameAvailable(username: string, _currentProfileId?: string) {
   const u = username.trim().toLowerCase();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", u)
-    .maybeSingle();
-  if (!data) return true;
-  return data.id === currentProfileId;
+  if (!u) return false;
+  const { data, error } = await supabase.rpc("is_username_available", { _username: u });
+  if (error) throw error;
+  return data === true;
 }
