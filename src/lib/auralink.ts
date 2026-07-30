@@ -78,14 +78,17 @@ export type AuraLinkSectionKey = "profile" | "socials" | "streaming" | "auras" |
 
 export type AuraLinkTheme = {
   name: string;
-  mode: "preset" | "custom";
+  mode: "preset" | "custom" | "auraMatch";
   preset?: AuraLinkThemePreset;
+  /** When mode === "auraMatch", the page palette follows this Aura live. */
+  sourceAuraId?: string;
   // Either preset is set, or these custom fields are used:
   backgroundColor?: string;
   primaryAccent?: string;
   secondaryAccent?: string;
   buttonColor?: string;
   glowColor?: string;
+
 
   // ---- Deep customization (all optional, backward-compatible) ----
   background?: AuraLinkBackground;
