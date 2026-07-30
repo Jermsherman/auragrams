@@ -149,6 +149,36 @@ export function AuraLinkBuilder() {
   const [selectedAuraIds, setSelectedAuraIds] = useState<string[]>([]);
   const [featuredAuraId, setFeaturedAuraId] = useState<string | undefined>(undefined);
 
+  /** Four representative colors for an Aura (saved palette, else mood defaults). */
+  const auraSwatches = (a: SavedAura): string[] => {
+    if (a.colors) {
+      return [a.colors.shadow, a.colors.primary, a.colors.accent, a.colors.glow];
+    }
+    const p = getPersonality(a.palette);
+    return p.swatches.slice(0, 4);
+  };
+
+  /** Derive the custom theme colors from an Aura's palette. */
+  const applyAuraPalette = (a: SavedAura) => {
+    const c = a.colors;
+    const p = getPersonality(a.palette);
+    const sw = p.swatches;
+    setCustomTheme((prev) => ({
+      ...prev,
+      mode: "custom",
+      name: a.auraName ? `${a.auraName} palette` : prev.name || "Custom",
+      backgroundColor: c?.shadow ?? sw[3] ?? prev.backgroundColor,
+      primaryAccent: c?.accent ?? sw[0] ?? prev.primaryAccent,
+      secondaryAccent: c?.secondary ?? sw[1] ?? prev.secondaryAccent,
+      buttonColor: c?.primary ?? sw[2] ?? prev.buttonColor,
+      glowColor: c?.glow ?? sw[0] ?? prev.glowColor,
+    }));
+    setTheme("custom");
+    toast.success("Theme matched to Aura palette");
+  };
+
+
+
   // SEO & sharing
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
