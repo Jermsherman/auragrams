@@ -8,23 +8,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { FAQ } from "@/lib/faq";
+import { FAQ, MISSION } from "@/lib/faq";
 
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "How to Use Auragram — FAQ" },
+      { title: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
       {
         name: "description",
         content:
-          "Learn how Auragram works: Auras, Aurascopes, AuraLinks, the Farm, Auracles, uploads, music links, and troubleshooting.",
+          "The complete Auragram guide: our mission, the non-static music link, the creator toolkit, how audio becomes an Aura, band and palette customization, privacy, and honest limitations.",
       },
-      { property: "og:title", content: "How to Use Auragram — FAQ" },
+      { property: "og:title", content: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
       {
         property: "og:description",
         content:
-          "Create living music visuals, save them to your Farm, and share them anywhere with AuraLinks.",
+          "How Auragram turns a song into a living visual identity — plus customization, sharing, and what it can't do yet.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:url", content: "https://auragrams.lovable.app/faq" },
     ],
     links: [{ rel: "canonical", href: "https://auragrams.lovable.app/faq" }],
@@ -61,9 +63,16 @@ function FaqPage() {
             How to Use <span className="text-aura-gradient">Auragram.</span>
           </h1>
           <p className="mt-4 text-muted-foreground text-sm sm:text-base">
-            Create living music visuals, save them to your Farm, and share them
-            anywhere with AuraLinks.
+            Everything Auragram does — how a song becomes a living Aura, what
+            you can customize, how AuraLinks work, and where the limits are.
           </p>
+        </div>
+
+        <div className="mt-10 glass rounded-3xl p-6 sm:p-8 animate-fade-up">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Our mission
+          </div>
+          <p className="mt-3 text-sm sm:text-base leading-relaxed">{MISSION}</p>
         </div>
 
         {/* Section nav */}

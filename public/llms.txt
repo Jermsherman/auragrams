@@ -9,4 +9,4 @@ Auragram is built for artists. Upload an audio file, and the app generates a det
 - [Home](/): What Auragram is and how it works.
 - [For Artists](/for-artists): Why every release should have its own living Aura identity.
 - [Create Aura](/create): Upload an audio file to generate a playable Aura.
-- [FAQ](/faq): How Auras, AuraLinks, palettes, moods, and the Farm work.
+- [FAQ](/faq): Full guide — mission, the non-static music link, the toolkit, how audio becomes an Aura, customization and bands, AuraLinks, uploads, privacy, known limitations, and troubleshooting.
