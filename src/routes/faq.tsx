@@ -8,23 +8,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { FAQ } from "@/lib/faq";
+import { FAQ, MISSION } from "@/lib/faq";
 
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "How to Use Auragram — FAQ" },
+      { title: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
       {
         name: "description",
         content:
-          "Learn how Auragram works: Auras, Aurascopes, AuraLinks, the Farm, Auracles, uploads, music links, and troubleshooting.",
+          "The complete Auragram guide: our mission, the non-static music link, the creator toolkit, how audio becomes an Aura, band and palette customization, privacy, and honest limitations.",
       },
-      { property: "og:title", content: "How to Use Auragram — FAQ" },
+      { property: "og:title", content: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
       {
         property: "og:description",
         content:
-          "Create living music visuals, save them to your Farm, and share them anywhere with AuraLinks.",
+          "How Auragram turns a song into a living visual identity — plus customization, sharing, and what it can't do yet.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:url", content: "https://auragrams.lovable.app/faq" },
     ],
     links: [{ rel: "canonical", href: "https://auragrams.lovable.app/faq" }],
