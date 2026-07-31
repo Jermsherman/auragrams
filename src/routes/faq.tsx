@@ -63,9 +63,16 @@ function FaqPage() {
             How to Use <span className="text-aura-gradient">Auragram.</span>
           </h1>
           <p className="mt-4 text-muted-foreground text-sm sm:text-base">
-            Create living music visuals, save them to your Farm, and share them
-            anywhere with AuraLinks.
+            Everything Auragram does — how a song becomes a living Aura, what
+            you can customize, how AuraLinks work, and where the limits are.
           </p>
+        </div>
+
+        <div className="mt-10 glass rounded-3xl p-6 sm:p-8 animate-fade-up">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Our mission
+          </div>
+          <p className="mt-3 text-sm sm:text-base leading-relaxed">{MISSION}</p>
         </div>
 
         {/* Section nav */}
