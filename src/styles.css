@@ -482,13 +482,98 @@
   50% { transform: translate(4%, -3%) scale(1.05); }
 }
 
+/* ---- Premium motion primitives ---- */
+@keyframes hairline-rotate {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+@keyframes sheen-travel {
+  0% { left: -60%; opacity: 0; }
+  12% { opacity: 1; }
+  55% { opacity: 1; }
+  70%, 100% { left: 130%; opacity: 0; }
+}
+@keyframes gradient-pan {
+  from { background-position: 0% 50%; }
+  to { background-position: 260% 50%; }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes mask-wipe {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 -10% 0);
+    transform: translateY(0);
+  }
+}
+@keyframes orb-ignite {
+  0% { opacity: 0; transform: scale(0.82); filter: blur(18px) brightness(0.4); }
+  55% { opacity: 1; transform: scale(1.06); filter: blur(0) brightness(1.35); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+}
+@keyframes name-shimmer {
+  0% { background-position: -140% 50%; }
+  100% { background-position: 240% 50%; }
+}
+@keyframes bloom-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes spotlight-breathe {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.08); }
+}
+@keyframes rail-flow {
+  from { background-position: 0 0; }
+  to { background-position: 200px 0; }
+}
+@keyframes pop-check {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .animate-breathe { animation: breathe 6s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 24s linear infinite; }
 .animate-float-y { animation: float-y 7s ease-in-out infinite; }
 .animate-fade-up { animation: fade-up 0.8s ease-out both; }
+.animate-orb-ignite { animation: orb-ignite 1.5s var(--ease-aura) both; }
+.animate-bloom-in { animation: bloom-in 1.1s var(--ease-aura) both; }
+.animate-spotlight { animation: spotlight-breathe 11s ease-in-out infinite; }
+.animate-pop-check { animation: pop-check 0.5s var(--ease-spring) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
   .animate-spin-slow,
-  .animate-float-y { animation: none !important; }
+  .animate-float-y,
+  .animate-orb-ignite,
+  .animate-bloom-in,
+  .animate-spotlight,
+  .animate-pop-check,
+  .reveal-up,
+  .mask-wipe,
+  .text-aura-gradient-live,
+  .sheen::after,
+  .hairline-aura::after {
+    animation: none !important;
+  }
+  .reveal-up,
+  .mask-wipe,
+  .animate-orb-ignite,
+  .animate-bloom-in {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+  }
+  .lift:hover { transform: none; }
+  .grain-overlay { display: none; }
 }
+
