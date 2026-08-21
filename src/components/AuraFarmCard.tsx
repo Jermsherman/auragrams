@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Trash2, ArrowUpRight, Wand2, Sparkles, Link2 } from "lucide-react";
+import { Trash2, ArrowUpRight, Sparkles, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Aurascope } from "./Aurascope";
 import { AddToAuraLinkDialog } from "./AddToAuraLinkDialog";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
 import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitChipStrip } from "./TraitSheet";
+import { useCursorLight } from "@/hooks/useCursorLight";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ export function AuraFarmCard({
   const [addOpen, setAddOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [live, setLive] = useState(false);
+  const light = useCursorLight<HTMLDivElement>();
   const p = getPersonality(aura.palette);
 
   const isRaw = aura.sourceType === "raw_recording";
@@ -73,15 +75,22 @@ export function AuraFarmCard({
 
   return (
     <div
-      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass ring-1 ring-foreground/10 hover:-translate-y-0.5 transition-transform overflow-hidden"
+      ref={light.ref}
+      onPointerMove={light.onPointerMove}
+      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass-card cursor-light lift overflow-hidden"
       onPointerEnter={() => setLive(true)}
-      onPointerLeave={() => setLive(false)}
+      onPointerLeave={() => {
+        setLive(false);
+        light.onPointerLeave();
+      }}
       onFocus={() => setLive(true)}
       onBlur={() => setLive(false)}
       style={{
         backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
+        ["--surface-light" as string]: p.glow,
       }}
     >
+
       <div className="absolute inset-x-5 top-3 flex items-center justify-between gap-2">
         <span
           className={
@@ -147,15 +156,8 @@ export function AuraFarmCard({
           Open AuraLink <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
 
-        <Link
-          to="/aura/$id/influence"
-          params={{ id: aura.id }}
-          aria-label="Influence Aura"
-          title="Influence Aura"
-          className="rounded-full h-10 w-10 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Wand2 className="h-4 w-4" />
-        </Link>
+
+
 
         <button
           type="button"

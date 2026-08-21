@@ -56,9 +56,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/aura/$id")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    claim: s.claim === "1" || s.claim === 1 ? ("1" as const) : undefined,
-    reveal: s.reveal === "1" || s.reveal === 1 ? ("1" as const) : undefined,
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { claim?: "1"; reveal?: "1" } => ({
+    ...(s.claim === "1" || s.claim === 1 ? { claim: "1" as const } : {}),
+    ...(s.reveal === "1" || s.reveal === 1 ? { reveal: "1" as const } : {}),
   }),
   loader: async ({ params }) => {
     // Best-effort SSR meta — never throws so guest/local-only Auras still render.
@@ -166,7 +168,7 @@ function AuraPage() {
       nav({
         to: "/aura/$id",
         params: { id },
-        search: { claim: claim ?? undefined },
+        search: claim ? { claim } : {},
         replace: true,
       });
     }
@@ -522,7 +524,10 @@ function AuraPage() {
           />
         </div>
 
-        <div className="relative mt-8 animate-fade-up">
+        <div
+          className={`relative mt-8 ${revealActive ? "animate-orb-ignite" : "animate-fade-up"}`}
+          style={revealActive ? { animationDelay: "300ms" } : undefined}
+        >
           <Aurascope
             aura={aurascopeAuraFromTrack(track)}
             size="large"

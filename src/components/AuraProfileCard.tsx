@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, Pencil, Sparkles, Loader2, Check, X, Heart, User, Palette as PaletteIcon } from "lucide-react";
 import { getPersonality, type PaletteKey, type AuraPalette, type PitchCenter, type SourceType } from "@/lib/aura";
 import type { AuraInsight } from "@/lib/auraInsight";
+import { useCursorLight } from "@/hooks/useCursorLight";
 import { cn } from "@/lib/utils";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
@@ -63,11 +64,23 @@ export function AuraProfileCard({
     ? `linear-gradient(90deg, ${colors.primary}, ${colors.accent} 50%, ${colors.glow})`
     : `linear-gradient(90deg, ${p.stops[0]}, ${p.stops[1]} 50%, ${p.stops[2]})`;
 
+  const light = useCursorLight<HTMLDivElement>({ tilt: 2.5 });
+
   const showPitch = !!pitchCenter && (musicalKey === "Unknown" || sourceType === "raw_recording");
   const isRaw = sourceType === "raw_recording";
 
   return (
-    <div className="glass-strong rounded-3xl p-6 sm:p-7 text-left">
+    <div
+      ref={light.ref}
+      onPointerMove={light.onPointerMove}
+      onPointerLeave={light.onPointerLeave}
+      className="glass-card hairline-aura cursor-light reveal-up rounded-3xl p-6 sm:p-7 text-left"
+      style={{
+        ["--surface-light" as string]: colors?.glow ?? p.glow,
+        transform:
+          "perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))",
+      }}
+    >
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
           Aura Profile
@@ -86,7 +99,7 @@ export function AuraProfileCard({
         )}
       </div>
       <h3 className="mt-2 font-display text-2xl sm:text-3xl tracking-tight">
-        <span className="text-aura-gradient">{name}</span>
+        <span className="text-aura-gradient-live">{name}</span>
       </h3>
 
       {moods.length > 0 && (

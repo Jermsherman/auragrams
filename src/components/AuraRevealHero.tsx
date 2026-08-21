@@ -63,7 +63,7 @@ export function AuraRevealHero({
       {/* Cinematic backdrop */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-x-8 -top-16 -bottom-8 opacity-70 blur-2xl"
+        className="pointer-events-none absolute -inset-x-8 -top-16 -bottom-8 opacity-70 blur-2xl animate-spotlight"
         style={{ background: backdrop }}
       />
 
@@ -81,15 +81,20 @@ export function AuraRevealHero({
         {/* Aura Name — HERO */}
         <h1
           aria-label={auraName}
-          className="mt-4 font-display tracking-tight text-aura-gradient leading-[1.05] text-[clamp(2.25rem,7vw,4.25rem)]"
+          className="mt-4 font-display tracking-tight text-aura-gradient-live leading-[1.05] text-[clamp(2.25rem,7vw,4.25rem)]"
         >
           {chars.map((ch, i) => (
             <span
               key={i}
               className={`inline-block transition-all duration-500 ${
-                stage >= 2 ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-3 blur-[6px]"
+                stage >= 2
+                  ? "opacity-100 translate-y-0 blur-0 scale-100"
+                  : "opacity-0 translate-y-4 blur-[10px] scale-[0.94]"
               }`}
-              style={{ transitionDelay: `${stage >= 2 ? i * 35 : 0}ms` }}
+              style={{
+                transitionDelay: `${stage >= 2 ? i * 35 : 0}ms`,
+                transitionTimingFunction: "var(--ease-aura)",
+              }}
             >
               {ch === " " ? "\u00A0" : ch}
             </span>

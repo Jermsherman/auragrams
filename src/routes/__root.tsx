@@ -86,8 +86,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        {/* Film grain — removes banding on the deep gradient washes. */}
+        <div aria-hidden className="grain-overlay" />
         <Toaster theme="dark" position="top-center" />
         <Scripts />
+
       </body>
     </html>
   );

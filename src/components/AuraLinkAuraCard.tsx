@@ -3,6 +3,7 @@
 // the card body or "Open Aura" routes to /aura/$id.
 
 import { useEffect, useRef, useState } from "react";
+import { useCursorLight } from "@/hooks/useCursorLight";
 import { Link } from "@tanstack/react-router";
 import { Play, Pause, ArrowUpRight } from "lucide-react";
 import { Aurascope } from "./Aurascope";
@@ -117,14 +118,24 @@ export function AuraLinkAuraCard({
   const pct = dur ? (time / dur) * 100 : 0;
   const auraSize = isHero ? "large" : "small";
 
+  const light = useCursorLight<HTMLDivElement>();
+
   const containerCls = isHero
-    ? "w-full rounded-3xl p-5 sm:p-6 border border-foreground/15 flex flex-col items-center gap-5"
-    : "group block w-full rounded-2xl p-3 border border-foreground/15 hover:border-foreground/35 transition-all";
+    ? "w-full rounded-3xl p-5 sm:p-6 border border-foreground/15 flex flex-col items-center gap-5 lift cursor-light"
+    : "group block w-full rounded-2xl p-3 border border-foreground/15 hover:border-foreground/35 lift cursor-light";
 
   return (
     <div
+      ref={light.ref}
+      onPointerMove={light.onPointerMove}
+      onPointerLeave={light.onPointerLeave}
       className={containerCls}
-      style={{ background: themeButtonBg, boxShadow: themeGlow, color: themeAccent }}
+      style={{
+        background: themeButtonBg,
+        boxShadow: themeGlow,
+        color: themeAccent,
+        ["--surface-light" as string]: `color-mix(in oklab, ${themeAccent} 18%, transparent)`,
+      }}
     >
       {aura.audioPublicUrl && !audioError && (
         <audio ref={audioRef} src={aura.audioPublicUrl} preload="metadata" crossOrigin="anonymous" />
