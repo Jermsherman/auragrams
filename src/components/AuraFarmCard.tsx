@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
 import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitChipStrip } from "./TraitSheet";
+import { useCursorLight } from "@/hooks/useCursorLight";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ export function AuraFarmCard({
   const [addOpen, setAddOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [live, setLive] = useState(false);
+  const light = useCursorLight<HTMLDivElement>();
   const p = getPersonality(aura.palette);
 
   const isRaw = aura.sourceType === "raw_recording";
