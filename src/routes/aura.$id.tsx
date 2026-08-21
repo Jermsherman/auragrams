@@ -168,7 +168,7 @@ function AuraPage() {
       nav({
         to: "/aura/$id",
         params: { id },
-        search: { claim: claim ?? undefined },
+        search: claim ? { claim } : {},
         replace: true,
       });
     }
