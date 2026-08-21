@@ -123,8 +123,16 @@ export function AuraLinkAuraCard({
 
   return (
     <div
+      ref={light.ref}
+      onPointerMove={light.onPointerMove}
+      onPointerLeave={light.onPointerLeave}
       className={containerCls}
-      style={{ background: themeButtonBg, boxShadow: themeGlow, color: themeAccent }}
+      style={{
+        background: themeButtonBg,
+        boxShadow: themeGlow,
+        color: themeAccent,
+        ["--surface-light" as string]: `color-mix(in oklab, ${themeAccent} 18%, transparent)`,
+      }}
     >
       {aura.audioPublicUrl && !audioError && (
         <audio ref={audioRef} src={aura.audioPublicUrl} preload="metadata" crossOrigin="anonymous" />
