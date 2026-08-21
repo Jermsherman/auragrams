@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Trash2, ArrowUpRight, Wand2, Sparkles, Link2 } from "lucide-react";
+import { Trash2, ArrowUpRight, Sparkles, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Aurascope } from "./Aurascope";
 import { AddToAuraLinkDialog } from "./AddToAuraLinkDialog";
