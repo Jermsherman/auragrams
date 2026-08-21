@@ -3,6 +3,7 @@
 // the card body or "Open Aura" routes to /aura/$id.
 
 import { useEffect, useRef, useState } from "react";
+import { useCursorLight } from "@/hooks/useCursorLight";
 import { Link } from "@tanstack/react-router";
 import { Play, Pause, ArrowUpRight } from "lucide-react";
 import { Aurascope } from "./Aurascope";
@@ -116,6 +117,8 @@ export function AuraLinkAuraCard({
 
   const pct = dur ? (time / dur) * 100 : 0;
   const auraSize = isHero ? "large" : "small";
+
+  const light = useCursorLight<HTMLDivElement>();
 
   const containerCls = isHero
     ? "w-full rounded-3xl p-5 sm:p-6 border border-foreground/15 flex flex-col items-center gap-5 lift cursor-light"
