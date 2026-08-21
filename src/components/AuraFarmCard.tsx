@@ -73,15 +73,22 @@ export function AuraFarmCard({
 
   return (
     <div
-      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass ring-1 ring-foreground/10 hover:-translate-y-0.5 transition-transform overflow-hidden"
+      ref={light.ref}
+      onPointerMove={light.onPointerMove}
+      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass-card cursor-light lift overflow-hidden"
       onPointerEnter={() => setLive(true)}
-      onPointerLeave={() => setLive(false)}
+      onPointerLeave={() => {
+        setLive(false);
+        light.onPointerLeave();
+      }}
       onFocus={() => setLive(true)}
       onBlur={() => setLive(false)}
       style={{
         backgroundImage: `radial-gradient(circle at 50% 0%, ${p.atmosphere}, transparent 70%)`,
+        ["--surface-light" as string]: p.glow,
       }}
     >
+
       <div className="absolute inset-x-5 top-3 flex items-center justify-between gap-2">
         <span
           className={
