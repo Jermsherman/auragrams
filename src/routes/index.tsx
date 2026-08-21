@@ -84,13 +84,15 @@ function Index() {
                 showLabel={false}
               />
             </div>
-            <h1 className="mt-10 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight">
-
+            <h1 className="mt-10 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight mask-wipe">
               Give Your Music <br />
-              <span className="text-aura-gradient">A Living Identity.</span>
+              <span className="text-aura-gradient-live">A Living Identity.</span>
             </h1>
 
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-md">
+            <p
+              className="mt-4 text-base sm:text-lg text-muted-foreground max-w-md reveal-up"
+              style={{ animationDelay: "220ms" }}
+            >
               Every song has an aura. Upload one and claim yours.
             </p>
 
@@ -109,7 +111,7 @@ function Index() {
           id="what-is-an-aura"
           className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24 scroll-mt-24"
         >
-          <div className="rounded-3xl glass-strong p-7 sm:p-12 relative overflow-hidden">
+          <div className="rounded-3xl glass-card hairline-aura sheen p-7 sm:p-12 relative overflow-hidden">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="font-display text-3xl sm:text-4xl tracking-tight">
                 What exactly is an <span className="text-aura-gradient">Aura?</span>
