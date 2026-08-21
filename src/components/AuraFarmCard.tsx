@@ -147,15 +147,8 @@ export function AuraFarmCard({
           Open AuraLink <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
 
-        <Link
-          to="/aura/$id/influence"
-          params={{ id: aura.id }}
-          aria-label="Influence Aura"
-          title="Influence Aura"
-          className="rounded-full h-10 w-10 grid place-items-center border border-border/60 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Wand2 className="h-4 w-4" />
-        </Link>
+
+
 
         <button
           type="button"
