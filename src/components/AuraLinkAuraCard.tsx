@@ -118,8 +118,8 @@ export function AuraLinkAuraCard({
   const auraSize = isHero ? "large" : "small";
 
   const containerCls = isHero
-    ? "w-full rounded-3xl p-5 sm:p-6 border border-foreground/15 flex flex-col items-center gap-5"
-    : "group block w-full rounded-2xl p-3 border border-foreground/15 hover:border-foreground/35 transition-all";
+    ? "w-full rounded-3xl p-5 sm:p-6 border border-foreground/15 flex flex-col items-center gap-5 lift cursor-light"
+    : "group block w-full rounded-2xl p-3 border border-foreground/15 hover:border-foreground/35 lift cursor-light";
 
   return (
     <div
