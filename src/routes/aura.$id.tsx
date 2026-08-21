@@ -524,7 +524,10 @@ function AuraPage() {
           />
         </div>
 
-        <div className="relative mt-8 animate-fade-up">
+        <div
+          className={`relative mt-8 ${revealActive ? "animate-orb-ignite" : "animate-fade-up"}`}
+          style={revealActive ? { animationDelay: "300ms" } : undefined}
+        >
           <Aurascope
             aura={aurascopeAuraFromTrack(track)}
             size="large"
