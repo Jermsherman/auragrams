@@ -212,6 +212,7 @@ export function AuraLinkView({ page, auras, showLogo = true, className, onEvent,
               href={s.url || "#"}
               target="_blank"
               rel="noreferrer"
+              onClick={() => onEvent?.("link_click")}
               className={`inline-flex items-center gap-1.5 px-3 h-8 text-[11px] border border-foreground/15 hover:border-foreground/35 transition-colors ${btnShape}`}
               style={btnStyle()}
               title={socialPlatformLabel(s.platformName)}
@@ -236,6 +237,7 @@ export function AuraLinkView({ page, auras, showLogo = true, className, onEvent,
               href={l.url || "#"}
               target="_blank"
               rel="noreferrer"
+              onClick={() => onEvent?.("link_click")}
               className={`group block w-full px-5 h-14 flex items-center justify-between text-sm font-medium border border-foreground/15 hover:border-foreground/35 transition-all hover:-translate-y-0.5 ${btnShape}`}
               style={btnStyle()}
             >
