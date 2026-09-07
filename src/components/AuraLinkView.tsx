@@ -26,6 +26,10 @@ type Props = {
   auras: SavedAura[];
   showLogo?: boolean;
   className?: string;
+  /** Public pages only: analytics event sink (view/play/click/share). */
+  onEvent?: (type: "view" | "link_click" | "aura_play" | "share") => void;
+  /** Public pages only: show the "Create your own Aura" growth footer. */
+  viralFooter?: boolean;
 };
 
 // Inject Google Fonts <link>s for the chosen font pair (once per pair).
