@@ -1,10 +1,11 @@
 import { createFileRoute, useLoaderData, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuraLinkView } from "@/components/AuraLinkView";
 import type { AuraLinkPage } from "@/lib/auralink";
 import { getAuraLinkBySlug } from "@/lib/auralinkService";
+import { trackPageEvent } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { mapAuraRowToSaved, hydrateSavedAuraAudioUrls, type CloudAuraRow } from "@/lib/cloudAura";
 import type { SavedAura } from "@/lib/farm";
@@ -41,10 +42,10 @@ export const Route = createFileRoute("/l/$slug")({
     return {
       page,
       auras,
-      seoTitle: page.seoTitle || `${artist} | AuraLink`,
+      seoTitle: page.seoTitle || `${artist} — Music & Links | Auragram`,
       seoDescription:
         page.seoDescription ||
-        `Listen to ${artist}, explore Auras, and find all official music links.`,
+        `Listen to ${artist}, play their Auras, and find every official link — a music-first link page built on Auragram.`,
       ogImage: page.socialPreviewImage || page.profileImageUrl,
     };
   },
@@ -98,7 +99,16 @@ export const Route = createFileRoute("/l/$slug")({
 function PublicAuraLink() {
   const { page, auras } = useLoaderData({ from: "/l/$slug" });
   const [mounted, setMounted] = useState(false);
+  const viewTracked = useRef(false);
   useEffect(() => setMounted(true), []);
+
+  // Log one page view per mount (public visitor analytics).
+  useEffect(() => {
+    if (page && !viewTracked.current) {
+      viewTracked.current = true;
+      trackPageEvent(page.id, "view");
+    }
+  }, [page]);
 
   if (page === null) {
     return (
@@ -128,6 +138,7 @@ function PublicAuraLink() {
         await navigator.clipboard.writeText(url);
         toast.success("AuraLink copied.");
       }
+      trackPageEvent(page.id, "share");
     } catch {
       /* cancelled */
     }
@@ -144,7 +155,12 @@ function PublicAuraLink() {
           <Share2 className="h-4 w-4" /> Share
         </button>
       )}
-      <AuraLinkView page={page} auras={auras} />
+      <AuraLinkView
+        page={page}
+        auras={auras}
+        viralFooter
+        onEvent={(t) => trackPageEvent(page.id, t)}
+      />
     </div>
   );
 }

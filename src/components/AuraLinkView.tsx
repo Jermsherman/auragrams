@@ -26,6 +26,10 @@ type Props = {
   auras: SavedAura[];
   showLogo?: boolean;
   className?: string;
+  /** Public pages only: analytics event sink (view/play/click/share). */
+  onEvent?: (type: "view" | "link_click" | "aura_play" | "share") => void;
+  /** Public pages only: show the "Create your own Aura" growth footer. */
+  viralFooter?: boolean;
 };
 
 // Inject Google Fonts <link>s for the chosen font pair (once per pair).
@@ -41,8 +45,12 @@ function ensureFontPair(loadParam: string, key: string) {
   document.head.appendChild(link);
 }
 
-export function AuraLinkView({ page, auras, showLogo = true, className }: Props) {
-  const [playingId, setPlayingId] = useState<string | null>(null);
+export function AuraLinkView({ page, auras, showLogo = true, className, onEvent, viralFooter = false }: Props) {
+  const [playingId, setPlayingIdRaw] = useState<string | null>(null);
+  const setPlayingId = (id: string | null) => {
+    setPlayingIdRaw(id);
+    if (id) onEvent?.("aura_play");
+  };
   const theme = resolveTheme(page.theme, auras);
   const extras = theme.extras;
   const featured = auras.find((a) => a.id === (page.featuredAuraId ?? page.selectedAuraIds[0]));
@@ -204,6 +212,7 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
               href={s.url || "#"}
               target="_blank"
               rel="noreferrer"
+              onClick={() => onEvent?.("link_click")}
               className={`inline-flex items-center gap-1.5 px-3 h-8 text-[11px] border border-foreground/15 hover:border-foreground/35 transition-colors ${btnShape}`}
               style={btnStyle()}
               title={socialPlatformLabel(s.platformName)}
@@ -228,6 +237,7 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
               href={l.url || "#"}
               target="_blank"
               rel="noreferrer"
+              onClick={() => onEvent?.("link_click")}
               className={`group block w-full px-5 h-14 flex items-center justify-between text-sm font-medium border border-foreground/15 hover:border-foreground/35 transition-all hover:-translate-y-0.5 ${btnShape}`}
               style={btnStyle()}
             >
@@ -383,12 +393,29 @@ export function AuraLinkView({ page, auras, showLogo = true, className }: Props)
           </p>
         )}
 
-        <Link
-          to="/"
-          className="mt-12 text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
-        >
-          Created with Auragram
-        </Link>
+        {viralFooter ? (
+          <div className="mt-12 flex flex-col items-center gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground h-10 px-5 text-xs font-medium shadow-lg transition-transform hover:-translate-y-0.5"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Create your own Aura — free
+            </Link>
+            <Link
+              to="/"
+              className="text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
+            >
+              Made with Auragram
+            </Link>
+          </div>
+        ) : (
+          <Link
+            to="/"
+            className="mt-12 text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
+          >
+            Created with Auragram
+          </Link>
+        )}
       </div>
     </div>
   );

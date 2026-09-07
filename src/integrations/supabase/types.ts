@@ -310,6 +310,35 @@ export type Database = {
           },
         ]
       }
+      page_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          page_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          page_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          page_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_events_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "auralinks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           allow_anonymous: boolean
