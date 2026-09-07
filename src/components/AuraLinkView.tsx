@@ -393,12 +393,29 @@ export function AuraLinkView({ page, auras, showLogo = true, className, onEvent,
           </p>
         )}
 
-        <Link
-          to="/"
-          className="mt-12 text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
-        >
-          Created with Auragram
-        </Link>
+        {viralFooter ? (
+          <div className="mt-12 flex flex-col items-center gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full bg-aura-gradient text-primary-foreground h-10 px-5 text-xs font-medium shadow-lg transition-transform hover:-translate-y-0.5"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Create your own Aura — free
+            </Link>
+            <Link
+              to="/"
+              className="text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
+            >
+              Made with Auragram
+            </Link>
+          </div>
+        ) : (
+          <Link
+            to="/"
+            className="mt-12 text-[10px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 transition-opacity"
+          >
+            Created with Auragram
+          </Link>
+        )}
       </div>
     </div>
   );
