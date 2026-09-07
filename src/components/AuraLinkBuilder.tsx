@@ -613,6 +613,36 @@ export function AuraLinkBuilder() {
           </div>
         </div>
 
+        {/* Insights — last 30 days for the page being edited */}
+        {editingId && analytics && (
+          <section className="mt-8 mx-auto max-w-xl animate-fade-up">
+            <div className="glass-card rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                <BarChart3 className="h-3.5 w-3.5" /> Insights · Last 30 days
+              </div>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                {[
+                  { icon: Eye, label: "Views", value: analytics.views },
+                  { icon: MousePointerClick, label: "Link clicks", value: analytics.linkClicks },
+                  { icon: Play, label: "Aura plays", value: analytics.auraPlays },
+                  { icon: Share2, label: "Shares", value: analytics.shares },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-xl border border-border/50 py-3">
+                    <s.icon className="mx-auto h-4 w-4 text-muted-foreground" />
+                    <div className="mt-1 font-display text-xl">{s.value}</div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                      {s.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground text-center">
+                Share your AuraLink on socials to grow these numbers.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Library strip — your saved AuraLinks */}
         {savedLinks.length > 0 && (
           <section className="mt-8">
