@@ -60,6 +60,7 @@ import {
 import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib/cloudAura";
 import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
+import { getPageAnalytics, type PageAnalytics } from "@/lib/analytics";
 
 function newAuraLinkId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
