@@ -99,7 +99,16 @@ export const Route = createFileRoute("/l/$slug")({
 function PublicAuraLink() {
   const { page, auras } = useLoaderData({ from: "/l/$slug" });
   const [mounted, setMounted] = useState(false);
+  const viewTracked = useRef(false);
   useEffect(() => setMounted(true), []);
+
+  // Log one page view per mount (public visitor analytics).
+  useEffect(() => {
+    if (page && !viewTracked.current) {
+      viewTracked.current = true;
+      trackPageEvent(page.id, "view");
+    }
+  }, [page]);
 
   if (page === null) {
     return (
@@ -129,6 +138,7 @@ function PublicAuraLink() {
         await navigator.clipboard.writeText(url);
         toast.success("AuraLink copied.");
       }
+      trackPageEvent(page.id, "share");
     } catch {
       /* cancelled */
     }
@@ -145,7 +155,12 @@ function PublicAuraLink() {
           <Share2 className="h-4 w-4" /> Share
         </button>
       )}
-      <AuraLinkView page={page} auras={auras} />
+      <AuraLinkView
+        page={page}
+        auras={auras}
+        viralFooter
+        onEvent={(t) => trackPageEvent(page.id, t)}
+      />
     </div>
   );
 }
