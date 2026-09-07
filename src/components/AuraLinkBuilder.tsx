@@ -15,6 +15,10 @@ import {
   Copy,
   FilePlus,
   Pencil,
+  BarChart3,
+  MousePointerClick,
+  Play,
+  Share2,
 } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -115,6 +119,18 @@ export function AuraLinkBuilder() {
   }, [profile?.id]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Insights (last 30 days) for the page being edited.
+  const [analytics, setAnalytics] = useState<PageAnalytics | null>(null);
+  useEffect(() => {
+    setAnalytics(null);
+    if (!editingId) return;
+    let cancelled = false;
+    getPageAnalytics(editingId)
+      .then((a) => { if (!cancelled) setAnalytics(a); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [editingId]);
 
   // Form state
   const [mode, setMode] = useState<AuraLinkMode>("mixed");
