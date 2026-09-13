@@ -39,6 +39,7 @@ import { computeAuraTraits } from "@/lib/auraTraits";
 import { TraitSheet } from "@/components/TraitSheet";
 import { SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
 import { TraitProvenance } from "@/components/TraitProvenance";
+import { AuraSocialBar } from "@/components/AuraSocialBar";
 import { generateAuraInsight } from "@/lib/auraInsight.functions";
 import { isAuraInsight, type AuraInsight } from "@/lib/auraInsight";
 import { supabase } from "@/integrations/supabase/client";
@@ -877,6 +878,8 @@ function AuraPage() {
             }}
           />
         </div>
+
+        {saved && <AuraSocialBar auraId={track.id} ownerId={ownerUserId} />}
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
           A living link for this track
