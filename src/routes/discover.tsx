@@ -94,11 +94,11 @@ function DiscoverPage() {
           )}
           {!loading && !auras.length && (
             <div className="glass-card rounded-2xl p-6 text-sm text-muted-foreground">
-              {tab === "following"
-                ? profile?.id
+              {tab !== "following"
+                ? "Nothing here yet — be the first to share an Aura."
+                : profile?.id
                   ? "You're not following anyone yet. Find artists in Trending and follow them."
                   : "Sign in to follow artists and build your own feed."}
-              {tab !== "following" && "Nothing here yet — be the first to share an Aura."}
             </div>
           )}
           {auras.map((a) => (
