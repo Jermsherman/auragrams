@@ -879,7 +879,7 @@ function AuraPage() {
           />
         </div>
 
-        {saved && <AuraSocialBar auraId={track.id} ownerId={ownerUserId} />}
+        {ownerUserId && <AuraSocialBar auraId={track.id} ownerId={ownerUserId} />}
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
           A living link for this track
