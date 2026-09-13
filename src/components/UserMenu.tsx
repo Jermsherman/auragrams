@@ -52,6 +52,15 @@ export function UserMenu() {
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4 mr-2" /> Edit profile
           </DropdownMenuItem>
+          {profile?.username && (
+            <DropdownMenuItem
+              onClick={() =>
+                nav({ to: "/u/$username", params: { username: profile.username as string } })
+              }
+            >
+              <UserIcon className="h-4 w-4 mr-2" /> My public profile
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => nav({ to: "/farm" })}>
             <Sparkles className="h-4 w-4 mr-2" /> My Auras
           </DropdownMenuItem>

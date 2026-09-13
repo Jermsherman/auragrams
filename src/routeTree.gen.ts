@@ -15,10 +15,12 @@ import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as ForArtistsRouteImport } from './routes/for-artists'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuralinkRouteImport } from './routes/auralink'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as SettingsArtistsRouteImport } from './routes/settings.artists'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as AuralinkCreateRouteImport } from './routes/auralink.create'
@@ -57,6 +59,11 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -75,6 +82,11 @@ const AuralinkRoute = AuralinkRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsArtistsRoute = SettingsArtistsRouteImport.update({
@@ -119,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/for-artists': typeof ForArtistsRoute
@@ -131,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/u/$username': typeof UUsernameRoute
   '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRoutesByTo {
@@ -138,6 +152,7 @@ export interface FileRoutesByTo {
   '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/for-artists': typeof ForArtistsRoute
@@ -150,6 +165,7 @@ export interface FileRoutesByTo {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/u/$username': typeof UUsernameRoute
   '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRoutesById {
@@ -158,6 +174,7 @@ export interface FileRoutesById {
   '/auralink': typeof AuralinkRouteWithChildren
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/farm': typeof FarmRoute
   '/for-artists': typeof ForArtistsRoute
@@ -170,6 +187,7 @@ export interface FileRoutesById {
   '/auralink/create': typeof AuralinkCreateRoute
   '/l/$slug': typeof LSlugRoute
   '/settings/artists': typeof SettingsArtistsRoute
+  '/u/$username': typeof UUsernameRoute
   '/api/public/cron/cleanup-guest-auras': typeof ApiPublicCronCleanupGuestAurasRoute
 }
 export interface FileRouteTypes {
@@ -179,6 +197,7 @@ export interface FileRouteTypes {
     | '/auralink'
     | '/auth'
     | '/create'
+    | '/discover'
     | '/faq'
     | '/farm'
     | '/for-artists'
@@ -191,6 +210,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/u/$username'
     | '/api/public/cron/cleanup-guest-auras'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +218,7 @@ export interface FileRouteTypes {
     | '/auralink'
     | '/auth'
     | '/create'
+    | '/discover'
     | '/faq'
     | '/farm'
     | '/for-artists'
@@ -210,6 +231,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/u/$username'
     | '/api/public/cron/cleanup-guest-auras'
   id:
     | '__root__'
@@ -217,6 +239,7 @@ export interface FileRouteTypes {
     | '/auralink'
     | '/auth'
     | '/create'
+    | '/discover'
     | '/faq'
     | '/farm'
     | '/for-artists'
@@ -229,6 +252,7 @@ export interface FileRouteTypes {
     | '/auralink/create'
     | '/l/$slug'
     | '/settings/artists'
+    | '/u/$username'
     | '/api/public/cron/cleanup-guest-auras'
   fileRoutesById: FileRoutesById
 }
@@ -237,6 +261,7 @@ export interface RootRouteChildren {
   AuralinkRoute: typeof AuralinkRouteWithChildren
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
+  DiscoverRoute: typeof DiscoverRoute
   FaqRoute: typeof FaqRoute
   FarmRoute: typeof FarmRoute
   ForArtistsRoute: typeof ForArtistsRoute
@@ -248,6 +273,7 @@ export interface RootRouteChildren {
   AuracleCreateRoute: typeof AuracleCreateRoute
   LSlugRoute: typeof LSlugRoute
   SettingsArtistsRoute: typeof SettingsArtistsRoute
+  UUsernameRoute: typeof UUsernameRoute
   ApiPublicCronCleanupGuestAurasRoute: typeof ApiPublicCronCleanupGuestAurasRoute
 }
 
@@ -295,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -321,6 +354,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/artists': {
@@ -392,6 +432,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuralinkRoute: AuralinkRouteWithChildren,
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
+  DiscoverRoute: DiscoverRoute,
   FaqRoute: FaqRoute,
   FarmRoute: FarmRoute,
   ForArtistsRoute: ForArtistsRoute,
@@ -403,6 +444,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuracleCreateRoute: AuracleCreateRoute,
   LSlugRoute: LSlugRoute,
   SettingsArtistsRoute: SettingsArtistsRoute,
+  UUsernameRoute: UUsernameRoute,
   ApiPublicCronCleanupGuestAurasRoute: ApiPublicCronCleanupGuestAurasRoute,
 }
 export const routeTree = rootRouteImport
