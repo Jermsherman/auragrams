@@ -330,6 +330,7 @@ export type Database = {
           public_artist_name: string | null
           public_handle: string | null
           source_type: string | null
+          status: string
           track_title: string
           updated_at: string
           user_id: string
@@ -364,6 +365,7 @@ export type Database = {
           public_artist_name?: string | null
           public_handle?: string | null
           source_type?: string | null
+          status?: string
           track_title: string
           updated_at?: string
           user_id: string
@@ -398,6 +400,7 @@ export type Database = {
           public_artist_name?: string | null
           public_handle?: string | null
           source_type?: string | null
+          status?: string
           track_title?: string
           updated_at?: string
           user_id?: string
@@ -576,6 +579,7 @@ export type Database = {
     }
     Functions: {
       current_profile_id: { Args: never; Returns: string }
+      get_shareable_auras: { Args: { _ids: string[] }; Returns: Json }
       is_username_available: { Args: { _username: string }; Returns: boolean }
     }
     Enums: {
