@@ -219,7 +219,12 @@ export async function listFeedAuras(opts: {
   sort?: "recent" | "trending";
 } = {}): Promise<FeedAura[]> {
   const limit = opts.limit ?? 24;
-  let q = t("auras").select(FEED_COLUMNS).order("created_at", { ascending: false });
+  // Only published-public Auras ever appear in feeds. Drafts and unlisted
+  // Auras are excluded here and by RLS.
+  let q = t("auras")
+    .select(FEED_COLUMNS)
+    .eq("status", "public")
+    .order("created_at", { ascending: false });
   if (opts.ownerIds) {
     if (!opts.ownerIds.length) return [];
     q = q.in("user_id", opts.ownerIds);

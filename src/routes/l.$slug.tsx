@@ -6,8 +6,7 @@ import { AuraLinkView } from "@/components/AuraLinkView";
 import type { AuraLinkPage } from "@/lib/auralink";
 import { getAuraLinkBySlug } from "@/lib/auralinkService";
 import { trackPageEvent } from "@/lib/analytics";
-import { supabase } from "@/integrations/supabase/client";
-import { mapAuraRowToSaved, hydrateSavedAuraAudioUrls, type CloudAuraRow } from "@/lib/cloudAura";
+import { mapAuraRowToSaved, getShareableAuras, hydratePublicAuraAudioUrls } from "@/lib/cloudAura";
 import type { SavedAura } from "@/lib/farm";
 
 type LoaderData = {
@@ -31,12 +30,11 @@ export const Route = createFileRoute("/l/$slug")({
     }
     let auras: SavedAura[] = [];
     if (page.selectedAuraIds.length) {
-      const { data } = await supabase
-        .from("auras")
-        .select("*")
-        .in("id", page.selectedAuraIds);
-      auras = ((data as CloudAuraRow[] | null) ?? []).map(mapAuraRowToSaved);
-      await hydrateSavedAuraAudioUrls(auras);
+      // Only public/unlisted Auras are returned — private or deleted ones are
+      // silently dropped from the page.
+      const rows = await getShareableAuras(page.selectedAuraIds);
+      auras = rows.map(mapAuraRowToSaved);
+      await hydratePublicAuraAudioUrls(auras);
     }
     const artist = page.artistName || page.title || "Artist";
     return {
