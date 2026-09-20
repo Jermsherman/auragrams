@@ -9,6 +9,7 @@ import { Play, Pause, ArrowUpRight } from "lucide-react";
 import { Aurascope } from "./Aurascope";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import type { SavedAura } from "@/lib/farm";
+import { getAuraPlayback } from "@/lib/audioStorage";
 
 function fmt(t: number) {
   if (!isFinite(t) || t <= 0) return "0:00";
@@ -43,8 +44,10 @@ export function AuraLinkAuraCard({
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
   const [audioError, setAudioError] = useState(false);
+  const [src, setSrc] = useState<string | null>(aura.audioPublicUrl ?? null);
+  const refreshedRef = useRef(false);
 
-  const hasAudio = !!aura.audioPublicUrl && !audioError;
+  const hasAudio = !!src && !audioError;
   const isHero = variant === "hero";
 
   // Pause if another card starts playing.
@@ -72,8 +75,17 @@ export function AuraLinkAuraCard({
       onPlayingChange(null);
     };
     const onError = () => {
-      setAudioError(true);
       setPlaying(false);
+      // A signed playback URL may have expired mid-session — ask for a fresh one once.
+      if (!refreshedRef.current) {
+        refreshedRef.current = true;
+        void getAuraPlayback(aura.id, { force: true }).then((res) => {
+          if ("url" in res) setSrc(res.url);
+          else setAudioError(true);
+        });
+        return;
+      }
+      setAudioError(true);
     };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onMeta);
@@ -137,8 +149,8 @@ export function AuraLinkAuraCard({
         ["--surface-light" as string]: `color-mix(in oklab, ${themeAccent} 18%, transparent)`,
       }}
     >
-      {aura.audioPublicUrl && !audioError && (
-        <audio ref={audioRef} src={aura.audioPublicUrl} preload="metadata" crossOrigin="anonymous" />
+      {src && !audioError && (
+        <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
       )}
       {audioError && (
         <div className="text-[10px] uppercase tracking-[0.24em] opacity-60">Audio unavailable</div>
