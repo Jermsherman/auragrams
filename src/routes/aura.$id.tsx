@@ -725,6 +725,12 @@ function AuraPage() {
           </p>
         )}
 
+        {isOwner && auraStatus === "draft" && (
+          <p className="mt-3 text-xs text-muted-foreground max-w-md mx-auto animate-fade-up">
+            Saved as a private draft — only you can see it. Choose who can see it below.
+          </p>
+        )}
+
         {/* Secondary actions — owner only */}
         {isOwner && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
