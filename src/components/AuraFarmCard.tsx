@@ -9,6 +9,7 @@ import { deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura"
 import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
 import { computeAuraTraits } from "@/lib/auraTraits";
+import { AURA_STATUS_META } from "@/lib/auraStatus";
 import { TraitChipStrip } from "./TraitSheet";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import {

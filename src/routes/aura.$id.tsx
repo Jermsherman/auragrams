@@ -583,6 +583,12 @@ function AuraPage() {
                 force((n) => n + 1);
               }}
             />
+          ) : audioState === "loading" ? (
+            <div className="mx-auto w-full max-w-md text-center">
+              <div className="glass-strong rounded-2xl px-5 py-6">
+                <p className="text-sm text-muted-foreground">Preparing playback…</p>
+              </div>
+            </div>
           ) : isUpload ? (
             <div className="mx-auto w-full max-w-md text-center">
               <div className="glass-strong rounded-2xl px-5 py-6">
