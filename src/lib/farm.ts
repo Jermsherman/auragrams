@@ -10,6 +10,8 @@ export type SavedAura = {
   id: string;
   /** Owner's profile id (when known from cloud). Used for owner gating. */
   userId?: string;
+  /** Publishing state from the cloud row (draft | unlisted | public). */
+  status?: import("./auraStatus").AuraStatus;
   createdAt: number;
   trackTitle: string;
   artistName: string;

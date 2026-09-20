@@ -9,6 +9,7 @@ import { deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura"
 import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
 import { computeAuraTraits } from "@/lib/auraTraits";
+import { AURA_STATUS_META } from "@/lib/auraStatus";
 import { TraitChipStrip } from "./TraitSheet";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import {
@@ -102,6 +103,11 @@ export function AuraFarmCard({
           {sourceBadge}
         </span>
         <div className="flex items-center gap-1">
+          {isOwner && aura.status && (
+            <span className="rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-foreground/80">
+              {AURA_STATUS_META[aura.status].label}
+            </span>
+          )}
           {aura.colorGuided && (
             <span className="rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-foreground/80">
               <Sparkles className="h-2.5 w-2.5" /> Color-guided
