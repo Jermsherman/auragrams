@@ -2,7 +2,7 @@
 // Owner-side reads/writes only — public reads use the same client (RLS allows public select).
 
 import { supabase } from "@/integrations/supabase/client";
-import { getSignedAudioUrl, getSignedAudioUrls } from "./audioStorage";
+import { getSignedAudioUrl, getSignedAudioUrls, getAuraPlaybackUrlOrNull } from "./audioStorage";
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
 import { resolveBands } from "./auraBands";
@@ -13,6 +13,7 @@ export type CloudAuraRow = {
   user_id: string;
   artist_profile_id: string | null;
   visibility_mode: VisibilityMode;
+  status: import("./auraStatus").AuraStatus;
   is_anonymous: boolean;
   track_title: string;
   source_type: string | null;
@@ -191,10 +192,42 @@ export async function listMyAuras(profileId: string): Promise<CloudAuraRow[]> {
   return (data as CloudAuraRow[]) ?? [];
 }
 
+/**
+ * Fetch one Aura for a viewer. RLS returns it directly when the viewer owns it
+ * or it is public; unlisted Auras come back through the security-definer RPC
+ * (exact-id access only). Drafts belonging to someone else resolve to null.
+ */
 export async function getPublicAura(id: string): Promise<CloudAuraRow | null> {
-  const { data, error } = await supabase.from("auras").select("*").eq("id", id).maybeSingle();
-  if (error) return null;
-  return (data as CloudAuraRow) ?? null;
+  const { data } = await supabase.from("auras").select("*").eq("id", id).maybeSingle();
+  if (data) return data as unknown as CloudAuraRow;
+  const rows = await getShareableAuras([id]);
+  return rows[0] ?? null;
+}
+
+/** Public-safe fetch for public + unlisted Auras by exact ids (no drafts). */
+export async function getShareableAuras(ids: string[]): Promise<CloudAuraRow[]> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (!unique.length) return [];
+  const { data, error } = await supabase.rpc("get_shareable_auras", { _ids: unique });
+  if (error || !data) return [];
+  return (data as unknown as CloudAuraRow[]) ?? [];
+}
+
+/**
+ * Fill audioPublicUrl via the authorized playback endpoint. Works for public,
+ * unlisted, and owner-viewed Auras; drafts viewed by others stay silent.
+ */
+export async function hydratePublicAuraAudioUrls<T extends { id: string; audioPublicUrl?: string }>(
+  items: T[],
+): Promise<T[]> {
+  await Promise.all(
+    items.map(async (item) => {
+      if (item.audioPublicUrl) return;
+      const url = await getAuraPlaybackUrlOrNull(item.id);
+      if (url) item.audioPublicUrl = url;
+    }),
+  );
+  return items;
 }
 
 export async function deleteAura(id: string, profileId?: string) {
@@ -269,6 +302,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
   return {
     id: row.id,
     userId: row.user_id,
+    status: row.status,
     createdAt: new Date(row.created_at).getTime(),
     trackTitle: row.track_title,
     artistName: anon ? "" : (row.public_artist_name ?? ""),
