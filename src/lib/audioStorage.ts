@@ -261,3 +261,51 @@ export async function uploadAuraAudio(opts: {
     durationSeconds,
   };
 }
+
+// ---------------- Authorized playback (public / unlisted / owner) ----------------
+//
+// Public surfaces cannot sign storage objects directly (the bucket only allows
+// the uploader's own folder). They ask the server endpoint, which authorizes on
+// publishing status or ownership and returns a short-lived URL.
+
+import { getAuraPlaybackUrl, type PlaybackResult } from "./auraPlayback.functions";
+
+const playbackCache = new Map<string, { url: string; expiresAt: number }>();
+
+export type PlaybackError = "missing" | "private" | "unavailable";
+
+/**
+ * Resolve a playable URL for an Aura by id. Returns `{ url }` on success or
+ * `{ error }` with a non-sensitive reason. Cached until shortly before expiry;
+ * pass `force` to bypass the cache when a URL has gone stale mid-session.
+ */
+export async function getAuraPlayback(
+  auraId: string,
+  opts: { force?: boolean } = {},
+): Promise<{ url: string } | { error: PlaybackError }> {
+  if (!auraId) return { error: "missing" };
+  if (!opts.force) {
+    const hit = playbackCache.get(auraId);
+    if (hit && hit.expiresAt > Date.now()) return { url: hit.url };
+  }
+  try {
+    const res = (await getAuraPlaybackUrl({ data: { auraId } })) as PlaybackResult;
+    if ("url" in res) {
+      playbackCache.set(auraId, {
+        url: res.url,
+        expiresAt: Date.now() + res.expiresIn * 1000 - CACHE_SAFETY_MS,
+      });
+      return { url: res.url };
+    }
+    playbackCache.delete(auraId);
+    return { error: res.error };
+  } catch {
+    return { error: "unavailable" };
+  }
+}
+
+/** Convenience: URL or null. */
+export async function getAuraPlaybackUrlOrNull(auraId: string): Promise<string | null> {
+  const res = await getAuraPlayback(auraId);
+  return "url" in res ? res.url : null;
+}
