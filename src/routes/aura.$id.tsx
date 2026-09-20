@@ -21,7 +21,7 @@ import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSaved
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
-import { uploadAuraAudio, getSignedAudioUrl, getAuraPlayback } from "@/lib/audioStorage";
+import { uploadAuraAudio, getAuraPlayback } from "@/lib/audioStorage";
 import { AuraStatusControl, AuraStatusBadge } from "@/components/AuraStatusControl";
 import { isAuraStatus, type AuraStatus } from "@/lib/auraStatus";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
