@@ -57,9 +57,17 @@ export const getAuraPlaybackUrl = createServerFn({ method: "POST" })
     // Drafts are indistinguishable from missing records for anyone else.
     if (!published && !isOwner) return { error: "private" };
 
-    const path = aura.audio_storage_path;
-    // The path must belong to this Aura's own folder: <authUserId>/<auraId>/<file>
-    if (!path || !path.includes(`/${aura.id}/`) || path.includes("..")) {
+    // The path must be exactly <authUserId>/<auraId>/<file> so no other
+    // storage object can ever be signed through this endpoint.
+    const path = aura.audio_storage_path ?? "";
+    const parts = path.split("/");
+    if (
+      parts.length !== 3 ||
+      !UUID_RE.test(parts[0] ?? "") ||
+      parts[1] !== aura.id ||
+      !parts[2] ||
+      path.includes("..")
+    ) {
       return { error: "unavailable" };
     }
 
