@@ -13,17 +13,17 @@ import { FAQ, MISSION } from "@/lib/faq";
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
+      { title: "About Auragram — Beta v1.0 Guide, Mission & FAQ" },
       {
         name: "description",
         content:
-          "The complete Auragram guide: our mission, the non-static music link, the creator toolkit, how audio becomes an Aura, band and palette customization, privacy, and honest limitations.",
+          "Meet Auragram Beta v1.0: our mission, music-first artist platform, Auras, AuraLinks, social discovery, creator tools, privacy, and honest limitations.",
       },
-      { property: "og:title", content: "Auragram Guide & FAQ — Auras, AuraLinks, Limits" },
+      { property: "og:title", content: "About Auragram — Beta v1.0 Guide & Mission" },
       {
         property: "og:description",
         content:
-          "How Auragram turns a song into a living visual identity — plus customization, sharing, and what it can't do yet.",
+          "How Auragram helps artists turn songs into living identities, share music-first pages, connect with listeners, and grow an audience.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -57,14 +57,14 @@ function FaqPage() {
       <main className="flex-1 mx-auto w-full max-w-3xl px-5 sm:px-8 py-12 sm:py-20">
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-            FAQ
+             About · Beta v1.0
           </div>
           <h1 className="mt-4 font-display text-4xl sm:text-5xl tracking-tight">
-            How to Use <span className="text-aura-gradient">Auragram.</span>
+             About <span className="text-aura-gradient">Auragram.</span>
           </h1>
           <p className="mt-4 text-muted-foreground text-sm sm:text-base">
-            Everything Auragram does — how a song becomes a living Aura, what
-            you can customize, how AuraLinks work, and where the limits are.
+             Our mission, the complete creator toolkit, the social experience,
+             and an honest guide to how Auragram works today.
           </p>
         </div>
 
