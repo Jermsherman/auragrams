@@ -2,7 +2,7 @@ export type FaqItem = { q: string; a: string };
 export type FaqSection = { id: string; title: string; items: FaqItem[] };
 
 export const MISSION =
-  "Auragram exists to give every song a living identity. Streaming turned music into text in a list — a title, a thumbnail, a link. We think a track deserves to look like it sounds. So we turn your audio into an Aura: a playable, reactive visual generated from the sound itself, and a music-first link page that moves instead of sitting still.";
+  "Auragram exists to help artists give every song a living identity, present who they are, connect with listeners, and grow an audience. Streaming turned music into text in a list — a title, a thumbnail, a link. Auragram turns uploaded audio into a playable, reactive Aura, then brings those Auras together with streaming links, artist profiles, discovery, and community on a music-first platform that moves instead of sitting still.";
 
 export const FAQ: FaqSection[] = [
   {
@@ -11,7 +11,7 @@ export const FAQ: FaqSection[] = [
     items: [
       {
         q: "What is Auragram?",
-        a: "Auragram is a music-first identity platform for artists. You upload a song, and Auragram generates an Aura — a living visual built from that track's own sound — then lets you collect your Auras and share them on an AuraLink, a public link page built for music instead of generic buttons.",
+        a: "Auragram is a music-first identity and social discovery platform for artists. Upload a song to generate an Aura — a living visual built from the track's own sound — then collect your Auras, publish them on an AuraLink, grow a public artist profile, and connect with listeners through discovery, follows, reactions, and comments.",
       },
       {
         q: "What is Auragram's mission?",
@@ -20,6 +20,14 @@ export const FAQ: FaqSection[] = [
       {
         q: "Who is Auragram for?",
         a: "Independent artists, producers, beatmakers, and labels who release music and share links constantly — in bios, DMs, stories, and rollout posts. If you have a song and a link to share, Auragram is built for you.",
+      },
+      {
+        q: "What phase is Auragram in?",
+        a: "Auragram is in Beta v1.0. The full core journey — create, save, collect, publish, share, discover, and connect — works end to end. Visuals, limits, discovery ranking, and experimental tools will continue to evolve during beta.",
+      },
+      {
+        q: "What can I do in Beta v1.0?",
+        a: "Create an Aura from uploaded audio, save it to My Auras, write its story, customize its reactive visual, build a public AuraLink with streaming links, view 30-day page insights, publish an artist profile, discover Auras, follow artists, react without signing in, and comment when signed in.",
       },
       {
         q: "How is this different from a normal link-in-bio page?",
@@ -38,12 +46,16 @@ export const FAQ: FaqSection[] = [
         a: "An AuraLink is your public, shareable music page. It can hold your saved Auras, your streaming links, your artist name and avatar, and a theme you customize. It lives at your own slug and you can update it any time.",
       },
       {
+        q: "How do Auras, AuraLinks, profiles, and Discover work together?",
+        a: "An Aura gives one song its identity. My Auras keeps your collection. Your AuraLink presents selected Auras and streaming destinations in one public link. Your artist profile gathers your public work and followers, while Discover helps listeners find it through Trending, New, and Following feeds.",
+      },
+      {
         q: "What are My Auras?",
         a: "My Auras is your private collection of every Aura you've saved. Search it, sort it, open any Aura, edit it, or add it to your AuraLink from there.",
       },
       {
         q: "Is Auragram finished?",
-        a: "No — Auragram is in beta. The core loop (upload, generate, save, share) works end to end, but features, visuals, and limits will keep changing.",
+        a: "Auragram is a working Beta v1.0, not a finished product. The complete core journey works end to end, but features, visuals, ranking, and limits will keep changing as the beta grows.",
       },
     ],
   },
@@ -92,6 +104,18 @@ export const FAQ: FaqSection[] = [
       {
         q: "Public preview",
         a: "See your AuraLink exactly as a visitor will before you share it, so nothing goes out half-built.",
+      },
+      {
+        q: "Artist profiles and Discover",
+        a: "Publish a profile with your Auras and follower counts, browse Trending and New releases, or build a Following feed from artists you follow.",
+      },
+      {
+        q: "Reactions and comments",
+        a: "Anyone can leave a love reaction on a public Aura without signing in. Signed-in listeners can comment, and comment authors or Aura owners can remove comments when needed.",
+      },
+      {
+        q: "AuraLink insights",
+        a: "When you edit a published AuraLink, the Insights card reports its views, Aura plays, link clicks, and shares over the last 30 days.",
       },
       {
         q: "Share cards and story exports",
@@ -316,12 +340,8 @@ export const FAQ: FaqSection[] = [
         a: "On low-power devices, in grids, and for off-screen orbs, effects are reduced or paused to keep the page smooth. Full-quality motion is reserved for the focused Aura.",
       },
       {
-        q: "Some features are hidden in beta",
-        a: "Auracles, lore, and social features like following and commenting are either off or limited while the MVP focuses on Create, My Auras, AuraLink, and public sharing.",
-      },
-      {
-        q: "No analytics yet",
-        a: "AuraLinks don't currently report click or play counts. Use your streaming platform's own dashboards in the meantime.",
+        q: "Some experimental tools are hidden in beta",
+        a: "Auracles, lore, raw recording, story export, influence tools, and some advanced palette controls are outside the Beta v1.0 core experience. Public profiles, discovery, follows, reactions, comments, and AuraLink insights are active.",
       },
     ],
   },
