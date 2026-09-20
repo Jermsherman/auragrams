@@ -21,7 +21,9 @@ import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSaved
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
-import { uploadAuraAudio, getSignedAudioUrl } from "@/lib/audioStorage";
+import { uploadAuraAudio, getSignedAudioUrl, getAuraPlayback } from "@/lib/audioStorage";
+import { AuraStatusControl, AuraStatusBadge } from "@/components/AuraStatusControl";
+import { isAuraStatus, type AuraStatus } from "@/lib/auraStatus";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 // Heavy export dialogs (html-to-image) load only when opened.
@@ -125,9 +127,9 @@ export const Route = createFileRoute("/aura/$id")({
   notFoundComponent: () => (
     <div className="min-h-screen grid place-items-center text-center px-6">
       <div>
-        <h1 className="font-display text-3xl">Aura not found</h1>
+        <h1 className="font-display text-3xl">This Aura is private or unavailable</h1>
         <p className="mt-2 text-muted-foreground">
-          This Aura isn't available on this device.
+          The link may be wrong, or the artist hasn't shared this Aura.
         </p>
         <Link
           to="/create"
@@ -149,6 +151,8 @@ function AuraPage() {
   const [claiming, setClaiming] = useState(false);
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
+  const [auraStatus, setAuraStatus] = useState<AuraStatus | null>(null);
+  const [audioState, setAudioState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -211,9 +215,16 @@ function AuraPage() {
           return;
         }
         setOwnerUserId(row.user_id);
-        if (row.audio_storage_path) {
-          const signed = await getSignedAudioUrl(row.audio_storage_path);
-          if (signed) setAudioUrl((prev) => prev ?? signed);
+        setAuraStatus(isAuraStatus(row.status) ? row.status : "draft");
+        setAudioState((prev) => (prev === "ready" ? prev : "loading"));
+        // Authorized playback: the endpoint checks status/ownership server-side.
+        const playback = await getAuraPlayback(row.id);
+        if (cancelled) return;
+        if ("url" in playback) {
+          setAudioUrl((prev) => prev ?? playback.url);
+          setAudioState("ready");
+        } else {
+          setAudioState((prevState) => (prevState === "ready" ? prevState : "unavailable"));
         }
         if (!t) {
           const shell = {
@@ -498,6 +509,7 @@ function AuraPage() {
               <BookmarkCheck className="h-3.5 w-3.5" /> Saved
             </span>
           )}
+          {isOwner && auraStatus && <AuraStatusBadge status={auraStatus} />}
           <ShareDialog
             track={track}
             url={url}
@@ -879,7 +891,15 @@ function AuraPage() {
           />
         </div>
 
-        {ownerUserId && <AuraSocialBar auraId={track.id} ownerId={ownerUserId} />}
+        {isOwner && auraStatus && ownerUserId === profile?.id && (
+          <div className="mt-8 w-full max-w-md">
+            <AuraStatusControl auraId={track.id} status={auraStatus} onChange={setAuraStatus} />
+          </div>
+        )}
+
+        {ownerUserId && auraStatus !== "draft" && (
+          <AuraSocialBar auraId={track.id} ownerId={ownerUserId} />
+        )}
 
         <p className="mt-10 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
           A living link for this track
