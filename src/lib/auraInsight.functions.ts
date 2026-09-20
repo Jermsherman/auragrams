@@ -10,6 +10,7 @@
 // - `supabaseAdmin` is loaded INSIDE the handler so this module stays client-safe.
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import {
   buildInsightUserPrompt,
@@ -35,12 +36,31 @@ export const generateAuraInsight = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin
       .from("auras")
       .select(
-        "id, track_title, public_artist_name, mood_tags, detected_key, palette_name, energy_level, color_palette, visual_style, insight, visibility_mode",
+        "id, user_id, status, track_title, public_artist_name, mood_tags, detected_key, palette_name, energy_level, color_palette, visual_style, insight, visibility_mode",
       )
       .eq("id", data.auraId)
       .maybeSingle();
     if (error || !row) {
       return { insight: null, cached: false };
+    }
+
+    // 1b. Drafts are owner-only: never hand a private Aura's story to anyone else.
+    if (row.status !== "public" && row.status !== "unlisted") {
+      const token = (getRequestHeader("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+      let isOwner = false;
+      if (token) {
+        const { data: userRes } = await supabaseAdmin.auth.getUser(token);
+        const authUserId = userRes?.user?.id;
+        if (authUserId) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq("auth_user_id", authUserId)
+            .maybeSingle();
+          isOwner = !!profile && profile.id === row.user_id;
+        }
+      }
+      if (!isOwner) return { insight: null, cached: false };
     }
 
     // 2. Idempotent — if we already have an insight, return it.
