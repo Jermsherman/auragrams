@@ -22,7 +22,7 @@ export function RecentAurasShelf() {
           View all <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
-      <div className="-mx-5 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 sm:-mx-2 sm:px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-5 flex w-full snap-x snap-mandatory gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {auras.slice(0, 8).map((aura) => (
           <Link
             key={aura.id}

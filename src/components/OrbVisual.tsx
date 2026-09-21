@@ -1172,9 +1172,9 @@ function Particle({
   speed: number;
   stops: AuraPersonality["stops"];
 }) {
-  const top = `${50 + Math.sin(index * 1.4) * 44}%`;
-  const left = `${50 + Math.cos(index * 1.7) * 46}%`;
-  const delay = `${(index % 8) * 0.35}s`;
+  const top = `${(50 + Math.sin(index * 1.4) * 44).toFixed(4)}%`;
+  const left = `${(50 + Math.cos(index * 1.7) * 46).toFixed(4)}%`;
+  const delay = `${((index % 8) * 0.35).toFixed(2)}s`;
   const dur = `${(5 + (index % 5)) / Math.max(0.5, speed)}s`;
 
   switch (kind) {
@@ -1270,7 +1270,10 @@ function Particle({
             height: 1.5,
             background: `linear-gradient(90deg, transparent, ${stops[0]}, transparent)`,
             opacity: 0.6,
-            animation: `aura-tide-streak ${dur} ease-in-out infinite`,
+            animationName: "aura-tide-streak",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1287,7 +1290,10 @@ function Particle({
             height: 3,
             opacity: 0.35,
             filter: "blur(0.5px)",
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
