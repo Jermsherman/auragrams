@@ -182,6 +182,7 @@ function CreatePage() {
     setCompressionStatus(null);
     setUploadPct(null);
     setAudio(f);
+    if (!title.trim()) setTitle(f.name.replace(/\.[^.]+$/, "").trim());
     void runAnalysis(f);
   };
 
@@ -1022,53 +1023,52 @@ function Field({
   );
 }
 
-// Single phased progress rail for the upload → compress → analyse flow, so the
-// user always sees one clear status instead of stacked messages.
-function UploadRail({
+function StepSection({
+  number,
+  title,
+  description,
+  children,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="glass-card rounded-2xl p-4 sm:p-6">
+      <div className="mb-5 flex items-start gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border/70 bg-background/40 text-xs font-medium text-foreground">
+          {number}
+        </span>
+        <div>
+          <h2 className="font-display text-lg text-foreground">{title}</h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function AnalysisRail({
   analyzing,
-  uploadPct,
-  compressionStatus,
+  error,
 }: {
   analyzing: boolean;
-  uploadPct: number | null;
-  compressionStatus: string | null;
+  error: string | null;
 }) {
-  const compressing = !!compressionStatus;
-  const uploading = uploadPct !== null && !compressing;
-  const steps = [
-    { key: "file", label: "Track added", done: true, active: false },
-    { key: "prep", label: compressionStatus ?? "Prepared", done: !compressing && uploadPct !== null, active: compressing },
-    { key: "upload", label: uploading ? `Uploading ${uploadPct}%` : "Uploaded", done: uploadPct === 100, active: uploading },
-    { key: "analyze", label: analyzing ? "Reading the audio…" : "Analysed", done: !analyzing, active: analyzing },
-  ];
-  const pct = compressing
-    ? 30
-    : uploading
-      ? 30 + (uploadPct ?? 0) * 0.5
-      : analyzing
-        ? 85
-        : 100;
-
   return (
-    <div className="mt-4 mx-auto max-w-md">
-      <Progress value={pct} />
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-        {steps.map((s) => (
-          <span
-            key={s.key}
-            className={`inline-flex items-center gap-1.5 text-[11px] ${
-              s.active ? "text-foreground" : s.done ? "text-muted-foreground" : "text-muted-foreground/50"
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                s.active ? "bg-aura-gradient animate-pulse" : s.done ? "bg-foreground/50" : "bg-foreground/20"
-              }`}
-            />
-            {s.label}
-          </span>
-        ))}
-      </div>
+    <div className="mx-auto mt-4 max-w-md" aria-live="polite">
+      <Progress value={analyzing ? 62 : error ? 100 : 100} />
+      <p className={`mt-2 flex items-center justify-center gap-2 text-xs ${error ? "text-destructive" : "text-muted-foreground"}`}>
+        {analyzing ? (
+          <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading key, energy, pitch, and mood…</>
+        ) : error ? (
+          error
+        ) : (
+          <><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Track analysis complete</>
+        )}
+      </p>
     </div>
   );
 }

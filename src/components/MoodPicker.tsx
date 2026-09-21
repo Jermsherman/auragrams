@@ -130,7 +130,7 @@ export function MoodPicker({
           </button>
         )}
         {(!compact || expanded) && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-11 h-6 bg-gradient-to-t from-background to-transparent" />
+          <div className={cn("pointer-events-none absolute inset-x-0 h-6 bg-gradient-to-t from-background to-transparent", compact ? "bottom-11" : "bottom-0")} />
         )}
       </div>
     </div>
