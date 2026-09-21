@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useHydrated } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyAuras } from "@/hooks/useMyAuras";
@@ -7,8 +7,9 @@ import { AuraStatusBadge } from "./AuraStatusControl";
 
 export function RecentAurasShelf() {
   const { user, profile } = useAuth();
+  const hydrated = useHydrated();
   const { auras } = useMyAuras(profile?.id);
-  if (!user || !auras?.length) return null;
+  if (!hydrated || !user || !auras?.length) return null;
 
   return (
     <section aria-labelledby="recent-auras-title" className="mx-auto max-w-6xl px-5 sm:px-8 pb-14 sm:pb-18">

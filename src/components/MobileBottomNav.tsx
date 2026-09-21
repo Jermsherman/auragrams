@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useHydrated, useRouterState } from "@tanstack/react-router";
 import { Compass, Link2, Plus, Radio, UserRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -7,8 +7,9 @@ const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/l/", "/u/"];
 
 export function MobileBottomNav() {
   const { user } = useAuth();
+  const hydrated = useHydrated();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  if (!user || HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return null;
+  if (!hydrated || !user || HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return null;
 
   const items = [
     { to: "/discover" as const, label: "Discover", icon: Compass },
@@ -47,7 +48,6 @@ export function MobileBottomNav() {
                 <Icon className={cn("h-5 w-5", primary && "h-5.5 w-5.5")} aria-hidden />
               </span>
               <span>{label}</span>
-              <span className="absolute bottom-0.5 h-0.5 w-3 rounded-full bg-current opacity-0 [[data-status=active]_&]:opacity-100" />
             </Link>
           ))}
         </div>

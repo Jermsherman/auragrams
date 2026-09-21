@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useHydrated } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
@@ -7,6 +7,8 @@ import { listMyAuraLinks } from "@/lib/auralinkService";
 
 export function Nav({ showCta = true }: { showCta?: boolean }) {
   const { user, profile } = useAuth();
+  const hydrated = useHydrated();
+  const signedIn = hydrated && !!user;
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           <Logo />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
-          {user && (
+          {signedIn && (
             <div className="hidden md:contents">
               <Link
                 to="/farm"
@@ -68,7 +70,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
             to="/discover"
             activeProps={{ className: "text-foreground" }}
             inactiveProps={{ className: "text-muted-foreground" }}
-            className={user ? "hidden md:inline text-sm tracking-wide hover:text-foreground transition-colors px-2" : "text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"}
+            className={signedIn ? "hidden md:inline text-sm tracking-wide hover:text-foreground transition-colors px-2" : "text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"}
           >
             Discover
           </Link>
@@ -80,7 +82,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           >
             FAQ
           </Link>
-          {showCta && !user && (
+          {showCta && !signedIn && (
             <Link
               to="/create"
               className="group relative inline-flex items-center rounded-full px-4 sm:px-5 h-10 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_30px_-8px_oklch(0.7_0.2_310/0.7)] hover:shadow-[0_0_50px_-6px_oklch(0.7_0.2_310/0.9)] transition-shadow"

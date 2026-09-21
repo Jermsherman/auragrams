@@ -70,8 +70,8 @@ function Index() {
         {/* HERO */}
         <section className="relative overflow-hidden">
           <AuraAtmosphere personality={showcase.palette} />
-          <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-4 pb-12 sm:pt-10 sm:pb-18 flex flex-col items-center text-center animate-fade-up">
-            <div className="relative grid place-items-center before:absolute before:inset-[12%] before:-z-10 before:rounded-full before:bg-[var(--surface-light)] before:opacity-70 before:blur-3xl">
+          <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-3 pb-10 sm:pt-10 sm:pb-18 flex flex-col items-center text-center animate-fade-up">
+            <div className="relative grid max-w-[340px] place-items-center sm:max-w-none before:absolute before:inset-[12%] before:-z-10 before:rounded-full before:bg-[var(--surface-light)] before:opacity-70 before:blur-3xl">
               <Aurascope
                 key={showcase.id}
                 aura={{
@@ -87,7 +87,7 @@ function Index() {
                 showLabel={false}
               />
             </div>
-            <h1 className="mt-7 sm:mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight mask-wipe">
+            <h1 className="mt-5 sm:mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight mask-wipe">
               Give Your Music <br />
               <span className="text-aura-gradient-live">A Living Identity.</span>
             </h1>

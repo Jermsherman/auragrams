@@ -1190,7 +1190,10 @@ function Particle({
             background: stops[0],
             filter: "blur(8px)",
             opacity: 0.35,
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1208,7 +1211,10 @@ function Particle({
             boxShadow: `0 0 6px ${stops[3]}`,
             transform: `rotate(${index * 23}deg)`,
             opacity: 0.85,
-            animation: `aura-twinkle ${dur} ease-in-out infinite`,
+            animationName: "aura-twinkle",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1225,7 +1231,10 @@ function Particle({
             background: stops[2],
             filter: "blur(12px)",
             opacity: 0.28,
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1242,7 +1251,10 @@ function Particle({
             background: stops[1],
             boxShadow: `0 0 8px ${stops[1]}, 0 0 16px ${stops[1]}`,
             opacity: 0.85,
-            animation: `aura-rise ${dur} ease-in-out infinite`,
+            animationName: "aura-rise",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
