@@ -11,6 +11,8 @@ import {
   Layers,
   GripVertical,
   Mic,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import {
   
@@ -28,7 +30,7 @@ import { suggestMoods } from "@/lib/moodDetect";
 import { MoodPicker } from "@/components/MoodPicker";
 import { BandCustomizer } from "@/components/BandCustomizer";
 import { DEFAULT_BANDS, type BandsConfig } from "@/lib/auraBands";
-import { OrbVisual } from "@/components/OrbVisual";
+import { Aurascope } from "@/components/Aurascope";
 
 import { ColorInfluence } from "@/components/ColorInfluence";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
@@ -49,6 +51,7 @@ import { MAX_AUDIO_BYTES, formatAudioSize, uploadAuraAudio, validateAudioFile } 
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
 import { flags } from "@/lib/featureFlags";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 // Link already imported above
 
 export const Route = createFileRoute("/create")({
@@ -95,12 +98,14 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [compressionStatus, setCompressionStatus] = useState<string | null>(null);
   const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
   const [features, setFeatures] = useState<AudioFeatures | null>(null);
   const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
   // Guards the one-shot auto mood detection per uploaded file.
   const autoMoodDoneRef = useRef(false);
+  const analysisRunRef = useRef(0);
   const [colorInfluence, setColorInfluence] = useState<UserColorInfluence>({
     mode: "surprise",
     colors: [],
@@ -123,22 +128,43 @@ function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const runAnalysis = (f: File) => {
+  const resetAudioAnalysis = () => {
+    analysisRunRef.current += 1;
     autoMoodDoneRef.current = false;
     setKeyDetection(null);
     setFeatures(null);
     setPitchCenter(null);
+    setMoods([]);
+    setAnalysisError(null);
+    setAnalyzing(false);
+  };
+
+  const runAnalysis = async (f: File) => {
+    const runId = analysisRunRef.current + 1;
+    analysisRunRef.current = runId;
+    autoMoodDoneRef.current = false;
+    setKeyDetection(null);
+    setFeatures(null);
+    setPitchCenter(null);
+    setMoods([]);
+    setAnalysisError(null);
     setAnalyzing(true);
-    Promise.allSettled([
-      detectKey(f).then((res) => {
-        if (res) {
-          setKeyDetection(res);
-          if (res.confidence >= 0.15) toast.success(`Key detected: ${res.key}`);
-        }
-      }),
-      analyzeFile(f).then((feat) => { if (feat) setFeatures(feat); }),
-      detectPitchCenter(f).then((pc) => { if (pc) setPitchCenter(pc); }),
-    ]).finally(() => setAnalyzing(false));
+    const [keyResult, featureResult, pitchResult] = await Promise.allSettled([
+      detectKey(f),
+      analyzeFile(f),
+      detectPitchCenter(f),
+    ]);
+    if (analysisRunRef.current !== runId) return;
+    if (keyResult.status === "fulfilled" && keyResult.value) {
+      setKeyDetection(keyResult.value);
+      if (keyResult.value.confidence >= 0.15) toast.success(`Key detected: ${keyResult.value.key}`);
+    }
+    if (featureResult.status === "fulfilled" && featureResult.value) setFeatures(featureResult.value);
+    if (pitchResult.status === "fulfilled" && pitchResult.value) setPitchCenter(pitchResult.value);
+    if ([keyResult, featureResult, pitchResult].every((result) => result.status === "rejected")) {
+      setAnalysisError("We couldn't read this track. Try another audio file.");
+    }
+    setAnalyzing(false);
   };
 
   const onPick = (f: File | undefined | null) => {
@@ -152,20 +178,19 @@ function CreatePage() {
       toast.info("Large file detected. Auragram will compress it before upload.");
     }
     setCompressionStatus(null);
+    setUploadPct(null);
     setAudio(f);
-    runAnalysis(f);
+    void runAnalysis(f);
   };
 
   const onRawRecorded = (f: File) => {
     setAudio(f);
-    runAnalysis(f);
+    void runAnalysis(f);
   };
 
   const onRawClear = () => {
     setAudio(null);
-    setKeyDetection(null);
-    setFeatures(null);
-    setPitchCenter(null);
+    resetAudioAnalysis();
   };
 
   // Sync artist text from resolved identity (artist profile or username)
@@ -194,7 +219,7 @@ function CreatePage() {
     (identity.mode === "username" && !!profile?.username) ||
     (identity.mode === "artist" && !!identity.artistProfileId);
   const ready =
-    identityReady && (
+    !analyzing && !analysisError && identityReady && (
       mode === "auracle"
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
@@ -292,6 +317,34 @@ function CreatePage() {
   );
 
   const canDetect = !!audio;
+
+  const readinessMessage = analyzing
+    ? "Analyzing your track…"
+    : analysisError
+      ? analysisError
+      : mode === "auracle"
+        ? auracleFiles.length < 2
+          ? "Add at least two tracks."
+          : !title.trim()
+            ? "Add a project title."
+            : !identityReady
+              ? "Choose who this Auracle belongs to."
+              : "Ready to create."
+        : !audio
+          ? "Add a track to continue."
+          : mode === "file" && !title.trim()
+            ? "Add the track title."
+            : !identityReady
+              ? "Choose who this Aura belongs to."
+              : "Ready to generate."
+
+  const actionLabel = busy
+    ? compressionStatus || (uploadPct !== null ? `Uploading ${uploadPct}%` : "Preparing Aura…")
+    : analyzing
+      ? "Analyzing track…"
+      : mode === "auracle"
+        ? "Create Auracle"
+        : "Generate Aura";
 
   const submit = async () => {
     if (!ready) return;
