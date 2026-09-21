@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useHydrated, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -76,6 +76,7 @@ type Mode = "file" | "raw" | "auracle";
 function CreatePage() {
   const nav = useNavigate();
   const { profile, user } = useAuth();
+  const hydrated = useHydrated();
   const [mode, setMode] = useState<Mode>("file");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -180,7 +181,7 @@ function CreatePage() {
 
   
 
-  const isGuest = !user;
+  const isGuest = !hydrated || !user;
   // Guests cannot use Auracle (multi-track) or pick identity — they get a single guest Aura.
   useEffect(() => {
     if (mode === "auracle" && (isGuest || !flags.enableAuracle)) setMode("file");
