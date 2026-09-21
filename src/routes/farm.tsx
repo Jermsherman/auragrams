@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Sparkles, Plus, Link2, Search } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { AuraFarmCard } from "@/components/AuraFarmCard";
-import { getSavedAuras, type SavedAura } from "@/lib/farm";
+import type { SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 import { useAuth } from "@/hooks/useAuth";
-import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib/cloudAura";
+import { useMyAuras } from "@/hooks/useMyAuras";
 
 
 export const Route = createFileRoute("/farm")({
@@ -39,37 +39,10 @@ type SortKey = "newest" | "oldest" | "title" | "artist";
 
 function FarmPage() {
   const { profile } = useAuth();
-  const [auras, setAuras] = useState<SavedAura[] | null>(null);
+  const { auras, setAuras } = useMyAuras(profile?.id);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
-
-  useEffect(() => {
-    setAuras(getSavedAuras());
-
-    if (!profile?.id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const rows = await listMyAuras(profile.id);
-        if (cancelled) return;
-        const mapped = rows.map(mapAuraRowToSaved);
-        await hydrateSavedAuraAudioUrls(mapped);
-        if (cancelled) return;
-        const merged = new Map<string, SavedAura>();
-        for (const a of getSavedAuras()) merged.set(a.id, a);
-        for (const r of mapped) merged.set(r.id, r);
-        setAuras(
-          Array.from(merged.values()).sort((a, b) => b.createdAt - a.createdAt),
-        );
-      } catch (e) {
-        console.error(e);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile?.id]);
 
   const removedAura = (id: string) =>
     setAuras((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));

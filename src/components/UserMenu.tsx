@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useHydrated, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -10,10 +10,11 @@ import { EditProfileDialog } from "./EditProfileDialog";
 
 export function UserMenu() {
   const { user, profile, loading, signOut } = useAuth();
+  const hydrated = useHydrated();
   const nav = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
 
-  if (loading) return <div className="h-9 w-9" aria-hidden />;
+  if (!hydrated || loading) return <div className="h-9 w-9" aria-hidden />;
 
   if (!user) {
     return (

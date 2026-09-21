@@ -996,14 +996,14 @@ export function OrbVisual({
   const outerGlow = `radial-gradient(circle at 50% 50%, ${p.glow}, ${s0} 38%, transparent 72%)`;
 
   const shape = shapeStyle(p.shape);
-  const motionAnim = motionAnimation(p.motion, p.speed, isPlaying);
+  const motionAnim = animate ? motionAnimation(p.motion, p.speed, isPlaying) : "none";
 
   const particleCount = Math.max(0, Math.min(28, p.particleCount));
 
   return (
     <div
       ref={ref}
-      className={cn("relative shrink-0", className)}
+        className={cn("relative shrink-0", !animate && "orb-static", className)}
       style={
         {
           width: dim,
@@ -1057,7 +1057,7 @@ export function OrbVisual({
       {/* outer shell (conic) */}
       <div
         ref={shellRef}
-        className="absolute inset-[7%]"
+        className="orb-motion-shell absolute inset-[7%]"
         style={{
           ...shape,
           background: conic,
@@ -1172,9 +1172,9 @@ function Particle({
   speed: number;
   stops: AuraPersonality["stops"];
 }) {
-  const top = `${50 + Math.sin(index * 1.4) * 44}%`;
-  const left = `${50 + Math.cos(index * 1.7) * 46}%`;
-  const delay = `${(index % 8) * 0.35}s`;
+  const top = `${(50 + Math.sin(index * 1.4) * 44).toFixed(4)}%`;
+  const left = `${(50 + Math.cos(index * 1.7) * 46).toFixed(4)}%`;
+  const delay = `${((index % 8) * 0.35).toFixed(2)}s`;
   const dur = `${(5 + (index % 5)) / Math.max(0.5, speed)}s`;
 
   switch (kind) {
@@ -1190,7 +1190,10 @@ function Particle({
             background: stops[0],
             filter: "blur(8px)",
             opacity: 0.35,
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1208,7 +1211,10 @@ function Particle({
             boxShadow: `0 0 6px ${stops[3]}`,
             transform: `rotate(${index * 23}deg)`,
             opacity: 0.85,
-            animation: `aura-twinkle ${dur} ease-in-out infinite`,
+            animationName: "aura-twinkle",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1225,7 +1231,10 @@ function Particle({
             background: stops[2],
             filter: "blur(12px)",
             opacity: 0.28,
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1242,7 +1251,10 @@ function Particle({
             background: stops[1],
             boxShadow: `0 0 8px ${stops[1]}, 0 0 16px ${stops[1]}`,
             opacity: 0.85,
-            animation: `aura-rise ${dur} ease-in-out infinite`,
+            animationName: "aura-rise",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1258,7 +1270,10 @@ function Particle({
             height: 1.5,
             background: `linear-gradient(90deg, transparent, ${stops[0]}, transparent)`,
             opacity: 0.6,
-            animation: `aura-tide-streak ${dur} ease-in-out infinite`,
+            animationName: "aura-tide-streak",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />
@@ -1275,7 +1290,10 @@ function Particle({
             height: 3,
             opacity: 0.35,
             filter: "blur(0.5px)",
-            animation: `aura-float ${dur} ease-in-out infinite`,
+            animationName: "aura-float",
+            animationDuration: dur,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
             animationDelay: delay,
           }}
         />

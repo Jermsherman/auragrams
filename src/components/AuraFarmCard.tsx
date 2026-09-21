@@ -78,7 +78,7 @@ export function AuraFarmCard({
     <div
       ref={light.ref}
       onPointerMove={light.onPointerMove}
-      className="group relative rounded-3xl p-5 flex flex-col items-center text-center glass-card cursor-light lift overflow-hidden"
+      className="group relative rounded-2xl p-5 flex flex-col items-center text-center glass-card cursor-light lift overflow-hidden"
       onPointerEnter={() => setLive(true)}
       onPointerLeave={() => {
         setLive(false);
@@ -104,7 +104,7 @@ export function AuraFarmCard({
         </span>
         <div className="flex items-center gap-1">
           {isOwner && aura.status && (
-            <span className="rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-foreground/80">
+            <span className={`status-${aura.status} rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em]`}>
               {AURA_STATUS_META[aura.status].label}
             </span>
           )}
@@ -184,7 +184,7 @@ export function AuraFarmCard({
               <Trash2 className="h-4 w-4" />
             </button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete this Aura from your Farm?</AlertDialogTitle>
               <AlertDialogDescription>
