@@ -1,9 +1,7 @@
-# Glass v2 roadmap
+# Create flow roadmap
 
-- [ ] Consolidate atmospheric lighting and three-level glass system
-- [ ] Refine Aurascope enclosure and calm motion behavior
-- [ ] Tighten homepage and premium upload presentation
-- [ ] Add signed-in mobile bottom navigation
-- [ ] Add real-data Recent Auras shelf
-- [ ] Refine publishing, collection, create, card, and dialog surfaces
-- [ ] Verify responsive rendering, interactions, diagnostics, and accessibility
+- [x] Prevent the Generate action from colliding with signed-in mobile navigation
+- [x] Structure Create into track, details, and Aura-shaping steps
+- [x] Reset and guard analysis when audio changes
+- [x] Reduce customization overload and improve the live review
+- [x] Verify guest, signed-in, mobile, desktop, and generation flows

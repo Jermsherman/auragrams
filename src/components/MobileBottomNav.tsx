@@ -24,7 +24,7 @@ export function MobileBottomNav() {
       <div aria-hidden className="mobile-nav-clearance md:hidden" />
       <nav
         aria-label="Main navigation"
-        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 md:hidden"
+        className="mobile-bottom-nav fixed inset-x-3 z-50 md:hidden"
       >
         <div className="glass-nav mx-auto flex max-w-md items-end justify-around rounded-[1.7rem] px-2 py-1.5">
           {items.map(({ to, label, icon: Icon, primary }) => (
