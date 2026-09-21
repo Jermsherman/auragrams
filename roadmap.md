@@ -4,4 +4,4 @@
 - [x] Structure Create into track, details, and Aura-shaping steps
 - [x] Reset and guard analysis when audio changes
 - [x] Reduce customization overload and improve the live review
-- [ ] Verify guest, signed-in, mobile, desktop, and generation flows
+- [x] Verify guest, signed-in, mobile, desktop, and generation flows
