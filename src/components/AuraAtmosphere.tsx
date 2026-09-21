@@ -18,31 +18,43 @@ export function AuraAtmosphere({ personality, className = "" }: Props) {
   return (
     <div
       aria-hidden
-      className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className}`}
+      className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}
     >
       <div
-        className="absolute"
+        className="aura-ambient-field absolute rounded-full"
         style={{
           top: "-30%",
           left: "-20%",
           width: "90vmax",
           height: "90vmax",
           background: `radial-gradient(circle, ${p.atmosphere}, transparent 65%)`,
-          filter: "blur(60px)",
-          animation: "atmosphere-drift 22s ease-in-out infinite",
+          filter: "blur(90px)",
+          opacity: 0.62,
         }}
       />
       <div
-        className="absolute"
+        className="aura-ambient-field aura-ambient-field-slow absolute rounded-full"
         style={{
           bottom: "-30%",
           right: "-25%",
           width: "100vmax",
           height: "100vmax",
           background: `radial-gradient(circle, ${p.glow}, transparent 65%)`,
-          filter: "blur(80px)",
-          opacity: 0.7,
-          animation: "atmosphere-drift 28s ease-in-out infinite reverse",
+          filter: "blur(110px)",
+          opacity: 0.45,
+        }}
+      />
+      <div
+        className="aura-ambient-field absolute rounded-full"
+        style={{
+          top: "32%",
+          right: "6%",
+          width: "54vmax",
+          height: "54vmax",
+          background: `radial-gradient(circle, ${p.stops[2]}, transparent 68%)`,
+          filter: "blur(120px)",
+          opacity: 0.1,
+          animationDuration: "42s",
         }}
       />
       {/* vignette */}

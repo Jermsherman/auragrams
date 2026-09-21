@@ -28,14 +28,14 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="absolute inset-0 backdrop-blur-md bg-background/40 border-b border-border/60" />
+      <div className="glass-nav absolute inset-0 border-x-0 border-t-0" />
       <nav className="relative mx-auto max-w-6xl px-5 sm:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="hover:opacity-80 transition-opacity">
           <Logo />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
           {user && (
-            <>
+            <div className="hidden md:contents">
               <Link
                 to="/farm"
                 activeProps={{ className: "text-foreground" }}
@@ -62,13 +62,13 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
                   Public Preview
                 </a>
               )}
-            </>
+            </div>
           )}
           <Link
             to="/discover"
             activeProps={{ className: "text-foreground" }}
             inactiveProps={{ className: "text-muted-foreground" }}
-            className="text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"
+            className={user ? "hidden md:inline text-sm tracking-wide hover:text-foreground transition-colors px-2" : "text-xs sm:text-sm tracking-wide hover:text-foreground transition-colors px-2"}
           >
             Discover
           </Link>
@@ -80,7 +80,7 @@ export function Nav({ showCta = true }: { showCta?: boolean }) {
           >
             FAQ
           </Link>
-          {showCta && (
+          {showCta && !user && (
             <Link
               to="/create"
               className="group relative inline-flex items-center rounded-full px-4 sm:px-5 h-10 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_30px_-8px_oklch(0.7_0.2_310/0.7)] hover:shadow-[0_0_50px_-6px_oklch(0.7_0.2_310/0.9)] transition-shadow"
