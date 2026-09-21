@@ -135,6 +135,7 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     overscroll-behavior-y: none;
+    overflow-x: clip;
   }
   /* Installed app (iOS/Android standalone): respect notches + home indicator. */
   @media all and (display-mode: standalone) {
