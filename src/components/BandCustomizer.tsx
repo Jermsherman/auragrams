@@ -30,9 +30,16 @@ type Props = {
   /** Palette swatches offered as per-band colors. */
   swatches?: string[];
   hasVocals?: boolean;
+  onHasVocalsChange?: (value: boolean) => void;
 };
 
-export function BandCustomizer({ value, onChange, swatches = [], hasVocals = true }: Props) {
+export function BandCustomizer({
+  value,
+  onChange,
+  swatches = [],
+  hasVocals = true,
+  onHasVocalsChange,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   const setBand = (key: BandKey, patch: Partial<BandsConfig[BandKey]>) =>
@@ -59,6 +66,36 @@ export function BandCustomizer({ value, onChange, swatches = [], hasVocals = tru
 
       {open && (
         <div className="mt-4 space-y-4">
+          {onHasVocalsChange && (
+            <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+              <div className="text-xs font-medium">Does this track have vocals?</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Vocals add a separate reactive layer driven by the voice.
+              </p>
+              <div className="mt-3 flex gap-2">
+                {[
+                  { label: "Yes", value: true },
+                  { label: "No", value: false },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => onHasVocalsChange(option.value)}
+                    aria-pressed={hasVocals === option.value}
+                    className={cn(
+                      "min-h-11 rounded-full px-5 text-xs font-medium transition-colors",
+                      hasVocals === option.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/40 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Vocal band shape */}
           {hasVocals && (
             <div className="rounded-xl border border-border/50 bg-background/40 p-3">

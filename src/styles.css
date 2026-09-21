@@ -115,6 +115,7 @@
   --glass-edge: oklch(1 0 0 / 0.11);
   --glass-edge-bright: oklch(1 0 0 / 0.2);
   --glass-shadow: oklch(0 0 0 / 0.62);
+  --mobile-nav-clearance: calc(5.75rem + env(safe-area-inset-bottom));
 }
 
 
@@ -263,7 +264,20 @@
     transition: transform 180ms var(--ease-aura), background-color 180ms ease, border-color 180ms ease;
   }
   .press-depth:active { transform: translateY(1px) scale(0.985); }
-  .mobile-nav-clearance { height: calc(5.75rem + env(safe-area-inset-bottom)); }
+  .mobile-nav-clearance { height: var(--mobile-nav-clearance); }
+  .mobile-bottom-nav { bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+  .create-mobile-dock--guest {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .create-mobile-dock--signed-in {
+    bottom: calc(var(--mobile-nav-clearance) + 0.35rem);
+  }
+  .create-mobile-clearance--guest {
+    height: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+  .create-mobile-clearance--signed-in {
+    height: calc(var(--mobile-nav-clearance) + 5rem);
+  }
   .aura-ambient-field {
     animation: atmosphere-drift 28s ease-in-out infinite;
     will-change: transform, opacity;
