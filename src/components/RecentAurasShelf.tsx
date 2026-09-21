@@ -12,7 +12,7 @@ export function RecentAurasShelf() {
   if (!hydrated || !user || !auras?.length) return null;
 
   return (
-    <section aria-labelledby="recent-auras-title" className="mx-auto max-w-6xl px-5 sm:px-8 pb-14 sm:pb-18">
+    <section aria-labelledby="recent-auras-title" className="mx-auto max-w-6xl overflow-hidden px-5 sm:px-8 pb-14 sm:pb-18">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-muted-foreground">Back in your collection</p>
