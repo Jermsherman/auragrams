@@ -69,6 +69,8 @@ export const Route = createFileRoute("/create")({
         content:
           "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: CreatePage,
@@ -550,27 +552,27 @@ function CreatePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav showCta={false} />
-      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-12 sm:py-20 pb-32 sm:pb-20">
+      <main className="flex-1 mx-auto w-full max-w-xl px-5 sm:px-8 py-8 sm:py-16 pb-8 sm:pb-20">
         <div className="text-center animate-fade-up">
-          <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
+          <h1 className="font-display text-4xl sm:text-5xl">
             {mode === "auracle" ? (
               <>Create an <span className="text-aura-gradient">Auracle.</span></>
             ) : (
               <>Create an <span className="text-aura-gradient">Aura.</span></>
             )}
           </h1>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
             {mode === "auracle"
               ? "Upload multiple tracks at once. We'll turn each into an Aura and group them into a living project."
               : "Upload a sound or record a Raw Aura. Auragram turns it into a living visual identity you can share."}
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-3 flex justify-center">
             <HelpLink hash="creating-auras" />
           </div>
         </div>
 
         {isGuest && (
-          <div className="mt-8 mx-auto max-w-md glass rounded-2xl px-4 py-3 text-center text-xs text-muted-foreground animate-fade-up">
+          <div className="mt-6 mx-auto max-w-md glass rounded-2xl px-4 py-3 text-center text-xs leading-relaxed text-muted-foreground animate-fade-up">
             <span className="text-foreground">Try one Aura free.</span>{" "}
             <Link
               to="/auth"
@@ -579,11 +581,11 @@ function CreatePage() {
             >
               Sign up
             </Link>{" "}
-            to save it and build your music-first AuraLink.
+            to save it and build your music-first AuraLink. Guest previews expire after 72 hours.
           </div>
         )}
 
-        <div className="mt-10 space-y-5 animate-fade-up">
+        <div className="mt-7 space-y-5 animate-fade-up sm:mt-9">
           {/* Mode toggle — only show if any alt mode is enabled */}
           {(flags.enableRawRecording || (flags.enableAuracle && !isGuest)) && (
             <div className={`glass rounded-full p-1 grid text-sm gap-0.5`} style={{ gridTemplateColumns: `repeat(${1 + (flags.enableRawRecording ? 1 : 0) + (flags.enableAuracle && !isGuest ? 1 : 0)}, minmax(0,1fr))` }}>
@@ -745,6 +747,7 @@ function CreatePage() {
             <>
               {mode === "file" ? (
                 <>
+                  <StepSection number="1" title="Add your track" description="Choose the audio that will shape this Aura.">
                   <label
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -795,6 +798,7 @@ function CreatePage() {
                           onClick={(e) => {
                             e.preventDefault();
                             setAudio(null);
+                            resetAudioAnalysis();
                           }}
                           className="rounded-full p-2 hover:bg-foreground/10 transition-colors"
                           aria-label="Remove"
@@ -804,29 +808,23 @@ function CreatePage() {
                       </div>
                     )}
                   </label>
-                  {audio && (
-                    <UploadRail
-                      analyzing={analyzing}
-                      uploadPct={uploadPct}
-                      compressionStatus={compressionStatus}
-                    />
-                  )}
+                  {audio && <AnalysisRail analyzing={analyzing} error={analysisError} />}
                   <p className="text-xs text-muted-foreground text-center mt-3">
-                    Upload an audio file to generate your Aura. Max 100 MB — larger files compress automatically. Add streaming links later after saving.
+                    MP3, WAV, M4A, AAC, or OGG · 100 MB maximum. Larger files compress after you generate.
                   </p>
                   {isGuest && (
                     <p className="text-xs text-muted-foreground text-center mt-1">
-                      Previews are temporary. Sign up to keep this Aura permanently.
+                      This preview expires after 72 hours. Sign up to keep it permanently.
                     </p>
                   )}
-
-
+                  </StepSection>
                 </>
               ) : (
                 <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
               )}
 
               {/* Fields */}
+              <StepSection number="2" title="Song details" description="Add the title and choose how your identity appears.">
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field
                   label={mode === "raw" ? "Title · optional" : "Track title"}
@@ -854,9 +852,15 @@ function CreatePage() {
                   )}
                 </>
               )}
+              <p className={`flex items-center gap-2 px-1 text-xs ${ready ? "text-foreground" : "text-muted-foreground"}`} role="status">
+                {ready ? <CheckCircle2 className="h-4 w-4 text-primary" /> : analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {readinessMessage}
+              </p>
+              </StepSection>
 
               {/* Mood picker + live preview */}
-              <div className="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+              <StepSection number="3" title="Shape the Aura" description="Review the detected character, then refine only what matters to you.">
+              <div className="space-y-5">
                 <MoodPicker
                   value={moods}
                   onChange={setMoods}
@@ -864,65 +868,52 @@ function CreatePage() {
                   onDetect={handleDetectMood}
                   detectLabel={moods.length > 0 ? "Re-detect" : "Detect Mood"}
                   canDetect={canDetect}
+                  compact
                 />
-
-                <div className="rounded-2xl border border-border/60 bg-background/30 p-4">
-                  <div className="text-sm font-medium">Does this track have vocals?</div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Vocals add a live band to the orb that moves with the voice. Choose its shape under Aura bands.
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    {[
-                      { label: "Yes", value: true },
-                      { label: "No", value: false },
-                    ].map((opt) => (
-                      <button
-                        key={opt.label}
-                        type="button"
-                        onClick={() => setHasVocals(opt.value)}
-                        aria-pressed={hasVocals === opt.value}
-                        className={
-                          "rounded-full px-4 py-1.5 text-xs font-medium transition-colors " +
-                          (hasVocals === opt.value
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/40 text-muted-foreground hover:text-foreground")
-                        }
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 <BandCustomizer
                   value={bands}
                   onChange={setBands}
                   swatches={preview.colors?.swatches}
                   hasVocals={hasVocals}
+                  onHasVocalsChange={setHasVocals}
                 />
 
                 {flags.enableColorInfluence && (
                   <ColorInfluence value={colorInfluence} onChange={setColorInfluence} />
                 )}
 
-                <div className="flex items-center gap-4 pt-1">
-                  <div className="relative h-14 w-14 shrink-0 grid place-items-center">
-                    <div className="absolute inset-0 rounded-full bg-aura-gradient opacity-40 blur-xl animate-pulse" />
-                    <div className="relative h-10 w-10 rounded-full bg-aura-gradient opacity-80 animate-pulse" />
+                <div className="glass-hero grid grid-cols-[88px_1fr] items-center gap-4 rounded-2xl p-4">
+                  <div className="grid place-items-center">
+                    <Aurascope
+                      aura={{
+                        id: "create-preview",
+                        palette: preview.palette,
+                        seed: seedFromId(title + artist || "create-preview"),
+                        colors: preview.colors,
+                        moods,
+                        energy: features?.energy,
+                        hasVocals,
+                        bands,
+                      }}
+                      size="mini"
+                      mode="card"
+                      showLabel={false}
+                      animate={!analyzing}
+                    />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                      Your aura
-                    </div>
-                    <div className="font-display text-base sm:text-lg truncate text-muted-foreground italic">
-                      Unrevealed
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Generate to reveal name, palette &amp; energy
-                    </div>
+                    <div className="text-xs font-medium text-muted-foreground">Aura preview</div>
+                    <div className="mt-1 truncate font-display text-base text-foreground">Name unrevealed</div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {[detectedKeyStr, features ? `${Math.round(features.energy * 100)}% energy` : null, moods.slice(0, 2).join(" · ")]
+                        .filter(Boolean)
+                        .join(" · ") || "Add a track to reveal its musical character."}
+                    </p>
                   </div>
                 </div>
               </div>
+              </StepSection>
 
               {/* Optional cover */}
               <div className="glass rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -952,37 +943,29 @@ function CreatePage() {
             onClick={submit}
             className="hidden sm:inline-flex w-full items-center justify-center gap-2 rounded-full h-13 py-4 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] transition-shadow"
           >
-            {busy
-              ? "Preparing…"
-              : mode === "auracle"
-                ? "Create Auracle"
-                : "Generate Aura"}{" "}
+            {actionLabel}{" "}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </main>
 
-      {/* Sticky mobile CTA */}
-      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 glass-nav border-x-0 border-b-0 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-        <button
+      <div
+        aria-hidden
+        className={`sm:hidden ${isGuest ? "create-mobile-clearance--guest" : "create-mobile-clearance--signed-in"}`}
+      />
+      {/* Mobile action dock sits above signed-in navigation or the guest safe area. */}
+      <div className={`fixed inset-x-3 z-40 sm:hidden ${isGuest ? "create-mobile-dock--guest" : "create-mobile-dock--signed-in"}`}>
+        <div className="glass-nav mx-auto max-w-md rounded-2xl border border-border/60 p-2 shadow-[var(--shadow-3)]">
+        <Button
           disabled={!ready || busy}
           onClick={submit}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]"
+          className="h-12 w-full rounded-xl bg-aura-gradient text-sm text-primary-foreground shadow-[0_0_40px_-12px_var(--aura-pink)]"
         >
-          {busy
-            ? "Preparing…"
-            : mode === "auracle"
-              ? "Create Auracle"
-              : "Generate Aura"}{" "}
-          <ArrowRight className="h-4 w-4" />
-        </button>
-        {!ready && (
-          <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-            {mode === "auracle"
-              ? "Add 2+ tracks, project title, and artist"
-              : "Add a track and the song details"}
-          </p>
-        )}
+          {(busy || analyzing) && <Loader2 className="h-4 w-4 animate-spin" />}
+          {actionLabel}
+          {!busy && !analyzing && <ArrowRight className="h-4 w-4" />}
+        </Button>
+        </div>
       </div>
       <Footer />
     </div>
