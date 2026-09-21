@@ -821,7 +821,10 @@ function CreatePage() {
                   </StepSection>
                 </>
               ) : (
-                <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
+                <StepSection number="1" title="Record your idea" description="Capture the audio that will shape this Raw Aura.">
+                  <RawAuraRecorder file={audio} onReady={onRawRecorded} onClear={onRawClear} />
+                  {audio && <AnalysisRail analyzing={analyzing} error={analysisError} />}
+                </StepSection>
               )}
 
               {/* Fields */}
@@ -950,10 +953,6 @@ function CreatePage() {
         </div>
       </main>
 
-      <div
-        aria-hidden
-        className={`sm:hidden ${isGuest ? "create-mobile-clearance--guest" : "create-mobile-clearance--signed-in"}`}
-      />
       {/* Mobile action dock sits above signed-in navigation or the guest safe area. */}
       <div className={`fixed inset-x-3 z-40 sm:hidden ${isGuest ? "create-mobile-dock--guest" : "create-mobile-dock--signed-in"}`}>
         <div className="glass-nav mx-auto max-w-md rounded-2xl border border-border/60 p-2 shadow-[var(--shadow-3)]">
@@ -969,6 +968,10 @@ function CreatePage() {
         </div>
       </div>
       <Footer />
+      <div
+        aria-hidden
+        className={`sm:hidden ${isGuest ? "create-mobile-clearance--guest" : "create-mobile-clearance--signed-in"}`}
+      />
     </div>
   );
 }
