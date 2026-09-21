@@ -12,7 +12,7 @@ export function FaqPreview() {
   const items = getHomepageFaqs();
   return (
     <section className="relative">
-      <div className="mx-auto max-w-3xl px-5 sm:px-8 py-20">
+      <div className="mx-auto max-w-3xl px-5 sm:px-8 py-14 sm:py-18">
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
             FAQ
@@ -23,7 +23,7 @@ export function FaqPreview() {
           </h2>
         </div>
 
-        <div className="mt-10 glass rounded-3xl p-2 sm:p-4">
+        <div className="mt-8 glass-card rounded-3xl p-2 sm:p-4">
           <Accordion type="single" collapsible className="w-full">
             {items.map((it, i) => (
               <AccordionItem

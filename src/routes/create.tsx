@@ -702,7 +702,7 @@ function CreatePage() {
                       setDrag(false);
                       onPick(e.dataTransfer.files?.[0]);
                     }}
-                    className={`relative block cursor-pointer rounded-3xl p-8 sm:p-12 text-center transition-all glass ${
+                    className={`relative block cursor-pointer rounded-2xl p-7 sm:p-10 text-center transition-all glass-strong press-depth ${
                       drag
                         ? "shadow-[0_0_60px_-10px_oklch(0.7_0.2_310/0.7)] border-foreground/30"
                         : ""
@@ -802,7 +802,7 @@ function CreatePage() {
               )}
 
               {/* Mood picker + live preview */}
-              <div className="glass-strong rounded-3xl p-5 sm:p-6 space-y-5">
+              <div className="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
                 <MoodPicker
                   value={moods}
                   onChange={setMoods}
@@ -909,7 +909,7 @@ function CreatePage() {
       </main>
 
       {/* Sticky mobile CTA */}
-      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 backdrop-blur-xl bg-background/80 border-t border-border/40 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 glass-nav border-x-0 border-b-0 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         <button
           disabled={!ready || busy}
           onClick={submit}

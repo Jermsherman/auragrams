@@ -4,6 +4,8 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OrbVisual } from "@/components/OrbVisual";
 import { Aurascope } from "@/components/Aurascope";
+import { AuraAtmosphere } from "@/components/AuraAtmosphere";
+import { RecentAurasShelf } from "@/components/RecentAurasShelf";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, Sparkles, Share2, Wand2, Link2, UploadCloud } from "lucide-react";
 
@@ -64,11 +66,12 @@ function Index() {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
-      <main className="flex-1">
+      <main className="relative z-10 flex-1">
         {/* HERO */}
         <section className="relative overflow-hidden">
-          <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-6 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center animate-fade-up">
-            <div className="relative grid place-items-center">
+          <AuraAtmosphere personality={showcase.palette} />
+          <div className="mx-auto max-w-2xl px-5 sm:px-8 pt-4 pb-12 sm:pt-10 sm:pb-18 flex flex-col items-center text-center animate-fade-up">
+            <div className="relative grid place-items-center before:absolute before:inset-[12%] before:-z-10 before:rounded-full before:bg-[var(--surface-light)] before:opacity-70 before:blur-3xl">
               <Aurascope
                 key={showcase.id}
                 aura={{
@@ -80,17 +83,17 @@ function Index() {
                 size="large"
                 mode="minimal"
                 hero
-                className="animate-float-y animate-fade-in"
+                className="animate-fade-in"
                 showLabel={false}
               />
             </div>
-            <h1 className="mt-10 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight mask-wipe">
+            <h1 className="mt-7 sm:mt-8 font-display text-4xl sm:text-6xl leading-[1.05] font-semibold tracking-tight mask-wipe">
               Give Your Music <br />
               <span className="text-aura-gradient-live">A Living Identity.</span>
             </h1>
 
             <p
-              className="mt-4 text-base sm:text-lg text-muted-foreground max-w-md reveal-up"
+              className="mt-4 text-base sm:text-lg leading-relaxed text-muted-foreground max-w-md reveal-up"
               style={{ animationDelay: "220ms" }}
             >
               Every song has an aura. Upload one and claim yours.
@@ -105,13 +108,15 @@ function Index() {
           </div>
         </section>
 
+        <RecentAurasShelf />
+
 
         {/* WHAT IS AN AURA */}
         <section
           id="what-is-an-aura"
-          className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24 scroll-mt-24"
+          className="mx-auto max-w-6xl px-5 sm:px-8 pb-14 sm:pb-20 scroll-mt-24"
         >
-          <div className="rounded-3xl glass-card hairline-aura sheen p-7 sm:p-12 relative overflow-hidden">
+          <div className="rounded-3xl glass-hero hairline-aura p-7 sm:p-11 relative overflow-hidden">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="font-display text-3xl sm:text-4xl tracking-tight">
                 What exactly is an <span className="text-aura-gradient">Aura?</span>
@@ -188,11 +193,11 @@ function Index() {
         </section>
 
         {/* HOW IT WORKS — simplified to 3 outcome-led steps */}
-        <section id="how-it-works" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <section id="how-it-works" className="mx-auto max-w-6xl px-5 sm:px-8 py-14 sm:py-20">
           <h2 className="font-display text-3xl sm:text-4xl tracking-tight text-center">
             How it works
           </h2>
-          <div className="mt-12 grid sm:grid-cols-3 gap-5">
+          <div className="mt-9 grid sm:grid-cols-3 gap-5">
             {[
               { n: "01", t: "Upload a song", d: "Any track you have the rights to. Audio only — links come later." },
               { n: "02", t: "Reveal its Aura", d: "One canonical Aura per song. Deterministic — no rerolls, ever." },
@@ -200,7 +205,7 @@ function Index() {
             ].map((s) => (
               <div
                 key={s.n}
-                className="glass rounded-2xl p-6 sm:p-7 hover:border-foreground/15 transition-colors"
+                className="glass-card rounded-2xl p-6 sm:p-7 hover:border-foreground/15 transition-colors"
               >
                 <div className="font-display text-aura-gradient text-sm tracking-[0.3em]">
                   {s.n}
@@ -216,8 +221,8 @@ function Index() {
         </section>
 
         {/* AURALINK SPOTLIGHT */}
-        <section className="mx-auto max-w-5xl px-5 sm:px-8 pb-8 sm:pb-12">
-          <div className="rounded-3xl glass-strong p-7 sm:p-12 relative overflow-hidden">
+        <section className="mx-auto max-w-5xl px-5 sm:px-8 pb-14 sm:pb-20">
+          <div className="rounded-3xl glass-hero p-7 sm:p-11 relative overflow-hidden">
             <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, oklch(0.7 0.22 310 / 0.6), transparent 70%)" }} />
             <div className="relative">
               <div className="inline-flex items-center gap-2 rounded-full glass px-3 h-7 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -246,7 +251,7 @@ function Index() {
         </section>
 
         {/* OUTCOME-FOCUSED FEATURE CARDS */}
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24">
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-14 sm:pb-20">
           <div className="grid sm:grid-cols-3 gap-5">
             {[
               {
@@ -265,7 +270,7 @@ function Index() {
                 d: "Give every song its own visual identity instead of another generic link.",
               },
             ].map(({ I, t, d }) => (
-              <div key={t} className="glass rounded-2xl p-6 sm:p-7 relative">
+              <div key={t} className="glass-card rounded-2xl p-6 sm:p-7 relative">
                 <I className="h-5 w-5 text-foreground/80" />
                 <h3 className="mt-4 font-display text-xl">{t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{d}</p>
@@ -279,7 +284,7 @@ function Index() {
 
         {/* FINAL CTA */}
         <section className="relative">
-          <div className="mx-auto max-w-4xl px-5 sm:px-8 py-24 text-center relative">
+          <div className="mx-auto max-w-4xl px-5 sm:px-8 py-18 sm:py-20 text-center relative">
             <div className="absolute inset-0 -z-10 grid place-items-center">
               <OrbVisual size={520} className="opacity-50 blur-md" />
             </div>
@@ -331,8 +336,8 @@ function HeroDropZone() {
         setDrag(false);
         hand(e.dataTransfer.files?.[0]);
       }}
-      className={`mt-8 w-full max-w-md cursor-pointer rounded-3xl px-6 py-7 flex flex-col items-center justify-center text-center transition-all glass-strong ${
-        drag ? "ring-2 ring-foreground/40 scale-[1.01]" : "hover:bg-foreground/[0.05]"
+      className={`mt-7 w-full max-w-md cursor-pointer rounded-2xl px-6 py-5 sm:py-6 flex flex-col items-center justify-center text-center transition-all glass-strong press-depth ${
+        drag ? "ring-2 ring-primary/70 scale-[1.01] shadow-[0_0_54px_-20px_var(--aura-pink)]" : "hover:border-foreground/20"
       }`}
     >
       <input
@@ -341,14 +346,16 @@ function HeroDropZone() {
         className="hidden"
         onChange={(e) => hand(e.target.files?.[0])}
       />
-      <UploadCloud className="h-7 w-7 text-aura-gradient" />
-      <div className="mt-3 font-display text-lg sm:text-xl">
+      <span className="grid h-10 w-10 place-items-center rounded-full glass">
+        <UploadCloud className="h-5 w-5 text-foreground/85" />
+      </span>
+      <div className="mt-2.5 font-display text-lg sm:text-xl">
         Drop a track. Get your Aura.
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
         MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC · 100 MB max, larger files auto-compress
       </div>
-      <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
+      <div className="mt-4 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
         Claim Your Aura <ArrowRight className="h-4 w-4" />
       </div>
     </label>

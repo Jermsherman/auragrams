@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AURA_STATUS_META, updateAuraStatus, type AuraStatus } from "@/lib/auraStatus";
+import { cn } from "@/lib/utils";
 
 const ICONS: Record<AuraStatus, typeof Lock> = {
   draft: Lock,
@@ -26,7 +27,7 @@ export function AuraStatusBadge({ status, className = "" }: { status: AuraStatus
   const Icon = ICONS[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full glass px-3 h-7 text-[11px] uppercase tracking-[0.18em] text-foreground/80 ${className}`}
+      className={cn("inline-flex items-center gap-1.5 rounded-full glass px-3 h-7 text-[11px] uppercase tracking-[0.12em]", `status-${status}`, className)}
     >
       <Icon className="h-3 w-3" aria-hidden="true" />
       {AURA_STATUS_META[status].label}
@@ -69,7 +70,7 @@ export function AuraStatusControl({
   const options: AuraStatus[] = ["draft", "unlisted", "public"];
 
   return (
-    <section className="w-full max-w-md text-left glass-card rounded-2xl p-4">
+    <section className="w-full max-w-md text-left glass-hero rounded-2xl p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Who can see this</h2>
         <AuraStatusBadge status={status} />
@@ -85,7 +86,7 @@ export function AuraStatusControl({
               type="button"
               disabled={saving}
               onClick={() => (opt === "public" ? setConfirmPublic(true) : apply(opt))}
-              className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors disabled:opacity-60 ${
+              className={`press-depth w-full min-h-16 text-left rounded-xl border px-3 py-2.5 transition-colors disabled:opacity-60 ${
                 active
                   ? "border-primary/60 bg-foreground/5"
                   : "border-border/60 hover:bg-foreground/5"
@@ -108,7 +109,7 @@ export function AuraStatusControl({
       </div>
 
       <AlertDialog open={confirmPublic} onOpenChange={setConfirmPublic}>
-        <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Make this Aura public?</AlertDialogTitle>
             <AlertDialogDescription>

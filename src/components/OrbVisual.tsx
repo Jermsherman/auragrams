@@ -996,14 +996,14 @@ export function OrbVisual({
   const outerGlow = `radial-gradient(circle at 50% 50%, ${p.glow}, ${s0} 38%, transparent 72%)`;
 
   const shape = shapeStyle(p.shape);
-  const motionAnim = motionAnimation(p.motion, p.speed, isPlaying);
+  const motionAnim = animate ? motionAnimation(p.motion, p.speed, isPlaying) : "none";
 
   const particleCount = Math.max(0, Math.min(28, p.particleCount));
 
   return (
     <div
       ref={ref}
-      className={cn("relative shrink-0", className)}
+        className={cn("relative shrink-0", !animate && "orb-static", className)}
       style={
         {
           width: dim,
@@ -1057,7 +1057,7 @@ export function OrbVisual({
       {/* outer shell (conic) */}
       <div
         ref={shellRef}
-        className="absolute inset-[7%]"
+        className="orb-motion-shell absolute inset-[7%]"
         style={{
           ...shape,
           background: conic,

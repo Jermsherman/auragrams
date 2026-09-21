@@ -273,11 +273,7 @@ function AurascopeLens({
         "relative aspect-square w-full",
         radius,
         "overflow-hidden",
-        // Glass shell
-        "bg-[oklch(0.10_0.04_290_/_0.55)]",
-        "ring-1 ring-foreground/10",
-        "shadow-[inset_0_1px_0_oklch(1_0_0_/_0.06),inset_0_-30px_60px_oklch(0.05_0.02_290_/_0.6)]",
-        "backdrop-blur-xl",
+        "aurascope-housing",
       )}
       style={{ width: dimCss, height: dimCss }}
       aria-label={aura.auraName ? `Aurascope of ${aura.auraName}` : "Aurascope"}
@@ -291,6 +287,9 @@ function AurascopeLens({
             "radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--aura-glow) 28%, transparent) 0%, transparent 65%)",
         }}
       />
+
+      {/* Machined bezel separates the housing from the recessed display. */}
+      <div className="aurascope-bezel pointer-events-none absolute inset-[4.5%] rounded-[26%]" aria-hidden />
 
       {/* Rim highlight */}
       <div
@@ -306,16 +305,22 @@ function AurascopeLens({
       {/* Oscilloscope grid */}
       {showGrid && <AurascopeGrid faint={size === "small"} />}
 
-      {/* Scope lens (slightly darker inner circle) */}
+      {/* Recessed spectral display */}
       <div
-        className="absolute rounded-full pointer-events-none"
+        className="aurascope-lens absolute rounded-full pointer-events-none"
         aria-hidden
         style={{
           inset: "8%",
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute inset-[4%] rounded-[26%]"
+        aria-hidden
+        style={{
           background:
-            "radial-gradient(circle at 50% 55%, oklch(0.08 0.03 290 / 0.55), oklch(0.10 0.03 290 / 0.15) 60%, transparent 80%)",
-          boxShadow:
-            "inset 0 0 1px oklch(1 0 0 / 0.08), inset 0 0 24px oklch(0 0 0 / 0.45)",
+            "linear-gradient(150deg, color-mix(in oklab, white 14%, transparent) 0%, transparent 18%, transparent 72%, color-mix(in oklab, var(--aura-glow) 12%, transparent) 100%)",
+          mixBlendMode: "screen",
         }}
       />
 
@@ -341,7 +346,7 @@ function AurascopeLens({
           effect={effect}
           quality={size === "large" || hero ? "high" : "low"}
           animate={animate}
-          className={isPlaying || hero ? "" : "animate-breathe"}
+          className={!animate ? "orb-static" : ""}
         />
       </div>
 
@@ -358,11 +363,11 @@ function AurascopeLens({
         />
       )}
 
-      {/* Tiny "Aurascope" caption for full/story */}
-      {(mode === "full" || mode === "story") && size === "large" && (
+      {/* Etched instrument badge, reserved for the hero enclosure. */}
+      {hero && size === "large" && (
         <div className="absolute bottom-2.5 left-0 right-0 text-center pointer-events-none">
-          <span className="text-[8.5px] uppercase tracking-[0.36em] text-foreground/40">
-            Aurascope
+          <span className="text-[8.5px] font-medium uppercase tracking-[0.36em] text-foreground/45 [text-shadow:0_1px_0_var(--background)]">
+            Aurascope · spectral instrument
           </span>
         </div>
       )}
@@ -375,7 +380,7 @@ function AurascopeGrid({ faint = false }: { faint?: boolean }) {
   const op = faint ? 0.06 : 0.1;
   return (
     <svg
-      className="absolute inset-0 w-full h-full pointer-events-none text-foreground"
+      className="absolute inset-0 w-full h-full pointer-events-none text-foreground [mask-image:radial-gradient(circle,black_18%,transparent_76%)]"
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
       aria-hidden
@@ -388,6 +393,22 @@ function AurascopeGrid({ faint = false }: { faint?: boolean }) {
         <circle cx="50" cy="50" r="22" />
         <circle cx="50" cy="50" r="34" />
         <circle cx="50" cy="50" r="44" />
+        {Array.from({ length: 32 }, (_, i) => {
+          const angle = (i / 32) * Math.PI * 2;
+          const major = i % 4 === 0;
+          const r1 = major ? 42 : 43.2;
+          const r2 = 45;
+          return (
+            <line
+              key={`radial-${i}`}
+              x1={50 + Math.cos(angle) * r1}
+              y1={50 + Math.sin(angle) * r1}
+              x2={50 + Math.cos(angle) * r2}
+              y2={50 + Math.sin(angle) * r2}
+              opacity={major ? 0.95 : 0.48}
+            />
+          );
+        })}
         {/* tick marks along center axes */}
         {Array.from({ length: 9 }, (_, i) => 10 + i * 10).map((x) => (
           <line key={`tx-${x}`} x1={x} y1="49" x2={x} y2="51" />
