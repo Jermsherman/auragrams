@@ -723,6 +723,14 @@
   70% { transform: scale(1.18); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+@keyframes generate-signal {
+  0%, 100% { height: 0.25rem; opacity: 0.45; }
+  50% { height: 0.9rem; opacity: 0.95; }
+}
+@keyframes generate-sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
 
 .animate-breathe { animation: breathe 6s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 24s linear infinite; }
@@ -745,7 +753,9 @@
   .mask-wipe,
   .text-aura-gradient-live,
   .sheen::after,
-  .hairline-aura::after {
+  .hairline-aura::after,
+  .generate-culmination__signal span,
+  .generate-aura-button::after {
     animation: none !important;
   }
   .reveal-up,
