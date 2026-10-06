@@ -942,36 +942,45 @@ function CreatePage() {
             </>
           )}
 
-          <button
-            disabled={!ready || busy}
-            onClick={submit}
-            className="hidden sm:inline-flex w-full items-center justify-center gap-2 rounded-full h-13 py-4 text-sm font-medium text-primary-foreground bg-aura-gradient disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_50px_-10px_oklch(0.7_0.2_310/0.9)] transition-shadow"
+          <section
+            className={`generate-culmination ${ready ? "generate-culmination--ready" : ""} ${busy ? "generate-culmination--busy" : ""}`}
+            aria-labelledby="generate-heading"
           >
-            {actionLabel}{" "}
-            <ArrowRight className="h-4 w-4" />
-          </button>
+            <div className="generate-culmination__signal" aria-hidden>
+              {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
+                <span key={bar} style={{ animationDelay: `${bar * 70}ms` }} />
+              ))}
+            </div>
+            <div className="text-center">
+              <h2 id="generate-heading" className="font-display text-2xl font-semibold text-foreground">
+                {ready ? "Your Aura is ready" : "Finish shaping your Aura"}
+              </h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                {ready
+                  ? "Your sonic signature is captured. Bring its living visual identity to life."
+                  : readinessMessage}
+              </p>
+            </div>
+
+            <div className="generate-culmination__action">
+              <Button
+                disabled={!ready || busy}
+                onClick={submit}
+                className="generate-aura-button h-16 w-full rounded-[1.35rem] text-base font-semibold text-primary-foreground"
+              >
+                {(busy || analyzing) && <Loader2 className="h-5 w-5 animate-spin" />}
+                <span>{actionLabel}</span>
+                {!busy && !analyzing && <ArrowRight className="h-5 w-5" />}
+              </Button>
+            </div>
+
+            <p className="text-center text-[11px] text-muted-foreground" aria-live="polite">
+              {busy ? "Composing your reveal…" : ready ? "Everything is set" : "Complete the required details above"}
+            </p>
+          </section>
         </div>
       </main>
-
-      {/* Mobile action dock sits above signed-in navigation or the guest safe area. */}
-      <div className={`fixed inset-x-3 z-40 sm:hidden ${isGuest ? "create-mobile-dock--guest" : "create-mobile-dock--signed-in"}`}>
-        <div className="glass-nav mx-auto max-w-md rounded-2xl border border-border/60 p-2 shadow-[var(--shadow-3)]">
-        <Button
-          disabled={!ready || busy}
-          onClick={submit}
-          className="h-12 w-full rounded-xl bg-aura-gradient text-sm text-primary-foreground shadow-[0_0_40px_-12px_var(--aura-pink)]"
-        >
-          {(busy || analyzing) && <Loader2 className="h-4 w-4 animate-spin" />}
-          {actionLabel}
-          {!busy && !analyzing && <ArrowRight className="h-4 w-4" />}
-        </Button>
-        </div>
-      </div>
       <Footer />
-      <div
-        aria-hidden
-        className={`sm:hidden ${isGuest ? "create-mobile-clearance--guest" : "create-mobile-clearance--signed-in"}`}
-      />
     </div>
   );
 }
