@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 // Daily cleanup of guest Auras (user_id IS NULL) older than 72 hours.
-// Called by pg_cron via net.http_post with the project's anon key in `apikey`.
-// Route lives under /api/public/* which bypasses auth on published sites — we
-// verify the caller in-handler with a constant-time compare on the apikey.
+// Called by pg_cron via net.http_post. The route lives under /api/public/*,
+// which bypasses auth on published sites, so the caller must present the
+// server-only CRON_SECRET (header `x-cron-secret`, or `Authorization: Bearer`).
+// Do not use the publishable anon key — it ships in the client bundle.
 
 const CLEANUP_AGE_MS = 72 * 60 * 60 * 1000;
 
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const len = Math.max(a.length, b.length);
+  let diff = a.length === b.length ? 0 : 1;
+  for (let i = 0; i < len; i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   return diff === 0;
 }
 
@@ -18,15 +19,16 @@ export const Route = createFileRoute("/api/public/cron/cleanup-guest-auras")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
+        const expected = process.env.CRON_SECRET;
         if (!expected) {
+          console.error("[cleanup-guest-auras] CRON_SECRET is not set");
           return new Response("Server misconfigured", { status: 500 });
         }
-        const apikey =
-          request.headers.get("apikey") ||
+        const provided =
+          request.headers.get("x-cron-secret") ||
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
           "";
-        if (!apikey || !timingSafeEqual(apikey, expected)) {
+        if (!provided || !timingSafeEqual(provided, expected)) {
           return new Response("Unauthorized", { status: 401 });
         }
 
