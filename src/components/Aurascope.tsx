@@ -6,6 +6,7 @@ import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import type { Track } from "@/lib/tracks";
 import type { BandsConfig } from "@/lib/auraBands";
 import { pickAuraEffect, type AuraEffect } from "@/lib/auraEffects";
+import { toEnergyPercent } from "@/lib/energy";
 
 export type AurascopeSize = "large" | "medium" | "small" | "mini";
 export type AurascopeMode = "full" | "minimal" | "card" | "story";
@@ -20,7 +21,7 @@ export type AurascopeAura = {
   colors?: AuraPalette;
   profile?: AuraProfile;
   isAnonymous?: boolean;
-  hasVocals?: boolean;
+  hasVocals?: boolean | null;
   bands?: BandsConfig | null;
   moods?: string[];
   energy?: number;
@@ -73,7 +74,7 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
     hasVocals: t.hasVocals,
     bands: t.bands,
     moods: t.moods,
-    energy: t.energy,
+    energy: toEnergyPercent(t.energy),
     auraName: t.auraName,
     trackTitle: t.title,
     artistName: t.artist,
@@ -83,7 +84,7 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
           palette: t.palette,
           auraName: t.auraName,
           paletteName: t.paletteName ?? "",
-          energy: t.energy,
+          energy: toEnergyPercent(t.energy),
           description: t.description,
           vibeDescription: t.vibeDescription ?? "",
           motionKeywords: t.motionKeywords ?? [],
@@ -341,7 +342,7 @@ function AurascopeLens({
           profile={aura.profile}
           particles={!isCompact}
           hero={hero}
-          hasVocals={aura.hasVocals !== false}
+          hasVocals={aura.hasVocals !== false && aura.hasVocals !== null}
           bands={aura.bands}
           effect={effect}
           quality={size === "large" || hero ? "high" : "low"}

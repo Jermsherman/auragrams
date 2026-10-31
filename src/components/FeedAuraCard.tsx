@@ -5,6 +5,7 @@ import { Heart } from "lucide-react";
 import { Aurascope } from "./Aurascope";
 import { profileLabel, type FeedAura } from "@/lib/social";
 import type { AuraPalette } from "@/lib/aura";
+import { toEnergyPercent } from "@/lib/energy";
 
 export function FeedAuraCard({ aura }: { aura: FeedAura }) {
   const anon = aura.visibility_mode === "anonymous";
@@ -27,7 +28,7 @@ export function FeedAuraCard({ aura }: { aura: FeedAura }) {
             auraName: aura.aura_name ?? undefined,
             colors: (aura.color_palette as AuraPalette) ?? undefined,
             moods: aura.mood_tags ?? [],
-            energy: aura.energy_level ?? undefined,
+            energy: aura.energy_level == null ? undefined : toEnergyPercent(aura.energy_level),
           }}
           size="mini"
           mode="minimal"

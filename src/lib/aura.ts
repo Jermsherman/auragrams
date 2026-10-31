@@ -1,3 +1,5 @@
+import { toEnergyPercent } from "./energy";
+
 // Aura Engine v3 — mood + music-theory + RGB palette + poetic descriptions.
 // Pure functions, no side effects. Backward compatible with v2 imports.
 
@@ -1009,7 +1011,7 @@ export function generateAura(input: {
   const seedKey = input.id || `${input.artist}-${input.title}`;
   const seed = hash(seedKey);
   const energy = input.energyOverride != null
-    ? Math.max(15, Math.min(99, Math.round(input.energyOverride)))
+    ? toEnergyPercent(input.energyOverride)
     : energyFor(seedKey, input.moods);
 
   const conf = input.keyConfidence ?? null;

@@ -29,7 +29,7 @@ type Props = {
   onChange: (next: BandsConfig) => void;
   /** Palette swatches offered as per-band colors. */
   swatches?: string[];
-  hasVocals?: boolean;
+  hasVocals?: boolean | null;
   onHasVocalsChange?: (value: boolean) => void;
 };
 
@@ -71,6 +71,7 @@ export function BandCustomizer({
               <div className="text-xs font-medium">Does this track have vocals?</div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Vocals add a separate reactive layer driven by the voice.
+                {hasVocals == null ? " Not set yet — Auragram does not guess." : ""}
               </p>
               <div className="mt-3 flex gap-2">
                 {[
@@ -97,7 +98,7 @@ export function BandCustomizer({
           )}
 
           {/* Vocal band shape */}
-          {hasVocals && (
+          {hasVocals === true && (
             <div className="rounded-xl border border-border/50 bg-background/40 p-3">
               <div className="text-xs font-medium">Vocal band shape</div>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -124,7 +125,7 @@ export function BandCustomizer({
 
           {BAND_ORDER.map((key) => {
             const b = value[key];
-            const dimmed = key === "vocal" && !hasVocals;
+            const dimmed = key === "vocal" && hasVocals !== true;
             return (
               <div
                 key={key}

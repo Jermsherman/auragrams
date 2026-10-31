@@ -10,6 +10,7 @@
 //
 // One track produces one canonical trait sheet. Never a pack, never a re-roll.
 
+import { toEnergyPercent } from "@/lib/energy";
 import {
   getPersonality,
   dominantHueFamilies,
@@ -92,7 +93,7 @@ function hash32(s: string): number {
 /** Serial is derived from measurable properties of the *music*, so the same
  *  song always yields the same serial regardless of who uploaded it. */
 function toSerial(t: TraitInput): string {
-  const energy = Math.round((t.energy ?? t.energyLevel ?? 50) / 10);
+  const energy = Math.round(toEnergyPercent(t.energy ?? t.energyLevel ?? 50) / 10);
   const tonic = t.tonic ?? t.detectedKey ?? t.musicalKey ?? "";
   const mode = t.mode ?? "";
   const band = (t.tempoBand ?? "").toLowerCase();
@@ -250,7 +251,7 @@ export function computeAuraTraits(track: TraitInput): AuraTraits {
   const texture = p.texture;
 
   const hue = hueTrait(track.colors);
-  const charge = chargeTrait(track.energy ?? track.energyLevel ?? 50);
+  const charge = chargeTrait(toEnergyPercent(track.energy ?? track.energyLevel ?? 50));
   const weight = weightTrait(track.density);
   const pulse = pulseTrait(track.tempoBand);
   const root = rootTrait(track);

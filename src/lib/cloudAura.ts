@@ -6,6 +6,7 @@ import { getSignedAudioUrl, getSignedAudioUrls, getAuraPlaybackUrlOrNull } from 
 import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
 import { resolveBands } from "./auraBands";
+import { toEnergyPercent } from "./energy";
 import type { Auracle } from "./auracle";
 
 export type CloudAuraRow = {
@@ -127,7 +128,9 @@ export async function saveAuraToCloud(opts: {
     visual_style: {
       palette: saved.palette,
       seed: saved.seed,
-      hasVocals: saved.hasVocals !== false,
+      // undefined means an older Aura that never asked; those stay "has vocals".
+      // null means the artist has not answered yet.
+      hasVocals: saved.hasVocals === undefined ? true : saved.hasVocals,
       bands: saved.bands ?? null,
 
       density: saved.density,
@@ -285,7 +288,7 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     palette?: string;
     seed?: number;
     density?: string;
-    hasVocals?: boolean;
+    hasVocals?: boolean | null;
     bands?: unknown;
     tempoBand?: string;
     motionKeywords?: string[];
@@ -314,10 +317,10 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     moodTags: row.mood_tags ?? [],
     auraName: row.aura_name ?? row.track_title,
     auraDescription: row.aura_description ?? "",
-    energyLevel: Number(row.energy_level ?? 0.6),
+    energyLevel: toEnergyPercent(row.energy_level),
     palette: ((visual.palette ?? row.palette_name) as import("./aura").PaletteKey) ?? "amethyst",
     seed: Number(visual.seed ?? 0),
-    hasVocals: visual.hasVocals !== false,
+    hasVocals: visual.hasVocals === undefined ? true : visual.hasVocals,
     bands: visual.bands ? resolveBands(visual.bands) : undefined,
 
     coverDataUrl: extra.coverUrl ?? extra.coverDataUrl,

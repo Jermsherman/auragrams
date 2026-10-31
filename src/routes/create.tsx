@@ -47,7 +47,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { IdentitySelector } from "@/components/IdentitySelector";
 import type { ArtistProfile, VisibilityMode } from "@/lib/identity";
 import { saveAuraToCloud, saveAuracleToCloud } from "@/lib/cloudAura";
-import { MAX_AUDIO_BYTES, formatAudioSize, uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
+import { MAX_AUDIO_BYTES, SUPPORTED_AUDIO_ACCEPT, SUPPORTED_AUDIO_EXT_RE, SUPPORTED_AUDIO_LABEL, formatAudioSize, uploadAuraAudio, validateAudioFile } from "@/lib/audioStorage";
 import { setPendingAura, getPendingAura } from "@/lib/pendingAura";
 import { flags } from "@/lib/featureFlags";
 import { Progress } from "@/components/ui/progress";
@@ -94,7 +94,8 @@ function CreatePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [moods, setMoods] = useState<string[]>([]);
-  const [hasVocals, setHasVocals] = useState(true);
+  // The analyzer does not detect vocals. Leave this unanswered until the artist chooses.
+  const [hasVocals, setHasVocals] = useState<boolean | null>(null);
   const [bands, setBands] = useState<BandsConfig>(DEFAULT_BANDS);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -137,6 +138,7 @@ function CreatePage() {
     setFeatures(null);
     setPitchCenter(null);
     setMoods([]);
+    setHasVocals(null);
     setAnalysisError(null);
     setAnalyzing(false);
   };
@@ -182,12 +184,14 @@ function CreatePage() {
     setCompressionStatus(null);
     setUploadPct(null);
     setAudio(f);
+    setHasVocals(null);
     if (!title.trim()) setTitle(f.name.replace(/\.[^.]+$/, "").trim());
     void runAnalysis(f);
   };
 
   const onRawRecorded = (f: File) => {
     setAudio(f);
+    setHasVocals(null);
     void runAnalysis(f);
   };
 
@@ -279,11 +283,11 @@ function CreatePage() {
     if (!files) return;
     const arr = Array.from(files).filter((f) => {
       const okType = f.type.startsWith("audio/");
-      const okExt = /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
+      const okExt = SUPPORTED_AUDIO_EXT_RE.test(f.name);
       return okType || okExt;
     });
     if (!arr.length) {
-      toast.error("Please upload audio files (.mp3, .wav, .m4a, .aac, .ogg)");
+      toast.error(`Please upload audio files (${SUPPORTED_AUDIO_LABEL})`);
       return;
     }
     setAuracleFiles((prev) => [...prev, ...arr]);
@@ -629,7 +633,7 @@ function CreatePage() {
                 <input
                   type="file"
                   multiple
-                  accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                  accept={SUPPORTED_AUDIO_ACCEPT}
                   className="hidden"
                   onChange={(e) => onPickAuracleFiles(e.target.files)}
                 />
@@ -643,7 +647,7 @@ function CreatePage() {
                       : "Drop multiple tracks here"}
                   </p>
                   <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                    Tap to choose · .mp3 · .wav
+                    Tap to choose · {SUPPORTED_AUDIO_LABEL}
                   </p>
                 </div>
               </label>
@@ -768,7 +772,7 @@ function CreatePage() {
                   >
                     <input
                       type="file"
-                      accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                      accept={SUPPORTED_AUDIO_ACCEPT}
                       className="hidden"
                       onChange={(e) => onPick(e.target.files?.[0])}
                     />
@@ -779,7 +783,7 @@ function CreatePage() {
                         </div>
                         <p className="font-display text-base">Drop your track here</p>
                         <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                          .mp3 · .wav · 100 MB limit
+                          {SUPPORTED_AUDIO_LABEL} · 100 MB limit
                         </p>
                       </div>
                     ) : (
@@ -811,7 +815,7 @@ function CreatePage() {
                   </label>
                   {audio && <AnalysisRail analyzing={analyzing} error={analysisError} />}
                   <p className="text-xs text-muted-foreground text-center mt-3">
-                    MP3, WAV, M4A, AAC, or OGG · 100 MB maximum. Larger files compress after you generate.
+                    {SUPPORTED_AUDIO_LABEL} · 100 MB maximum. Larger files compress after you generate.
                   </p>
                   {isGuest && (
                     <p className="text-xs text-muted-foreground text-center mt-1">
@@ -910,7 +914,7 @@ function CreatePage() {
                     <div className="text-xs font-medium text-muted-foreground">Aura preview</div>
                     <div className="mt-1 truncate font-display text-base text-foreground">Name unrevealed</div>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {[detectedKeyStr, features ? `${Math.round(features.energy * 100)}% energy` : null, moods.slice(0, 2).join(" · ")]
+                      {[detectedKeyStr, features ? `${preview.energy}% energy` : null, moods.slice(0, 2).join(" · ")]
                         .filter(Boolean)
                         .join(" · ") || "Add a track to reveal its musical character."}
                     </p>

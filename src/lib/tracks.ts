@@ -38,7 +38,7 @@ export type Track = {
   embedUrl?: string;
   coverDataUrl?: string;
   seed: number;
-  hasVocals?: boolean;
+  hasVocals?: boolean | null;
   bands?: import("./auraBands").BandsConfig;
   createdAt: number;
 
