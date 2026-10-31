@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ArrowRight, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { consumeAuthRedirect, peekAuthRedirect, rememberAuthRedirect, safeInternalRedirect } from "@/lib/authRedirect";
 
 type AuthSearch = { redirect?: string; mode?: "signup" | "signin" };
 
@@ -42,11 +43,15 @@ function AuthPage() {
       .select("username")
       .eq("auth_user_id", data.user.id)
       .maybeSingle();
-    const redirect = search.redirect || "/create";
+    // Prefer the query param. Fall back to sessionStorage, which survives the
+    // Google OAuth return to a bare /auth URL.
+    const redirect = safeInternalRedirect(search.redirect) || peekAuthRedirect() || "/create";
     if (!profile?.username) {
+      rememberAuthRedirect(redirect);
       nav({ to: "/onboarding", search: { redirect } });
     } else {
-      nav({ to: redirect });
+      consumeAuthRedirect();
+      nav({ href: redirect });
     }
   };
 
@@ -68,6 +73,9 @@ function AuthPage() {
       try {
         localStorage.setItem("auragram_remember_me", "1");
       } catch { /* noop */ }
+      // OAuth returns to /auth with no query string. Stash the destination first.
+      // The redirect URI itself stays a bare /auth so it matches the provider allowlist.
+      rememberAuthRedirect(safeInternalRedirect(search.redirect) || peekAuthRedirect());
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin + "/auth",
       });
