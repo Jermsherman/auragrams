@@ -157,6 +157,7 @@ function AuraPage() {
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [guestShareOpen, setGuestShareOpen] = useState(false);
   const [auraShareOpen, setAuraShareOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [auracleOpen, setAuracleOpen] = useState(false);
@@ -510,14 +511,52 @@ function AuraPage() {
             </span>
           )}
           {isOwner && auraStatus && <AuraStatusBadge status={auraStatus} />}
-          <ShareDialog
-            track={track}
-            url={url}
-            saved={saved}
-            onSave={handleSave}
-            open={shareOpen}
-            onOpenChange={setShareOpen}
-          />
+          {!user ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setGuestShareOpen(true)}
+                aria-label="Share AuraLink"
+                className="inline-flex items-center gap-2 rounded-full glass px-4 h-10 text-sm hover:bg-foreground/10 transition-colors"
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Share AuraLink</span>
+                <span className="sm:hidden">Share</span>
+              </button>
+              <AlertDialog open={guestShareOpen} onOpenChange={setGuestShareOpen}>
+                <AlertDialogContent className="bg-card/85 backdrop-blur-2xl border-border/60">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Save this Aura before sharing</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This Aura only exists in this browser. A shared link would open an empty page for anyone else. Sign up to save it, then share a link that works.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Not now</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() =>
+                        nav({
+                          to: "/auth",
+                          search: { mode: "signup", redirect: `/aura/${id}?claim=1` },
+                        })
+                      }
+                    >
+                      Sign up to save
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          ) : (
+            <ShareDialog
+              track={track}
+              url={url}
+              saved={saved}
+              onSave={handleSave}
+              open={shareOpen}
+              onOpenChange={setShareOpen}
+            />
+          )}
         </div>
       </header>
 

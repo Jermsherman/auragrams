@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkUsernameAvailable } from "@/lib/cloudAura";
 import { ArrowRight, AtSign, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { peekAuthRedirect, rememberAuthRedirect, safeInternalRedirect } from "@/lib/authRedirect";
 
 type Search = { redirect?: string };
 
@@ -32,12 +33,17 @@ function OnboardingPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) nav({ to: "/auth", search: { redirect: "/onboarding" } });
-  }, [loading, user, nav]);
+    if (loading || user) return;
+    // Keep the original destination. Replacing it with /onboarding drops /farm.
+    const dest = safeInternalRedirect(search.redirect) || peekAuthRedirect() || "/create";
+    rememberAuthRedirect(dest);
+    nav({ to: "/auth", search: { redirect: dest, mode: "signin" }, replace: true });
+  }, [loading, user, nav, search.redirect]);
 
   useEffect(() => {
     if (profile?.username) {
-      nav({ to: search.redirect || "/create" });
+      const dest = safeInternalRedirect(search.redirect) || "/create";
+      nav({ href: dest });
     }
   }, [profile, nav, search.redirect]);
 
@@ -69,7 +75,7 @@ function OnboardingPage() {
       if (error) throw error;
       await refreshProfile();
       toast.success("You're in.");
-      nav({ to: search.redirect || "/create" });
+      nav({ href: safeInternalRedirect(search.redirect) || "/create" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not finish onboarding";
       toast.error(msg);

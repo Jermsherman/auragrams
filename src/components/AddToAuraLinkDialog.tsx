@@ -16,19 +16,26 @@ import {
 } from "@/lib/auralinkService";
 import type { AuraLinkPage } from "@/lib/auralink";
 import type { SavedAura } from "@/lib/farm";
+import { updateAuraStatus, type AuraStatus } from "@/lib/auraStatus";
 
 export function AddToAuraLinkDialog({
   aura,
   open,
   onOpenChange,
 }: {
-  aura: Pick<SavedAura, "id"> & { id: string };
+  aura: Pick<SavedAura, "id"> & { id: string; status?: AuraStatus };
   open: boolean;
   onOpenChange: (b: boolean) => void;
 }) {
   const { profile } = useAuth();
   const [pages, setPages] = useState<AuraLinkPage[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<AuraLinkPage | null>(null);
+  const isDraft = aura.status === "draft";
+
+  useEffect(() => {
+    if (!open) setPending(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !profile?.id) return;
@@ -47,7 +54,7 @@ export function AddToAuraLinkDialog({
     };
   }, [open, profile?.id]);
 
-  const addToPage = async (p: AuraLinkPage) => {
+  const addToPage = async (p: AuraLinkPage, publishUnlisted: boolean, confirmed = false) => {
     if (!profile?.id) {
       toast.error("You need to sign in to do that.");
       return;
@@ -56,13 +63,23 @@ export function AddToAuraLinkDialog({
       toast.info("Aura already in this AuraLink.");
       return;
     }
+    // Drafts preview in the builder but are dropped from the public /l/ page.
+    if (isDraft && !publishUnlisted && !confirmed) {
+      setPending(p);
+      return;
+    }
     setBusy(true);
     try {
+      if (publishUnlisted) {
+        await updateAuraStatus(aura.id, "unlisted");
+      }
       await updateAuraLink(p.id, profile.id, {
         selectedAuraIds: [...p.selectedAuraIds, aura.id],
         mode: p.mode === "streaming_links" ? "mixed" : p.mode,
       });
-      toast.success(`Added to ${p.title}`);
+      toast.success(
+        publishUnlisted ? `Published as unlisted and added to ${p.title}` : `Added to ${p.title}`,
+      );
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -85,6 +102,37 @@ export function AddToAuraLinkDialog({
         </DialogHeader>
 
         <div className="space-y-2 pt-2">
+          {isDraft && (
+            <div role="status" className="rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+              This Aura is a draft. The public AuraLink only shows unlisted or public Auras, so adding it as-is leaves the live page without it.
+            </div>
+          )}
+          {pending && (
+            <div className="rounded-2xl border border-border/60 bg-background/30 px-4 py-3">
+              <p className="text-sm font-medium">Add to {pending.title}?</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Publish it as unlisted so anyone with the AuraLink can play it, or add the draft knowing visitors will not see it.
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => addToPage(pending, true)}
+                  className="w-full inline-flex items-center justify-center rounded-2xl bg-aura-gradient text-primary-foreground h-11 text-sm font-medium disabled:opacity-60"
+                >
+                  Publish as unlisted and add
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => addToPage(pending, false, true)}
+                  className="w-full inline-flex items-center justify-center rounded-2xl border border-border/60 h-11 text-sm disabled:opacity-60"
+                >
+                  Add as draft anyway
+                </button>
+              </div>
+            </div>
+          )}
           {pages === null ? (
             <div className="rounded-2xl border border-border/60 bg-background/30 p-5 text-center text-xs text-muted-foreground">
               Loading your AuraLinks…
@@ -100,7 +148,7 @@ export function AddToAuraLinkDialog({
             pages.map((p) => (
               <button
                 key={p.id}
-                onClick={() => addToPage(p)}
+                onClick={() => (isDraft ? setPending(p) : addToPage(p, false))}
                 disabled={busy}
                 className="w-full text-left rounded-2xl border border-border/60 bg-background/30 px-4 py-3 hover:bg-foreground/5 transition-colors disabled:opacity-60"
               >

@@ -61,6 +61,7 @@ import { listMyAuras, mapAuraRowToSaved, hydrateSavedAuraAudioUrls } from "@/lib
 import { type SavedAura } from "@/lib/farm";
 import { HelpLink } from "@/components/HelpLink";
 import { getPageAnalytics, type PageAnalytics } from "@/lib/analytics";
+import { updateAuraStatus } from "@/lib/auraStatus";
 
 function newAuraLinkId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -497,8 +498,40 @@ export function AuraLinkBuilder() {
         : selectedAuraIds.length > 0 || totalLinks > 0);
 
   const [publishing, setPublishing] = useState(false);
+  const [publishingDrafts, setPublishingDrafts] = useState(false);
+  const [draftGate, setDraftGate] = useState(false);
 
-  const publish = async () => {
+  // Drafts render in this builder, but /l/:slug only loads unlisted/public Auras.
+  const draftSelectedIds = selectedAuraIds.filter((id) => {
+    const aura = auras.find((item) => item.id === id);
+    return !!aura && (aura.status ?? "draft") === "draft";
+  });
+
+  const publishDraftsAsUnlisted = async (ids: string[]) => {
+    if (!ids.length) return true;
+    setPublishingDrafts(true);
+    try {
+      await Promise.all(ids.map((id) => updateAuraStatus(id, "unlisted")));
+      setAuras((prev) =>
+        prev.map((aura) => (ids.includes(aura.id) ? { ...aura, status: "unlisted" } : aura)),
+      );
+      setDraftGate(false);
+      toast.success(
+        ids.length === 1
+          ? "Published as unlisted. Anyone with the link can play it."
+          : `Published ${ids.length} Auras as unlisted.`,
+      );
+      return true;
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't publish those Auras. Try again.");
+      return false;
+    } finally {
+      setPublishingDrafts(false);
+    }
+  };
+
+  const publish = async (opts?: { allowDrafts?: boolean }) => {
     if (uploadingCover) {
       toast.error("Cover image is still uploading.");
       return;
@@ -509,6 +542,10 @@ export function AuraLinkBuilder() {
     }
     if (!profile?.id) {
       toast.error("You need to sign in to do that.");
+      return;
+    }
+    if (draftSelectedIds.length && !opts?.allowDrafts) {
+      setDraftGate(true);
       return;
     }
     setPublishing(true);
@@ -1156,6 +1193,7 @@ export function AuraLinkBuilder() {
                               <div className="text-left min-w-0">
                                 <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground truncate">
                                   {a.auraName}
+                                  {(a.status ?? "draft") === "draft" ? " · Draft" : ""}
                                 </div>
                                 <div className="text-sm font-medium truncate">
                                   {a.trackTitle}
@@ -1742,6 +1780,42 @@ export function AuraLinkBuilder() {
               </div>
             </Section>
 
+            {draftSelectedIds.length > 0 && (
+              <div
+                role="status"
+                className="rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-left"
+              >
+                <p className="text-sm font-medium text-foreground">
+                  {draftSelectedIds.length === 1
+                    ? "This Aura is still a draft."
+                    : `${draftSelectedIds.length} selected Auras are still drafts.`}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  This preview includes drafts, but the public page only plays unlisted or public Auras.
+                  Publishing now would leave {draftSelectedIds.length === 1 ? "it" : "them"} off the live AuraLink.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={publishingDrafts}
+                    onClick={() => publishDraftsAsUnlisted(draftSelectedIds)}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    {publishingDrafts ? "Publishing…" : "Publish as unlisted"}
+                  </button>
+                  {draftGate && (
+                    <button
+                      type="button"
+                      onClick={() => publish({ allowDrafts: true })}
+                      className="btn-ghost"
+                    >
+                      Publish AuraLink anyway
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Footer actions */}
             <div className="sticky bottom-3 mt-10 flex flex-wrap gap-2 z-20">
               <button
@@ -1751,7 +1825,7 @@ export function AuraLinkBuilder() {
                 <Eye className="h-4 w-4" /> Preview AuraLink
               </button>
               <button
-                onClick={publish}
+                onClick={() => publish()}
                 disabled={!canPublish || publishing}
                 className="btn-primary ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
