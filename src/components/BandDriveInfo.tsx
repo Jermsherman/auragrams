@@ -12,7 +12,7 @@ import {
 type Props = {
   /** When provided, each row shows whether the band is on for this Aura. */
   bands?: BandsConfig | null;
-  hasVocals?: boolean;
+  hasVocals?: boolean | null;
   defaultOpen?: boolean;
   className?: string;
   title?: string;
@@ -30,7 +30,8 @@ export function BandDriveInfo({
 
   const stateFor = (key: BandKey): string | null => {
     if (!bands) return null;
-    if (key === "vocal" && !hasVocals) return "Off — instrumental";
+    if (key === "vocal" && hasVocals === false) return "Off — instrumental";
+    if (key === "vocal" && hasVocals === null) return "Not set";
     return bands[key].enabled ? "On" : "Off";
   };
 

@@ -15,6 +15,7 @@ import { PlatformCard } from "@/components/PlatformCard";
 import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
 import { getPersonality, generateAura } from "@/lib/aura";
+import { toEnergyPercent } from "@/lib/energy";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
 import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Palette, Shuffle } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAuras } from "@/lib/farm";
@@ -237,7 +238,7 @@ function AuraPage() {
             moods: row.mood_tags ?? [],
             palette: ((row.palette_name as Track["palette"]) ?? "amethyst"),
             auraName: row.aura_name ?? row.track_title,
-            energy: Number(row.energy_level ?? 0.6),
+            energy: toEnergyPercent(row.energy_level),
             description: row.aura_description ?? "",
             hasLocalAudio: !!row.audio_storage_path,
             audioPublicUrl: row.audio_public_url ?? undefined,
@@ -555,7 +556,7 @@ function AuraPage() {
         </div>
 
         <div className="mt-4 w-full max-w-md animate-fade-up">
-          <BandDriveInfo bands={track.bands} hasVocals={track.hasVocals !== false} />
+          <BandDriveInfo bands={track.bands} hasVocals={track.hasVocals} />
         </div>
 
 

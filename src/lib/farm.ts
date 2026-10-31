@@ -27,7 +27,7 @@ export type SavedAura = {
   energyLevel: number;
   palette: PaletteKey;
   seed: number;
-  hasVocals?: boolean;
+  hasVocals?: boolean | null;
   bands?: import("./auraBands").BandsConfig;
   coverDataUrl?: string;
   musicalKey?: string;

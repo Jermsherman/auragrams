@@ -4,6 +4,7 @@ import { getPersonality, type PaletteKey, type AuraPalette, type PitchCenter, ty
 import type { AuraInsight } from "@/lib/auraInsight";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import { cn } from "@/lib/utils";
+import { toEnergyPercent } from "@/lib/energy";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
   upload: "Uploaded Audio",
@@ -58,6 +59,7 @@ export function AuraProfileCard({
   /** Artist-written Aura Story. Omit to hide the editor. */
   onSaveStory?: (text: string) => Promise<void> | void;
 }) {
+  const energyPct = toEnergyPercent(energy);
   const p = getPersonality(palette);
   const swatches = colors?.swatches ?? p.swatches;
   const grad = colors
@@ -117,7 +119,7 @@ export function AuraProfileCard({
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Trait label="Key" value={musicalKey ?? "Unknown"} hint={keyDetected ? "detected" : undefined} />
-        <Trait label="Energy" value={`${energy}%`} />
+        <Trait label="Energy" value={`${energyPct}%`} />
         {showPitch && <Trait label="Pitch Center" value={pitchCenter!.note} hint={`${Math.round(pitchCenter!.hz)} Hz`} />}
         {!showPitch && tempoBand && <Trait label="Tempo" value={tempoBand} />}
         {density && <Trait label="Density" value={density} />}
@@ -125,10 +127,10 @@ export function AuraProfileCard({
       <div className="mt-4">
         <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
           <span>Energy</span>
-          <span className="tabular-nums text-foreground/85">{energy}%</span>
+          <span className="tabular-nums text-foreground/85">{energyPct}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
-          <div className="h-full rounded-full" style={{ width: `${energy}%`, background: grad }} />
+          <div className="h-full rounded-full" style={{ width: `${energyPct}%`, background: grad }} />
         </div>
       </div>
 

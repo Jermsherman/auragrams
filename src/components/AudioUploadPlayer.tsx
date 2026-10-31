@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, AlertCircle } from "lucide-react";
 import type { AudioMetrics } from "@/hooks/useAudioAnalyser";
 import { getPersonality } from "@/lib/aura";
+import { SUPPORTED_AUDIO_EXT_RE, SUPPORTED_AUDIO_LABEL } from "@/lib/audioStorage";
 
 /**
  * AudioUploadPlayer
@@ -139,25 +140,28 @@ export function AudioUploadPlayer({
     };
     const onCanPlay = () => console.log("[AudioUploadPlayer] Audio can play");
     const onTimeUpdate = () => setTime(a.currentTime);
+    const publish = () => {
+      const now = !a.paused && !a.ended;
+      setPlaying(now);
+      onPlayingChange?.(now);
+    };
     const onPlay = () => {
-      setPlaying(true);
-      onPlayingChange?.(true);
+      publish();
       console.log("[AudioUploadPlayer] Audio playing");
     };
     const onPause = () => {
-      setPlaying(false);
-      onPlayingChange?.(false);
+      publish();
       console.log("[AudioUploadPlayer] Audio paused");
     };
     const onEnded = () => {
-      setPlaying(false);
-      onPlayingChange?.(false);
+      publish();
       console.log("[AudioUploadPlayer] Audio ended");
     };
     const onErr = () => {
       const err = a.error;
       const msg = err ? `Error ${err.code}: ${err.message || "unknown"}` : "Unknown audio error";
       setLastError(msg);
+      publish();
       setAudioReady(false);
       console.error("[AudioUploadPlayer] Audio error:", err?.code, err?.message);
     };
@@ -294,16 +298,19 @@ export function AudioUploadPlayer({
 
     setLastError(null);
     if (a.paused) {
+      // Reflect the click immediately. play/pause events confirm it, and a
+      // rejection puts the control back to paused.
+      setPlaying(true);
       // Build the analyser graph inside the user-gesture so the AudioContext
-      // is allowed to start unsuspended on iOS / Safari.
+      // is allowed to start unsuspended on iOS / Safari. Do not await resume()
+      // before play(): a hung resume leaves the button on Playing while the
+      // element is still paused.
       ensureGraph();
       const ctx = ctxRef.current;
       if (ctx && ctx.state === "suspended") {
-        try {
-          await ctx.resume();
-        } catch (e) {
+        void ctx.resume().catch((e) => {
           console.warn("[AudioUploadPlayer] AudioContext resume failed", e);
-        }
+        });
       }
       try {
         await a.play();
@@ -312,10 +319,14 @@ export function AudioUploadPlayer({
         setLastError(msg);
         console.error("[AudioUploadPlayer] play() rejected:", e);
       }
+      setPlaying(!a.paused && !a.ended);
+      onPlayingChange?.(!a.paused && !a.ended);
     } else {
       a.pause();
+      setPlaying(false);
+      onPlayingChange?.(false);
     }
-  }, [ensureGraph]);
+  }, [ensureGraph, onPlayingChange]);
 
   const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const a = audioRef.current;
@@ -338,14 +349,23 @@ export function AudioUploadPlayer({
         key={src}
         src={src}
         preload="metadata"
-        crossOrigin="anonymous"
+        // blob: and data: URLs are same-origin. Forcing CORS on them makes
+        // some browsers refuse to play. Remote files still need it so the
+        // analyser can read samples.
+        crossOrigin={/^https?:/i.test(src) ? "anonymous" : undefined}
       />
 
       <div className="flex items-center gap-4">
         <button
+          type="button"
           onClick={handlePlayClick}
+          aria-pressed={playing}
           aria-label={playing ? "Pause" : "Play"}
-          className="grid place-items-center h-14 w-14 rounded-full bg-aura-gradient text-primary-foreground shadow-[0_0_40px_-6px_oklch(0.7_0.2_310/0.8)] hover:scale-[1.04] active:scale-[0.98] transition-transform"
+          data-state={playing ? "playing" : "paused"}
+          className={
+            "grid place-items-center h-14 w-14 rounded-full bg-aura-gradient text-primary-foreground shadow-[0_0_40px_-6px_oklch(0.7_0.2_310/0.8)] hover:scale-[1.04] active:scale-[0.98] transition-transform " +
+            (playing ? "ring-2 ring-white/90 ring-offset-2 ring-offset-background" : "ring-2 ring-transparent")
+          }
         >
           {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-[1px]" />}
         </button>
@@ -371,6 +391,7 @@ export function AudioUploadPlayer({
           </div>
           <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
             <span>{fmt(time)}</span>
+            <span className={playing ? "text-foreground" : ""}>{playing ? "Playing" : "Paused"}</span>
             <span>{fmt(duration)}</span>
           </div>
         </div>
@@ -431,9 +452,9 @@ export function AudioUploadPlayer({
 export function validateUploadAudioFile(file: File): string | null {
   if (!file) return "No file selected.";
   const okType = file.type.startsWith(SUPPORTED_MIME_PREFIX);
-  const okExt = /\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i.test(file.name);
+  const okExt = SUPPORTED_AUDIO_EXT_RE.test(file.name);
   if (!okType && !okExt) {
-    return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg).";
+    return `Please upload an audio file (${SUPPORTED_AUDIO_LABEL}).`;
   }
   console.log("[AudioUploadPlayer] file selected:", file.name, file.type, file.size);
   return null;

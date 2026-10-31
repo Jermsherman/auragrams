@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowRight, Sparkles, Share2, Wand2, Link2, UploadCloud } from "lucide-react";
 
 import { FaqPreview } from "@/components/FaqPreview";
+import { SUPPORTED_AUDIO_EXT_RE, SUPPORTED_AUDIO_LABEL } from "@/lib/audioStorage";
+import { toEnergyPercent } from "@/lib/energy";
 import { useAuth } from "@/hooks/useAuth";
 import {
   SHOWCASE_AURAS,
@@ -174,9 +176,9 @@ function Index() {
                 <div>
                   <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
                     <span>Energy</span>
-                    <span className="text-foreground/80">{contrasting.energy}%</span>
+                    <span className="text-foreground/80">{toEnergyPercent(contrasting.energy)}%</span>
                   </div>
-                  <Progress value={contrasting.energy} className="h-2" />
+                  <Progress value={toEnergyPercent(contrasting.energy)} className="h-2" />
                 </div>
 
                 <div className="flex items-baseline gap-2 text-sm">
@@ -321,7 +323,7 @@ function HeroDropZone() {
 
   const hand = async (f: File | undefined | null) => {
     if (!f) return;
-    if (!f.type.startsWith("audio/") && !/\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i.test(f.name)) {
+    if (!f.type.startsWith("audio/") && !SUPPORTED_AUDIO_EXT_RE.test(f.name)) {
       return;
     }
     const { setLandingFile } = await import("@/lib/landingHandoff");
@@ -355,7 +357,7 @@ function HeroDropZone() {
         Drop a track. Get your Aura.
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
-        MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC · 100 MB max, larger files auto-compress
+        {SUPPORTED_AUDIO_LABEL} · 100 MB max, larger files auto-compress
       </div>
       <div className="mt-4 inline-flex items-center justify-center gap-2 rounded-full px-6 h-11 text-sm font-medium text-primary-foreground bg-aura-gradient shadow-[0_0_40px_-12px_oklch(0.7_0.2_310/0.9)]">
         Claim Your Aura <ArrowRight className="h-4 w-4" />

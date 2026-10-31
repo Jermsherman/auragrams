@@ -12,7 +12,12 @@ export const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 // we can reject before a 100 MB PUT round-trips and returns a misleading
 // "row-level security" 403.
 export const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
-const ALLOWED_EXT = /\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i;
+/** Formats decodeAudioData + the storage upload path actually accept. */
+export const SUPPORTED_AUDIO_EXTENSIONS = ["mp3", "wav", "m4a", "aac", "ogg", "webm", "flac"] as const;
+export const SUPPORTED_AUDIO_EXT_RE = /\.(mp3|wav|m4a|aac|ogg|webm|flac)$/i;
+export const SUPPORTED_AUDIO_ACCEPT = "audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm,.flac";
+export const SUPPORTED_AUDIO_LABEL = "MP3, WAV, M4A, AAC, OGG, WEBM, or FLAC";
+const ALLOWED_EXT = SUPPORTED_AUDIO_EXT_RE;
 
 export type UploadedAudio = {
   storagePath: string;
@@ -37,7 +42,7 @@ export function validateAudioFile(file: File): string | null {
   const okType = file.type.startsWith("audio/");
   const okExt = ALLOWED_EXT.test(file.name);
   if (!okType && !okExt) {
-    return "Please upload an audio file (.mp3, .wav, .m4a, .aac, .ogg, .webm, .flac).";
+    return `Please upload an audio file (${SUPPORTED_AUDIO_LABEL}).`;
   }
   return null;
 }

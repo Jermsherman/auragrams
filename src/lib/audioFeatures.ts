@@ -220,7 +220,9 @@ export function analyzeBuffer(audio: AudioBuffer): AudioFeatures {
     highFrequencySparkle = clamp01((trebleE / Math.max(1, trebleBins)) / specMax * 2);
   }
 
-  const energy = Math.max(15, Math.min(99, Math.round(
+  // Already a 0–100 percent. Do not floor this: a 15% floor made quiet
+  // tracks indistinguishable, and callers were multiplying by 100 again.
+  const energy = Math.max(0, Math.min(100, Math.round(
     rms * 50 + brightness * 25 + bands.treble * 15 + transientIntensity * 10,
   )));
 

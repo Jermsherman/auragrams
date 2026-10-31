@@ -1,3 +1,5 @@
+import { toEnergyPercent } from "./energy";
+
 // Song Personality Profile — the AI interpretation layer that lives ON TOP
 // of the deterministic audio pipeline. Generated once per Aura, cached on the
 // row, never re-rolled. Same song, same story, forever.
@@ -177,9 +179,7 @@ export function buildInsightUserPrompt(input: InsightPromptInput): string {
       musicalKey: musicalKey ?? "unknown",
       tempoBand: tempoBand ?? "unknown",
       density: density ?? "unknown",
-      energyPercent: typeof energyLevel === "number"
-        ? Math.round(energyLevel <= 1 ? energyLevel * 100 : energyLevel)
-        : undefined,
+      energyPercent: typeof energyLevel === "number" ? toEnergyPercent(energyLevel) : undefined,
     },
     moodTags,
     motionKeywords: motionKeywords ?? [],
