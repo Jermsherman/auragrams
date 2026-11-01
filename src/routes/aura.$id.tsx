@@ -27,6 +27,7 @@ import { getPendingAura, clearPendingAura } from "@/lib/pendingAura";
 import { uploadAuraAudio, getAuraPlayback } from "@/lib/audioStorage";
 import { AuraStatusControl, AuraStatusBadge } from "@/components/AuraStatusControl";
 import { isAuraStatus, type AuraStatus } from "@/lib/auraStatus";
+import { composeRead, findTake } from "@/lib/analysis/story";
 import { getGuestAudio, clearGuestAudio } from "@/lib/guestAudioStore";
 
 // Heavy export dialogs (html-to-image) load only when opened.
@@ -151,6 +152,7 @@ function AuraPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
+  const [readTake, setReadTake] = useState(0);
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [auraStatus, setAuraStatus] = useState<AuraStatus | null>(null);
   const [audioState, setAudioState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
@@ -169,6 +171,10 @@ function AuraPage() {
   const [, force] = useState(0);
   // Capture reveal intent once, then strip the URL param so refresh doesn't re-trigger.
   const [revealActive] = useState(() => reveal === "1");
+  useEffect(() => {
+    if (!track?.analysis) return;
+    setReadTake(findTake(track.analysis, track.hasVocals ?? null, track.vibeDescription));
+  }, [track?.id, track?.analysis?.contentHash]);
   useEffect(() => {
     if (reveal === "1") {
       nav({
@@ -796,7 +802,28 @@ function AuraPage() {
             hasVocals={track.hasVocals}
             hideMeasurements={!!track.analysis}
             paletteName={track.paletteName}
-            vibeDescription={track.vibeDescription}
+            vibeDescription={
+              track.analysis
+                ? composeRead(track.analysis, track.hasVocals ?? null, readTake).text
+                : track.vibeDescription
+            }
+            onAnotherTake={
+              track.analysis
+                ? async () => {
+                    const next = readTake + 1;
+                    const text = composeRead(track.analysis!, track.hasVocals ?? null, next).text;
+                    setReadTake(next);
+                    if (!isOwner) return;
+                    updateTrack(track.id, { vibeDescription: text });
+                    setTrack({ ...track, vibeDescription: text });
+                    try {
+                      await updateAuraVibe(track.id, text);
+                    } catch {
+                      toast.success("Another take saved locally");
+                    }
+                  }
+                : undefined
+            }
             motionKeywords={track.motionKeywords}
             colors={track.colors}
             keyDetected={track.keyDetected}
@@ -855,7 +882,25 @@ function AuraPage() {
           />
         </div>
 
-        {track.analysis && <InsightCategories analysis={track.analysis} pro={pro} />}
+        {track.analysis && (
+          <InsightCategories
+            analysis={track.analysis}
+            pro={pro}
+            hasVocals={track.hasVocals}
+            take={readTake}
+            onAnotherTake={async (next, text) => {
+              setReadTake(next);
+              if (!isOwner) return;
+              updateTrack(track.id, { vibeDescription: text });
+              setTrack({ ...track, vibeDescription: text });
+              try {
+                await updateAuraVibe(track.id, text);
+              } catch {
+                toast.success("Another take saved locally");
+              }
+            }}
+          />
+        )}
 
         {isOwner && auraStatus && ownerUserId === profile?.id && (
           <div className="mt-8 w-full max-w-md">
