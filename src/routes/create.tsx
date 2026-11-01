@@ -32,6 +32,7 @@ import { BandCustomizer } from "@/components/BandCustomizer";
 import { DEFAULT_BANDS, type BandsConfig } from "@/lib/auraBands";
 import { Aurascope } from "@/components/Aurascope";
 import { InsightCategories } from "@/components/InsightCategories";
+import { useProTier } from "@/lib/tier";
 
 import { ColorInfluence } from "@/components/ColorInfluence";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
@@ -80,6 +81,7 @@ export const Route = createFileRoute("/create")({
 type Mode = "file" | "raw" | "auracle";
 
 function CreatePage() {
+  const pro = useProTier();
   const nav = useNavigate();
   const { profile, user } = useAuth();
   const hydrated = useHydrated();
@@ -901,7 +903,7 @@ function CreatePage() {
                     )}
                   </div>
                 </div>
-                {analysis && <InsightCategories analysis={analysis} />}
+                {analysis && <InsightCategories analysis={analysis} pro={pro} />}
               </div>
               </StepSection>
 
