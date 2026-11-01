@@ -48,6 +48,7 @@ export function AuraProfileCard({
   editable = false,
   onSaveVibe,
   onRegenerateVibe,
+  onAnotherTake,
   colorGuided = false,
   insight,
   onSaveStory,
@@ -74,6 +75,7 @@ export function AuraProfileCard({
   editable?: boolean;
   onSaveVibe?: (text: string) => Promise<void> | void;
   onRegenerateVibe?: () => Promise<void> | void;
+  onAnotherTake?: () => Promise<void> | void;
   colorGuided?: boolean;
   /** AI reading of the song — merged into this one profile card. */
   insight?: AuraInsight | null;
@@ -236,6 +238,7 @@ export function AuraProfileCard({
           editable={editable}
           onSaveVibe={onSaveVibe}
           onRegenerateVibe={onRegenerateVibe}
+          onAnotherTake={onAnotherTake}
         />
         {motionKeywords && motionKeywords.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
@@ -442,11 +445,13 @@ function VibeEditor({
   editable,
   onSaveVibe,
   onRegenerateVibe,
+  onAnotherTake,
 }: {
   vibeDescription?: string;
   editable: boolean;
   onSaveVibe?: (text: string) => Promise<void> | void;
   onRegenerateVibe?: () => Promise<void> | void;
+  onAnotherTake?: () => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(vibeDescription ?? "");
@@ -462,15 +467,15 @@ function VibeEditor({
       <div className="mt-3 space-y-2">
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, 240))}
-          rows={3}
-          maxLength={240}
+          onChange={(e) => setDraft(e.target.value.slice(0, 2000))}
+          rows={6}
+          maxLength={2000}
           placeholder="Describe the vibe in your own words…"
           className="w-full rounded-xl bg-background/40 border border-border/60 px-3 py-2 text-sm italic outline-none focus:border-foreground/25 resize-none"
         />
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-            {draft.length}/240
+            {draft.length}/2000
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -516,8 +521,8 @@ function VibeEditor({
   return (
     <>
       {vibeDescription && (
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground italic">
-          “{vibeDescription}”
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          {vibeDescription}
         </p>
       )}
       {editable && (
@@ -550,6 +555,15 @@ function VibeEditor({
             )}
             Restore measured read
           </button>
+          {onAnotherTake && (
+            <button
+              type="button"
+              onClick={() => void onAnotherTake()}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+            >
+              Another take
+            </button>
+          )}
         </div>
       )}
     </>

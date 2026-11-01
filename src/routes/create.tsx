@@ -903,7 +903,7 @@ function CreatePage() {
                     )}
                   </div>
                 </div>
-                {analysis && <InsightCategories analysis={analysis} pro={pro} />}
+                {analysis && <InsightCategories analysis={analysis} pro={pro} hasVocals={hasVocals} />}
               </div>
               </StepSection>
 

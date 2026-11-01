@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { TrackAnalysis } from "@/lib/analysis/analyze";
+import { composeRead } from "@/lib/analysis/story";
 
 function clock(sec: number): string {
   const s = Math.max(0, Math.round(sec));
@@ -78,7 +79,19 @@ function Locked({ title }: { title: string }) {
 }
 
 /** Measured categories. Each one cites a field from the whole-track analysis. */
-export function InsightCategories({ analysis, pro = false }: { analysis: TrackAnalysis; pro?: boolean }) {
+export function InsightCategories({
+  analysis,
+  pro = false,
+  hasVocals = null,
+  take,
+  onAnotherTake,
+}: {
+  analysis: TrackAnalysis;
+  pro?: boolean;
+  hasVocals?: boolean | null;
+  take?: number;
+  onAnotherTake?: (take: number, text: string) => void;
+}) {
   const bpmText =
     analysis.bpm != null && analysis.bpmConfidence >= 0.35
       ? `${Math.round(analysis.bpm)} BPM`
@@ -135,7 +148,7 @@ export function InsightCategories({ analysis, pro = false }: { analysis: TrackAn
         </ul>
       </Category>
       <Category title="Read">
-        <p>{analysis.read.text}</p>
+        <MeasuredRead analysis={analysis} hasVocals={hasVocals} take={take} onAnotherTake={onAnotherTake} />
       </Category>
       <Category title="Song map">
         <ul>
@@ -215,6 +228,42 @@ export function InsightCategories({ analysis, pro = false }: { analysis: TrackAn
       ) : (
         <Locked title="Fingerprint" />
       )}
+    </div>
+  );
+}
+
+function MeasuredRead({
+  analysis,
+  hasVocals,
+  take,
+  onAnotherTake,
+}: {
+  analysis: TrackAnalysis;
+  hasVocals: boolean | null;
+  take?: number;
+  onAnotherTake?: (take: number, text: string) => void;
+}) {
+  const [localTake, setLocalTake] = useState(take ?? 0);
+  const current = take ?? localTake;
+  const story = composeRead(analysis, hasVocals, current);
+  return (
+    <div>
+      <p className="whitespace-pre-wrap">{story.text}</p>
+      <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        {story.voice} register · take {current + 1} · same measurements
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          const next = current + 1;
+          const text = composeRead(analysis, hasVocals, next).text;
+          if (onAnotherTake) onAnotherTake(next, text);
+          else setLocalTake(next);
+        }}
+        className="mt-3 inline-flex items-center rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors"
+      >
+        Another take
+      </button>
     </div>
   );
 }

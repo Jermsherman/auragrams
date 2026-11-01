@@ -12,6 +12,7 @@ import {
 } from "./key";
 import { estimateTempo, tempoBandFromBpm, type Feel } from "./tempo";
 import { suggestMoodsDetailed, type MoodScore } from "../moodDetect";
+import { composeRead } from "./story";
 
 export const ANALYSIS_VERSION = 2;
 
@@ -416,38 +417,6 @@ const TONIC_WORD = [
 ];
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-function clockLabel(sec: number): string {
-  const s = Math.max(0, Math.round(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/** The free Read cites only key, tempo, and section boundaries. Pro measurements stay in their own rows. */
-function freeRead(
-  affirm: string,
-  changes: { atSec: number; label: string }[],
-  sections: { startSec: number; label: string }[],
-) {
-  const evidence = ["key", "bpm"];
-  let surprise: string | null = null;
-  const change = changes[0];
-  if (change) {
-    surprise = `${change.label} at ${clockLabel(change.atSec)}.`;
-    evidence.push("sections");
-  } else {
-    const marked = sections.find((section) => section.label === "Drop" || section.label === "Build");
-    if (marked) {
-      surprise = `${marked.label} at ${clockLabel(marked.startSec)}.`;
-      evidence.push("sections");
-    }
-  }
-  return {
-    affirm,
-    surprise,
-    text: surprise ? `${affirm} ${surprise}` : affirm,
-    evidence,
-  };
-}
-
 function present(partial: {
   keyLabel: string | null;
   tonic: string | null;
@@ -734,7 +703,43 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
     flatness: meanFlat,
     fingerprint,
   });
-  shown.read = freeRead(shown.read.affirm, key.changes, sectionList);
+  const story = composeRead(
+    {
+      contentHash,
+      durationSec: Math.round(durationSec * 100) / 100,
+      bpm: tempo.bpm,
+      bpmConfidence: Math.round(tempo.confidence * 100) / 100,
+      feel: tempo.feel,
+      swingRatio: tempo.swingRatio,
+      tempoLabel,
+      key: {
+        label: key.label,
+        display: key.display,
+        confidence: Math.round(key.confidence * 100) / 100,
+        mode: key.mode,
+        changes: key.changes,
+      },
+      loudness: {
+        integratedLufs: loudness.integratedLufs,
+        levelSpanLu: loudness.levelSpanLu,
+      },
+      energyCurve: timeline.map((row) => ({ t: row.t, lufs: row.lufs })),
+      lowEnd: { shareBelow120Hz: Math.round(lowEndShare * 100) / 100 },
+      width,
+      sections: sectionList,
+      moment: momentOf(loudness.curve, duration),
+      auraName: shown.auraName,
+      fingerprint,
+    },
+    null,
+    0,
+  );
+  shown.read = {
+    affirm: story.affirm,
+    surprise: story.surprise,
+    text: story.text,
+    evidence: story.evidence,
+  };
 
   return {
     version: ANALYSIS_VERSION,
