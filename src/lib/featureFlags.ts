@@ -9,4 +9,7 @@ export const flags = {
   enableColorInfluence: false,
   // No billing. Pro only unlocks extra measurements. Flip this, or open a page with ?tier=pro.
   enableProInsights: false,
+  // Off: the Read is the measured template and no model is called.
+  // On: experimental path calls the Lovable AI gateway. Not part of Free.
+  enableModelInsight: false,
 } as const;

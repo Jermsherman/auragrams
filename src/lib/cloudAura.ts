@@ -7,6 +7,7 @@ import type { ArtistProfile, VisibilityMode } from "./identity";
 import type { SavedAura } from "./farm";
 import { resolveBands } from "./auraBands";
 import { toEnergyPercent } from "./energy";
+import { flags } from "./featureFlags";
 import type { Auracle } from "./auracle";
 
 export type CloudAuraRow = {
@@ -161,9 +162,8 @@ export async function saveAuraToCloud(opts: {
   const { error } = await supabase.from("auras").upsert(row);
   if (error) throw error;
 
-  // Fire-and-forget: kick off the Song Personality Profile generation.
-  // Idempotent server-side, so a duplicate call is a no-op.
-  void triggerInsightGeneration(saved.id);
+  // The model path is off unless enableModelInsight is on. Free uses the measured Read.
+  if (flags.enableModelInsight) void triggerInsightGeneration(saved.id);
 }
 
 async function triggerInsightGeneration(auraId: string) {

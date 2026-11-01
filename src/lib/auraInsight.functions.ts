@@ -18,10 +18,48 @@ import {
   isAuraInsight,
   normalizeInsight,
   type AuraInsight,
+  type MeasuredInsight,
 } from "./auraInsight";
+import type { TrackAnalysis } from "./analysis/analyze";
+import { flags } from "./featureFlags";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
+
+function measuredInsight(
+  row: { track_title: string; public_artist_name?: string | null; visibility_mode?: string | null },
+  analysis: TrackAnalysis | null,
+): MeasuredInsight | null {
+  if (!analysis || analysis.version !== 2) return null;
+  const anon = row.visibility_mode === "anonymous";
+  let tensionPeak: string | null = null;
+  if (analysis.tension.length > 0) {
+    const peak = analysis.tension.reduce((best, rowT) => (rowT.value > best.value ? rowT : best), analysis.tension[0]);
+    tensionPeak = `${peak.value} at ${peak.t}s`;
+  }
+  return {
+    trackTitle: row.track_title,
+    artistName: anon ? undefined : row.public_artist_name ?? undefined,
+    key: analysis.key.display,
+    keyConfidence: analysis.key.confidence,
+    keyChanges: analysis.key.changes.map((change) => `${change.label} at ${change.atSec}s`),
+    bpm: analysis.bpm,
+    bpmConfidence: analysis.bpmConfidence,
+    feel: analysis.feel,
+    tempoLabel: analysis.tempoLabel,
+    integratedLufs: analysis.loudness.integratedLufs,
+    loudnessRangeLu: analysis.loudness.loudnessRangeLu,
+    levelSpanLu: analysis.loudness.levelSpanLu,
+    lowEndShare: analysis.lowEnd.shareBelow120Hz,
+    width: analysis.width.label,
+    sections: analysis.sections.map((section) => `${section.label} ${section.startSec}-${section.endSec}s`),
+    moment: analysis.moment ? `${analysis.moment.startSec}s for ${analysis.moment.durationSec}s` : null,
+    tensionPeak,
+    fingerprint: analysis.fingerprint.map((rowF) => rowF.text),
+    vocals: analysis.vocals.status,
+    centroidHz: analysis.brightnessHz,
+  };
+}
 
 const InputSchema = z.object({
   auraId: z.string().min(1),
@@ -30,13 +68,16 @@ const InputSchema = z.object({
 export const generateAuraInsight = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => InputSchema.parse(raw))
   .handler(async ({ data }): Promise<{ insight: AuraInsight | null; cached: boolean }> => {
+    if (!flags.enableModelInsight) {
+      return { insight: null, cached: false };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 1. Load the row.
     const { data: row, error } = await supabaseAdmin
       .from("auras")
       .select(
-        "id, user_id, status, track_title, public_artist_name, mood_tags, detected_key, palette_name, energy_level, color_palette, visual_style, insight, visibility_mode",
+        "id, user_id, status, track_title, public_artist_name, mood_tags, detected_key, palette_name, energy_level, color_palette, visual_style, insight, visibility_mode, extra",
       )
       .eq("id", data.auraId)
       .maybeSingle();
@@ -75,41 +116,11 @@ export const generateAuraInsight = createServerFn({ method: "POST" })
       return { insight: null, cached: false };
     }
 
-    const visual = (row.visual_style ?? {}) as {
-      motion?: string;
-      texture?: string;
-      motionKeywords?: string[];
-      tempoBand?: string;
-      density?: string;
-    };
-    const palette = (row.color_palette ?? {}) as {
-      primary?: string;
-      secondary?: string;
-      accent?: string;
-      swatches?: string[];
-    };
-    const swatches = Array.isArray(palette.swatches)
-      ? palette.swatches
-      : [palette.primary, palette.secondary, palette.accent].filter(Boolean) as string[];
+    const extra = (row.extra ?? {}) as { analysis?: TrackAnalysis | null };
+    const measured = measuredInsight(row, extra.analysis ?? null);
+    if (!measured) return { insight: null, cached: false };
 
-    const anon = row.visibility_mode === "anonymous";
-    const moods = Array.isArray(row.mood_tags) ? (row.mood_tags as string[]) : [];
-
-    const userPrompt = buildInsightUserPrompt({
-      trackTitle: row.track_title,
-      artistName: anon ? undefined : row.public_artist_name ?? undefined,
-      paletteKey: row.palette_name ?? "unknown",
-      paletteName: row.palette_name ?? undefined,
-      moodTags: moods,
-      musicalKey: row.detected_key ?? undefined,
-      tempoBand: visual.tempoBand,
-      density: visual.density,
-      energyLevel: row.energy_level ?? undefined,
-      motionKeywords: visual.motionKeywords,
-      swatches,
-      motion: visual.motion,
-      texture: visual.texture,
-    });
+    const userPrompt = buildInsightUserPrompt(measured);
 
     // 4. Call the Lovable AI Gateway with JSON mode.
     let insight: AuraInsight | null = null;
@@ -122,7 +133,7 @@ export const generateAuraInsight = createServerFn({ method: "POST" })
         },
         body: JSON.stringify({
           model: MODEL,
-          temperature: 0.5,
+          temperature: 0.2,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: INSIGHT_SYSTEM_PROMPT },

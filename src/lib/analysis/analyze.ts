@@ -416,6 +416,38 @@ const TONIC_WORD = [
 ];
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+function clockLabel(sec: number): string {
+  const s = Math.max(0, Math.round(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** The free Read cites only key, tempo, and section boundaries. Pro measurements stay in their own rows. */
+function freeRead(
+  affirm: string,
+  changes: { atSec: number; label: string }[],
+  sections: { startSec: number; label: string }[],
+) {
+  const evidence = ["key", "bpm"];
+  let surprise: string | null = null;
+  const change = changes[0];
+  if (change) {
+    surprise = `${change.label} at ${clockLabel(change.atSec)}.`;
+    evidence.push("sections");
+  } else {
+    const marked = sections.find((section) => section.label === "Drop" || section.label === "Build");
+    if (marked) {
+      surprise = `${marked.label} at ${clockLabel(marked.startSec)}.`;
+      evidence.push("sections");
+    }
+  }
+  return {
+    affirm,
+    surprise,
+    text: surprise ? `${affirm} ${surprise}` : affirm,
+    evidence,
+  };
+}
+
 function present(partial: {
   keyLabel: string | null;
   tonic: string | null;
@@ -655,6 +687,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
   }
 
   const duration = Math.max(durationSec, timeline.length);
+  const sectionList = sectionsFrom(timeline, duration);
   const fingerprint = fingerprintOf({
     lufs: loudness.integratedLufs,
     lra: loudness.levelSpanLu,
@@ -701,6 +734,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
     flatness: meanFlat,
     fingerprint,
   });
+  shown.read = freeRead(shown.read.affirm, key.changes, sectionList);
 
   return {
     version: ANALYSIS_VERSION,
@@ -737,7 +771,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
     },
     width,
     vocals: { status: "not_sure", presence: [], method: "none", note: VOCAL_NOTE },
-    sections: sectionsFrom(timeline, duration),
+    sections: sectionList,
     moment: momentOf(loudness.curve, duration),
     tension,
     brightnessHz: Math.round(brightnessHz),

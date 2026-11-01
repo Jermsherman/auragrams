@@ -4,14 +4,35 @@ import { toEnergyPercent } from "./energy";
 // of the deterministic audio pipeline. Generated once per Aura, cached on the
 // row, never re-rolled. Same song, same story, forever.
 
+export const INSIGHT_FIELDS = [
+  "key",
+  "bpm",
+  "feel",
+  "lufs",
+  "lra",
+  "level_span",
+  "low_end",
+  "width",
+  "sections",
+  "moment",
+  "tension",
+  "fingerprint",
+  "vocals",
+  "centroid",
+] as const;
+
+export type InsightField = (typeof INSIGHT_FIELDS)[number];
+
 export type EmotionalDNAEntry = {
   emotion: string;
   why: string;
+  evidence: InsightField[];
 };
 
 export type PersonalityTraitEntry = {
   trait: string;
   why: string;
+  evidence: InsightField[];
 };
 
 export type AuraInsight = {
@@ -43,6 +64,14 @@ export function isAuraInsight(x: unknown): x is AuraInsight {
 /** Clamp arbitrary model output into a safe, predictable shape before we
  *  persist or render it. Length caps are enforced here, not in the model
  *  schema (per AI-SDK guidance — schema constraints crash calls). */
+function evidenceOf(raw: unknown): InsightField[] | null {
+  if (!Array.isArray(raw)) return null;
+  const ids = raw.filter((id): id is InsightField =>
+    typeof id === "string" && (INSIGHT_FIELDS as readonly string[]).includes(id),
+  );
+  return ids.length > 0 ? ids : null;
+}
+
 export function normalizeInsight(raw: unknown): AuraInsight | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -56,7 +85,8 @@ export function normalizeInsight(raw: unknown): AuraInsight | null {
   const auraName = clamp(o.auraName ?? o.aura_name, 48);
   // The story is artist-written; we only ever pass through an existing one.
   const story = clamp(o.story, 420);
-  const visualMeaning = clamp(o.visualMeaning ?? o.visual_meaning, 360);
+  const visualEvidence = evidenceOf(o.visualEvidence ?? o.visual_evidence);
+  const visualMeaning = visualEvidence ? clamp(o.visualMeaning ?? o.visual_meaning, 360) : "";
 
   const rawDNA = (o.emotionalDNA ?? o.emotional_dna) as unknown;
   const emotionalDNA: EmotionalDNAEntry[] = Array.isArray(rawDNA)
@@ -66,8 +96,9 @@ export function normalizeInsight(raw: unknown): AuraInsight | null {
           const row = e as Record<string, unknown>;
           const emotion = clamp(row.emotion, 32);
           const why = clamp(row.why ?? row.reason, 180);
-          if (!emotion || !why) return null;
-          return { emotion, why };
+          const evidence = evidenceOf(row.evidence);
+          if (!emotion || !why || !evidence) return null;
+          return { emotion, why, evidence };
         })
         .filter((x): x is EmotionalDNAEntry => !!x)
         .slice(0, 3)
@@ -81,8 +112,9 @@ export function normalizeInsight(raw: unknown): AuraInsight | null {
           const row = e as Record<string, unknown>;
           const trait = clamp(row.trait ?? row.name, 24);
           const why = clamp(row.why ?? row.reason, 160);
-          if (!trait || !why) return null;
-          return { trait, why };
+          const evidence = evidenceOf(row.evidence);
+          if (!trait || !why || !evidence) return null;
+          return { trait, why, evidence };
         })
         .filter((x): x is PersonalityTraitEntry => !!x)
         .slice(0, 5)
@@ -118,38 +150,60 @@ export type InsightPromptInput = {
 };
 
 export const INSIGHT_SYSTEM_PROMPT = [
-  "You are Auragram's Aura Interpreter. You listen to a song's measured audio identity",
-  "and write a short, cinematic 'song personality profile' as if the song were a person.",
+  "You write a short read of a song from measured audio only.",
+  "You are given numbers, units, and confidence. You do not receive a palette, a mood label, or a density.",
   "",
-  "Voice rules:",
-  "- Emotional and specific. Never generic. NEVER use bare adjectives like",
-  "  'energetic', 'sad', 'catchy', 'upbeat', 'chill', 'fire', 'banger' without expanding",
-  "  them into a real image or feeling.",
-  "- No hype language, no astrology, no 'this song is a vibe'.",
-  "- Never make claims about the artist as a person, their gender, race, or life.",
-  "- Write about the song, not the listener's identity.",
-  "- Every sentence must be grounded in the measured audio features you were given.",
-  "- Keep it human. Short sentences. Concrete images. One good detail beats three vague ones.",
+  "Rules:",
+  "- Use only the measured fields. Do not invent a number, a key, a tempo, or a vocal.",
+  "- If key.display is \"Key unclear\" or vocals.status is \"not_sure\", say that. Do not guess.",
+  "- Every why and the visualMeaning must include an evidence array of field ids from the payload.",
+  "- A sentence with no evidence will be deleted. Do not write it.",
+  "- No astrology, no claims about the artist's life, gender, or race.",
+  "- Temperature is low. Be plain.",
   "",
-  "Return STRICT JSON only, with this exact shape:",
-  '{"auraName":"...","emotionalDNA":[{"emotion":"...","why":"..."}],',
-  '"personalityTraits":[{"trait":"...","why":"..."}],"visualMeaning":"..."}',
+  "Return STRICT JSON:",
+  '{"auraName":"...","emotionalDNA":[{"emotion":"...","why":"...","evidence":["bpm"]}],',
+  '"personalityTraits":[{"trait":"...","why":"...","evidence":["lufs"]}],',
+  '"visualMeaning":"...","visualEvidence":["key","bpm"]}',
   "",
-  "Field requirements:",
-  "- auraName: 2-4 words, cinematic title (e.g. 'Midnight Confession', 'Golden Memories',",
-  "  'Neon Heartbreak'). Not the track title. Never a single generic word.",
-  "- Do NOT write a story field. The artist writes the Aura Story themselves.",
-  "- emotionalDNA: 2-3 entries. Each 'emotion' is one word or short phrase; each 'why'",
-  "  is a single sentence explaining that emotion in human language (not 'sad' — 'a",
-  "  quiet ache that isn't asking to be fixed').",
-  "- personalityTraits: 3-5 entries. Each 'trait' is an archetype noun (Dreamer, Rebel,",
-  "  Storyteller, Romantic, Fighter, Wanderer, Confidant, Believer...); 'why' is one",
-  "  sentence tied to the audio features.",
-  "- visualMeaning: 2-3 sentences tying the orb's palette, motion, and texture to the",
-  "  emotional read. Reference the actual palette name / motion / texture you were given.",
+  "Allowed evidence ids: key, bpm, feel, lufs, lra, level_span, low_end, width, sections, moment, tension, fingerprint, vocals, centroid.",
+  "auraName is 2-4 words and is a label, not a measurement. Do not write a story field.",
 ].join("\n");
 
-export function buildInsightUserPrompt(input: InsightPromptInput): string {
+export type MeasuredInsight = {
+  trackTitle: string;
+  artistName?: string;
+  key: string;
+  keyConfidence: number | null;
+  keyChanges: string[];
+  bpm: number | null;
+  bpmConfidence: number | null;
+  feel: string | null;
+  tempoLabel: string | null;
+  integratedLufs: number | null;
+  loudnessRangeLu: number | null;
+  levelSpanLu: number | null;
+  lowEndShare: number | null;
+  width: string | null;
+  sections: string[];
+  moment: string | null;
+  tensionPeak: string | null;
+  fingerprint: string[];
+  vocals: string;
+  centroidHz: number | null;
+};
+
+export function buildInsightUserPrompt(input: InsightPromptInput | MeasuredInsight): string {
+  if ("key" in input && "vocals" in input) {
+    return [
+      "Write the JSON. Use only these measurements. Cite their ids in evidence.",
+      JSON.stringify(input, null, 2),
+    ].join("\n");
+  }
+  return buildLegacyInsightPrompt(input);
+}
+
+function buildLegacyInsightPrompt(input: InsightPromptInput): string {
   const {
     trackTitle,
     artistName,
