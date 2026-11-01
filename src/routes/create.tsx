@@ -31,6 +31,7 @@ import { MoodPicker } from "@/components/MoodPicker";
 import { BandCustomizer } from "@/components/BandCustomizer";
 import { DEFAULT_BANDS, type BandsConfig } from "@/lib/auraBands";
 import { Aurascope } from "@/components/Aurascope";
+import { InsightCategories } from "@/components/InsightCategories";
 
 import { ColorInfluence } from "@/components/ColorInfluence";
 import { RawAuraRecorder } from "@/components/RawAuraRecorder";
@@ -900,6 +901,7 @@ function CreatePage() {
                     )}
                   </div>
                 </div>
+                {analysis && <InsightCategories analysis={analysis} />}
               </div>
               </StepSection>
 
