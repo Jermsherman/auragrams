@@ -1,4 +1,4 @@
-import { useEffect, useRef, useId, useMemo } from "react";
+import { useEffect, useRef, useId, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getPersonality, type AuraPersonality, type MoodKey, type AuraProfile } from "@/lib/aura";
 import { bandGain, resolveBands, type BandKey, type BandsConfig } from "@/lib/auraBands";
@@ -23,8 +23,8 @@ type Props = {
   particles?: boolean;
   /** Hero mode: self-animates with synthetic waveform when no analyser is given. */
   hero?: boolean;
-  /** When false, the vocal band is not drawn (instrumental tracks). */
-  hasVocals?: boolean;
+  /** Vocal core draws only when a voice model has said the track has vocals. */
+  hasVocals?: boolean | null;
   /** Per-band visibility / color / intensity configuration. */
   bands?: BandsConfig | null;
   /** Atmospheric effect layer — auto-picked per Aura. */
@@ -90,7 +90,7 @@ export function OrbVisual({
   profile,
   particles = true,
   hero = false,
-  hasVocals = true,
+  hasVocals = false,
   bands,
   effect = null,
   quality = "high",
@@ -103,6 +103,14 @@ export function OrbVisual({
   const ringCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const visibleRef = useRef(true);
+  const liveRef = useRef({ loudness: 0, bass: 0, onsets: 0 });
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [live, setLive] = useState(liveRef.current);
+  useEffect(() => {
+    if (!legendOpen) return;
+    const id = window.setInterval(() => setLive({ ...liveRef.current }), 250);
+    return () => window.clearInterval(id);
+  }, [legendOpen]);
   const filterId = useId().replace(/:/g, "");
 
   // Small orbs (cards, minis) don't need retina decorative layers.
@@ -246,9 +254,10 @@ export function OrbVisual({
         treble = ts / Math.max(1, n - mEnd) / 255;
       }
 
-      // Targets
-      const tScale = 1 + Math.min(0.22, vol * 0.55 + peak * 0.1);
-      const tGlow = 0.55 + (vol * 0.8 + mid * 0.6);
+      // Loudness is the only driver of brightness. The cap keeps the orb from blowing out to white.
+      const loudness = Math.min(1, vol);
+      const tScale = 1 + Math.min(0.16, loudness * 0.28);
+      const tGlow = 0.22 + Math.pow(loudness, 0.9) * 0.48;
       const tBass = 1 + Math.min(0.36, bass * 0.55);
       const tShim = 0.4 + treble * 1.8;
       const tDeform = Math.min(22, peak * 22);
@@ -267,6 +276,8 @@ export function OrbVisual({
       el.style.setProperty("--orb-shimmer", shimmer.toFixed(3));
       el.style.setProperty("--orb-deform", deform.toFixed(2));
       el.style.setProperty("--orb-burst", burst.toFixed(3));
+      liveRef.current.loudness = Math.round(loudness * 100);
+      liveRef.current.bass = Math.round(Math.min(1, bass) * 100);
 
       // Pull waveform once
       const waveData =
@@ -274,24 +285,8 @@ export function OrbVisual({
         (a && wave ? (a.getByteTimeDomainData(wave!), wave) : null);
       const freqData = metricsRef?.current?.frequency ?? freq;
 
-      // Edge clip-path deformation on the shell + texture (oscilloscope silhouette)
-      if (waveData && waveData.length > 0 && (shellRef.current || textureRef.current)) {
-        const N = 36;
-        const step = waveData.length / N;
-        const amp = 0.05 + Math.min(0.18, vol * 0.45 + peak * 0.18);
-        let pts = "";
-        for (let i = 0; i < N; i++) {
-          const v = (waveData[Math.floor(i * step)] - 128) / 128;
-          const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
-          const r = 0.5 + v * amp;
-          const x = (50 + Math.cos(angle) * r * 100).toFixed(2);
-          const y = (50 + Math.sin(angle) * r * 100).toFixed(2);
-          pts += `${x}% ${y}%${i < N - 1 ? "," : ""}`;
-        }
-        const clip = `polygon(${pts})`;
-        if (shellRef.current) shellRef.current.style.clipPath = clip;
-        if (textureRef.current) textureRef.current.style.clipPath = clip;
-      }
+      if (shellRef.current) shellRef.current.style.clipPath = "none";
+      if (textureRef.current) textureRef.current.style.clipPath = "none";
 
       // Draw oscilloscope rings
       const canvas = ringCanvasRef.current;
@@ -321,26 +316,16 @@ export function OrbVisual({
           const samples = 220;
           const step2 = waveData.length / samples;
 
-          // Band 1 — WAVEFORM RING: full-mix time domain, normalised.
+          // Outer ring — loudness only. Radius and opacity follow RMS, not the waveform shape.
           if (bandsCfg.waveform.enabled) {
             const g = bandGain(bandsCfg.waveform.intensity);
             ctx.lineWidth = 2.2 * dpr * g.width;
             ctx.strokeStyle = bandColor("waveform");
-            ctx.shadowBlur = 14 * dpr * g.glow * shadowScale;
+            ctx.shadowBlur = Math.min(10, 8 * loudness) * dpr * g.glow * shadowScale;
             ctx.shadowColor = p.glow;
-            ctx.globalAlpha = Math.min(1, (0.4 + volN * 0.55) * g.alpha);
+            ctx.globalAlpha = Math.min(0.85, (0.28 + loudness * 0.5) * g.alpha);
             ctx.beginPath();
-            for (let i = 0; i <= samples; i++) {
-              const idx = Math.floor((i % samples) * step2);
-              const v = (waveData[idx] - 128) / 128;
-              const angle = (i / samples) * Math.PI * 2;
-              const r = baseR + v * deformGain;
-              const x = cx + Math.cos(angle) * r;
-              const y = cy + Math.sin(angle) * r;
-              if (i === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
+            ctx.arc(cx, cy, baseR * (1 + loudness * 0.12), 0, Math.PI * 2);
             ctx.stroke();
           }
 
@@ -414,6 +399,7 @@ export function OrbVisual({
             const threshold = fluxAvg + Math.sqrt(Math.max(fluxVar, 1e-9)) * 1.6 + 0.0015;
             onsetCooldown = Math.max(0, onsetCooldown - 1);
             const onset = flux > threshold || trans > 0.45;
+            liveRef.current.onsets = radarRings.length;
             if (onset && onsetCooldown === 0 && radarRings.length < 6) {
               radarRings.push({ r: baseR * 0.55, life: 1 });
               onsetCooldown = 7;
@@ -437,9 +423,9 @@ export function OrbVisual({
           }
 
 
-          // Vocal band: driven by energy in the vocal range (~200Hz–4kHz),
-          // with the low band subtracted so kick/808 bleed can't pump it.
-          if (hasVocals && bandsCfg.vocal.enabled) {
+          // Core is vocal-model probability. Mid-range loudness is not a voice, so the core stays off.
+          const vocalProbability: number | null = null;
+          if (vocalProbability != null && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
             let vocal = 0;
             let vLo = 0;
@@ -566,7 +552,7 @@ export function OrbVisual({
       const beat = Math.max(0, Math.sin(t * 2.1)) ** 6;
 
       const tScale = 1 + 0.06 * breath + 0.04 * swell + 0.05 * beat;
-      const tGlow = 0.7 + 0.5 * breath + 0.25 * swell;
+      const tGlow = 0.28 + 0.22 * breath;
       const tBass = 1 + 0.12 * swell + 0.16 * beat;
       const tShim = 0.7 + 1.1 * sparkle;
       const tDef = 6 + 8 * breath + 6 * beat;
@@ -1004,16 +990,34 @@ export function OrbVisual({
     <div
       ref={ref}
         className={cn("relative shrink-0", !animate && "orb-static", className)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setLive({ ...liveRef.current });
+          setLegendOpen((open) => !open);
+        }}
       style={
         {
           width: dim,
           height: dim,
           transform: "scale(var(--orb-scale, 1))",
           transition: "transform 0.08s linear",
-          ["--hue" as string]: `${hueShift * 0.05 + p.hueShift}deg`,
+          ["--hue" as string]: `${p.hueShift}deg`,
         } as React.CSSProperties
       }
     >
+      {pxSize >= 220 && (
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-2 pb-1 text-center">
+        <p className="text-[9px] uppercase tracking-[0.18em] text-foreground/70">Tap for values</p>
+        {legendOpen && (
+          <div className="pointer-events-auto mt-1 rounded-xl bg-background/80 px-2 py-1.5 text-left text-[10px] leading-relaxed text-foreground/90">
+            <div>Outer ring · loudness {live.loudness}</div>
+            <div>Halo · bass {live.bass}</div>
+            <div>Radar · onsets {live.onsets}</div>
+            <div>Core · voice not sure</div>
+          </div>
+        )}
+      </div>
+      )}
       {/* SVG filters (texture overlays) */}
       <svg className="absolute -z-10" width="0" height="0" aria-hidden>
         <defs>
