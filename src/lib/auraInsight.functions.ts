@@ -21,6 +21,7 @@ import {
   type MeasuredInsight,
 } from "./auraInsight";
 import type { TrackAnalysis } from "./analysis/analyze";
+import { flags } from "./featureFlags";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
@@ -67,6 +68,9 @@ const InputSchema = z.object({
 export const generateAuraInsight = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => InputSchema.parse(raw))
   .handler(async ({ data }): Promise<{ insight: AuraInsight | null; cached: boolean }> => {
+    if (!flags.enableModelInsight) {
+      return { insight: null, cached: false };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 1. Load the row.

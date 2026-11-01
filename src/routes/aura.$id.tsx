@@ -278,8 +278,12 @@ function AuraPage() {
     setPendingId(getPendingAura()?.id ?? null);
   }, [id, user?.id]);
 
-  // Load (or generate) the Song Personality Profile from the cloud row.
+  // Load a stored model insight only when that path is enabled. Free uses the measured Read.
   useEffect(() => {
+    if (!flags.enableModelInsight) {
+      setInsightState("idle");
+      return;
+    }
     if (!id) return;
     let cancelled = false;
     setInsight(null);
@@ -316,6 +320,7 @@ function AuraPage() {
   }, [id]);
 
   const retryInsight = async () => {
+    if (!flags.enableModelInsight) return;
     setInsightState("loading");
     try {
       const res = await generateAuraInsight({ data: { auraId: id } });
