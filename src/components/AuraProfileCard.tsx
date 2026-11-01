@@ -54,6 +54,7 @@ export function AuraProfileCard({
   analysis,
   moodScores,
   hasVocals,
+  hideMeasurements = false,
 }: {
   name: string;
   moods: string[];
@@ -82,6 +83,8 @@ export function AuraProfileCard({
   moodScores?: { mood: string; strength: number }[];
   /** Artist's answer. Null means they have not answered. Not a detection. */
   hasVocals?: boolean | null;
+  /** When the insight panel is on the page, it owns the measurements. */
+  hideMeasurements?: boolean;
 }) {
   const energyPct = toEnergyPercent(energy);
   const p = getPersonality(palette);
@@ -148,75 +151,86 @@ export function AuraProfileCard({
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-2">
-        <Trait
-          label="Key"
-          value={analysis?.key.display ?? musicalKey ?? "Key unclear"}
-          hint={
-            analysis
-              ? analysis.key.label
-                ? analysis.key.confidenceLabel
-                : "not enough pitch"
-              : keyDetected
-                ? "detected"
-                : undefined
-          }
-        />
-        <Trait
-          label="Tempo"
-          prominent
-          value={
-            analysis && analysis.bpm != null && analysis.bpmConfidence >= 0.35
-              ? `${Math.round(analysis.bpm)} BPM`
-              : "Unclear"
-          }
-          hint={
-            [
-              analysis?.tempoLabel && analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : tempoBand && tempoBand !== "Unclear" ? tempoBand : null,
-              analysis?.feel && analysis.feel !== "unclear" ? analysis.feel : null,
-            ]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          }
-        />
-        {showPitch && (
-          <Trait
-            label="Pitch Center"
-            value={pitchCenter!.note}
-            hint={`${Math.round(pitchCenter!.hz)} Hz`}
-          />
-        )}
+      {!hideMeasurements && (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <Trait
+              label="Key"
+              value={analysis?.key.display ?? musicalKey ?? "Key unclear"}
+              hint={
+                analysis
+                  ? analysis.key.label
+                    ? analysis.key.confidenceLabel
+                    : "not enough pitch"
+                  : keyDetected
+                    ? "detected"
+                    : undefined
+              }
+            />
+            <Trait
+              label="Tempo"
+              prominent
+              value={
+                analysis && analysis.bpm != null && analysis.bpmConfidence >= 0.35
+                  ? `${Math.round(analysis.bpm)} BPM`
+                  : "Unclear"
+              }
+              hint={
+                [
+                  analysis?.tempoLabel && analysis.tempoLabel !== "Unclear"
+                    ? analysis.tempoLabel
+                    : tempoBand && tempoBand !== "Unclear"
+                      ? tempoBand
+                      : null,
+                  analysis?.feel && analysis.feel !== "unclear" ? analysis.feel : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+            />
+            {showPitch && (
+              <Trait
+                label="Pitch Center"
+                value={pitchCenter!.note}
+                hint={`${Math.round(pitchCenter!.hz)} Hz`}
+              />
+            )}
+          </div>
+          {analysis && analysis.key.changes.length > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {analysis.key.changes
+                .map((change) => `${change.label} at ${formatClock(change.atSec)}`)
+                .join(" · ")}
+            </p>
+          )}
+          {analysis && analysis.energyCurve.length > 1 ? (
+            <EnergyArc curve={analysis.energyCurve} peak={analysis.energyPeak} />
+          ) : (
+            <div className="mt-4">
+              <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
+                <span>Energy</span>
+                <span className="tabular-nums text-foreground/85">{energyPct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${energyPct}%`, background: grad }}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="mt-4">
         <Trait
           label="Vocals"
           value={artistVocalValue(hasVocals)}
           hint={artistVocalHint(hasVocals)}
         />
       </div>
-      {analysis && analysis.key.changes.length > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          {analysis.key.changes
-            .map((change) => `${change.label} at ${formatClock(change.atSec)}`)
-            .join(" · ")}
-        </p>
-      )}
-      {analysis && analysis.energyCurve.length > 1 ? (
-        <EnergyArc curve={analysis.energyCurve} peak={analysis.energyPeak} />
-      ) : (
-        <div className="mt-4">
-          <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
-            <span>Energy</span>
-            <span className="tabular-nums text-foreground/85">{energyPct}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${energyPct}%`, background: grad }}
-            />
-          </div>
-        </div>
-      )}
 
-      <Section title="Vibe" defaultOpen>
+      <Section title={analysis ? "Read" : "Vibe"} defaultOpen>
         <VibeEditor
           vibeDescription={vibeDescription}
           editable={editable}

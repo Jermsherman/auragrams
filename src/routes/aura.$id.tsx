@@ -10,6 +10,7 @@ import { AudioUploadPlayer } from "@/components/AudioUploadPlayer";
 
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
+import { InsightCategories } from "@/components/InsightCategories";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { PlatformCard } from "@/components/PlatformCard";
 import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
@@ -786,6 +787,7 @@ function AuraPage() {
             analysis={track.analysis}
             moodScores={track.analysis?.moods}
             hasVocals={track.hasVocals}
+            hideMeasurements={!!track.analysis}
             paletteName={track.paletteName}
             vibeDescription={track.vibeDescription}
             motionKeywords={track.motionKeywords}
@@ -845,6 +847,8 @@ function AuraPage() {
             }
           />
         </div>
+
+        {track.analysis && <InsightCategories analysis={track.analysis} />}
 
         {isOwner && auraStatus && ownerUserId === profile?.id && (
           <div className="mt-8 w-full max-w-md">
