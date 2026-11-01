@@ -55,17 +55,18 @@ const CHORD: Record<string, number[]> = {
   E: [164.81, 207.65, 246.94],
   D: [146.83, 220, 293.66],
   Am: [220, 261.63, 329.63],
+  Dm: [146.83, 174.61, 220],
   F: [174.61, 220, 261.63],
   G: [196, 246.94, 293.66],
 };
 
-function chord(name: string, sec: number, amp = 0.2, start = 0): Float32Array {
+function chord(name: string, sec: number, amp = 0.2, start = 0, bass = 1): Float32Array {
   const x = silence(start + sec);
   const tones = CHORD[name];
   for (const hz of tones) {
     addTone(x, hz, amp, start, start + sec);
     addTone(x, hz * 2, amp * 0.45, start, start + sec);
-    addTone(x, hz / 2, amp * 0.35, start, start + sec);
+    addTone(x, hz / 2, amp * 0.35 * bass, start, start + sec);
   }
   return x;
 }
@@ -209,6 +210,44 @@ describe("whole-track analysis", () => {
     const high = await run([sine(2000, 4, 0.3)]);
     assert.ok(bass.lowEnd.shareBelow120Hz > 0.7, `bass share ${bass.lowEnd.shareBelow120Hz}`);
     assert.ok(high.lowEnd.shareBelow120Hz < 0.15, `high share ${high.lowEnd.shareBelow120Hz}`);
+  });
+
+  it("names A minor on Am-F-G-E and does not swap it for F or C", async () => {
+    // Generated here. F and G are louder and the bass is heavy, which used to
+    // pull the loop to F major (the submediant) or C major (the relative major).
+    const cycle = concat([
+      chord("Am", 2, 0.16, 0, 3),
+      chord("F", 2, 0.28, 0, 3),
+      chord("G", 2, 0.28, 0, 3),
+      chord("E", 2, 0.16, 0, 3),
+    ]);
+    const am = await run([concat([cycle, cycle, cycle, cycle])]);
+    assert.equal(am.key.display, "A minor", `Am-F-G-E got ${am.key.display} conf ${am.key.confidence}`);
+    assert.ok(am.key.confidence >= 0.3, `confidence ${am.key.confidence}`);
+
+    const turnaround = concat([
+      chord("C", 2, 0.2),
+      chord("F", 2, 0.2),
+      chord("G", 2, 0.2),
+      chord("C", 2, 0.2),
+    ]);
+    const major = await run([concat([turnaround, turnaround, turnaround])]);
+    assert.equal(major.key.display, "C major", `I-IV-V-I got ${major.key.display} conf ${major.key.confidence}`);
+    assert.ok(major.key.confidence >= 0.3, `C confidence ${major.key.confidence}`);
+
+    const relative = concat([
+      chord("Am", 2, 0.2),
+      chord("Dm", 2, 0.2),
+      chord("E", 2, 0.2),
+      chord("Am", 2, 0.2),
+    ]);
+    const minor = await run([concat([relative, relative, relative])]);
+    assert.equal(
+      minor.key.display,
+      "A minor",
+      `relative minor got ${minor.key.display} conf ${minor.key.confidence}`,
+    );
+    assert.ok(minor.key.confidence >= 0.3, `relative confidence ${minor.key.confidence}`);
   });
 
   it("raises tension on the E chord in A minor", async () => {

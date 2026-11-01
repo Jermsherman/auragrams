@@ -123,6 +123,154 @@ export function isPitched(flatness: number, peakiness: number, score: number): b
   return true;
 }
 
+const TRIAD_MAJOR = [0, 4, 7];
+const TRIAD_MINOR = [0, 3, 7];
+
+function triadFit(chroma: number[], root: number, mode: "major" | "minor"): number {
+  const ivs = mode === "major" ? TRIAD_MAJOR : TRIAD_MINOR;
+  let triad = 0;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += chroma[i];
+  if (sum <= 0) return 0;
+  for (const iv of ivs) triad += chroma[(root + iv) % 12];
+  return triad / sum;
+}
+
+function bestTriad(chroma: number[]): { root: number; mode: "major" | "minor"; fit: number } | null {
+  let best: { root: number; mode: "major" | "minor"; fit: number } | null = null;
+  let second = 0;
+  for (let root = 0; root < 12; root++) {
+    for (const mode of ["major", "minor"] as const) {
+      const fit = triadFit(chroma, root, mode);
+      if (!best || fit > best.fit) {
+        second = best?.fit ?? 0;
+        best = { root, mode, fit };
+      } else if (fit > second) second = fit;
+    }
+  }
+  // A real chord puts about half its energy on the triad. A weak or split
+  // second is not evidence of a cadence.
+  if (!best || best.fit < 0.42 || best.fit - second < 0.03) return null;
+  return best;
+}
+
+function leadingRatio(chroma: number[], tonic: number): number {
+  const raised = chroma[(tonic + 11) % 12];
+  const flat = chroma[(tonic + 10) % 12];
+  return raised / (raised + flat + 1e-12);
+}
+
+/**
+ * A loud submediant (F) or relative major (C) can outscore A minor on a
+ * Krumhansl profile. A dominant that resolves to the tonic, and the leading
+ * tone that dominant carries, point at the real key. A candidate whose own
+ * tonic triad barely appears is penalized against the tonic that does.
+ */
+export function disambiguateKey(seconds: SecondChroma[], summary: KeySummary): KeySummary {
+  if (!summary.pitched || !summary.label || !summary.tonic || !summary.mode) return summary;
+  const homeMode = summary.mode;
+  const parallel = `${summary.tonic} ${homeMode === "major" ? "minor" : "major"}`;
+  summary = {
+    ...summary,
+    changes: summary.changes.filter((change) => change.label !== parallel),
+  };
+  const homeIndex = NOTES.indexOf(summary.tonic as (typeof NOTES)[number]);
+  if (homeIndex < 0) return summary;
+
+  const global = new Array(12).fill(0);
+  const rootHits = new Array(12).fill(0);
+  const modeHits = new Array(24).fill(0);
+  const resolutions = new Array(12).fill(0);
+  let counted = 0;
+  let prev: { root: number; mode: "major" | "minor"; t: number } | null = null;
+  for (const sec of seconds) {
+    for (let i = 0; i < 12; i++) global[i] += sec.chroma[i];
+    const triad = bestTriad(sec.chroma);
+    if (!triad) continue;
+    counted++;
+    rootHits[triad.root] += 1;
+    modeHits[triad.root + (triad.mode === "minor" ? 12 : 0)] += 1;
+    if (
+      prev &&
+      sec.t > prev.t &&
+      sec.t - prev.t <= 2 &&
+      prev.mode === "major" &&
+      triad.root === (prev.root + 5) % 12
+    ) {
+      resolutions[triad.root] += 1;
+    }
+    prev = { root: triad.root, mode: triad.mode, t: sec.t };
+  }
+  if (counted < 2) return summary;
+
+  const bestRootShare = Math.max(...rootHits) / counted;
+  const scoreOf = (tonic: number, mode: "major" | "minor") => {
+    const profile = correlate(global, rotate(mode === "major" ? MAJOR : MINOR, tonic));
+    const lead = mode === "minor" ? leadingRatio(global, tonic) : 0;
+    const modeShare = modeHits[tonic + (mode === "minor" ? 12 : 0)] / counted;
+    const otherShare = modeHits[tonic + (mode === "minor" ? 0 : 12)] / counted;
+    const rootShare = rootHits[tonic] / counted;
+    // The leading tone supports the minor key when that minor triad is actually
+    // there. A major tonic that merely contains a leading tone stays major.
+    const leadBonus = mode === "minor" && lead >= 0.15 && modeShare >= otherShare ? 0.08 + 0.22 * lead : 0;
+    const rarePenalty = rootShare < bestRootShare * 0.35 ? 0.28 : 0;
+    const missingTriad = modeShare < 0.05 && otherShare >= 0.08 ? 0.3 : 0;
+    const score =
+      profile +
+      Math.min(0.45, resolutions[tonic] * 0.14) +
+      leadBonus +
+      modeShare * 0.12 -
+      rarePenalty -
+      missingTriad;
+    return { score, lead, resolutions: resolutions[tonic] as number, profile };
+  };
+
+  const home = scoreOf(homeIndex, homeMode);
+  let best: { tonic: number; mode: "major" | "minor"; score: number; lead: number; resolutions: number; profile: number } = {
+    tonic: homeIndex,
+    mode: homeMode,
+    ...home,
+  };
+
+  for (let tonic = 0; tonic < 12; tonic++) {
+    if (resolutions[tonic] < 1) continue;
+    if (rootHits[tonic] / counted < 0.08) continue;
+    for (const mode of ["major", "minor"] as const) {
+      if (tonic === homeIndex && mode === homeMode) continue;
+      const row = scoreOf(tonic, mode);
+      if (row.profile < 0.35) continue;
+      if (row.score > best.score + 0.06) best = { tonic, mode, ...row };
+    }
+  }
+
+  if (best.tonic === homeIndex && best.mode === homeMode) return summary;
+  const confidence = clamp(
+    0.38 +
+      Math.min(0.24, best.resolutions * 0.06) +
+      best.lead * 0.2 +
+      Math.max(0, best.score - home.score) * 0.1,
+    0,
+    0.9,
+  );
+  if (confidence < SHOW_CONFIDENCE) return summary;
+
+  const tonic = NOTES[best.tonic];
+  const label = `${tonic} ${best.mode}`;
+  const newParallel = `${tonic} ${best.mode === "major" ? "minor" : "major"}`;
+  return {
+    ...summary,
+    label,
+    tonic,
+    mode: best.mode,
+    confidence,
+    confidenceLabel: confidenceLabel(confidence),
+    display: label,
+    changes: summary.changes.filter(
+      (change) => change.label !== label && change.label !== summary.label && change.label !== newParallel,
+    ),
+  };
+}
+
 export function summarizeKey(seconds: SecondChroma[], windowSec = 8, hopSec = 2): KeySummary {
   const unclear: KeySummary = {
     label: null,
@@ -238,7 +386,7 @@ export function summarizeKey(seconds: SecondChroma[], windowSec = 8, hopSec = 2)
   const filtered = changes.filter((c) => c.label !== homeLabel);
 
   const confidence = clamp(home.conf, 0, 1);
-  return {
+  return disambiguateKey(seconds, {
     label: homeLabel,
     tonic: home.tonic,
     mode: home.mode,
@@ -247,7 +395,7 @@ export function summarizeKey(seconds: SecondChroma[], windowSec = 8, hopSec = 2)
     pitched: true,
     display: homeLabel,
     changes: filtered,
-  };
+  });
 }
 
 export function homeProfile(tonic: string, mode: "major" | "minor"): number[] {

@@ -2,6 +2,7 @@ import { clamp, downsample, fft, hashMono, mixMono } from "./dsp";
 import { measureLoudness } from "./loudness";
 import {
   confidenceLabel,
+  disambiguateKey,
   homeProfile,
   isPitched,
   matchKey,
@@ -144,14 +145,32 @@ function spectralFrame(
     if (hz >= 80 && hz <= 5000) {
       linSum += m;
       logSum += Math.log(m + 1e-12);
-      const midi = 69 + 12 * Math.log2(hz / 440);
-      const nearest = Math.round(midi);
-      const dist = Math.abs(midi - nearest);
-      if (dist <= 0.5) {
-        const pc = ((nearest % 12) + 12) % 12;
-        chroma[pc] += p * Math.cos(dist * Math.PI);
-      }
     }
+  }
+  // A 2048-point FFT at 22050 Hz is about 11 Hz per bin. E2 (82 Hz) then sits
+  // closer to the F bin than the E bin, so a dominant root is counted as the
+  // submediant and F major beats A minor. Interpolate each peak's frequency
+  // before naming the pitch class. Peaks under the frame floor are noise.
+  let maxMag = 0;
+  for (let k = 1; k < bins; k++) if (mag[k] > maxMag) maxMag = mag[k];
+  const floor = maxMag * 0.08;
+  for (let k = 2; k < bins - 1; k++) {
+    const m = mag[k];
+    if (m < floor || m < mag[k - 1] || m < mag[k + 1]) continue;
+    const hz0 = k * binHz;
+    if (hz0 < 70 || hz0 > 5000) continue;
+    const a = Math.log(mag[k - 1] + 1e-12);
+    const b = Math.log(m + 1e-12);
+    const c = Math.log(mag[k + 1] + 1e-12);
+    const denom = a - 2 * b + c;
+    const delta = Math.abs(denom) < 1e-12 ? 0 : clamp(0.5 * (a - c) / denom, -0.5, 0.5);
+    const hz = (k + delta) * binHz;
+    const midi = 69 + 12 * Math.log2(hz / 440);
+    const nearest = Math.round(midi);
+    const dist = Math.abs(midi - nearest);
+    if (dist > 0.5) continue;
+    const pc = ((nearest % 12) + 12) % 12;
+    chroma[pc] += m * m * Math.cos(dist * Math.PI);
   }
   const flatness = linSum > 0 ? Math.exp(logSum / toneBins) / (linSum / toneBins) : 1;
   return { mag, flux, chroma, flatness, centroidNum, power, lowPower };
@@ -590,7 +609,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
     global.confidence >= 0.3 &&
     global.score >= 0.55
   ) {
-    key = {
+    key = disambiguateKey(seconds, {
       label: global.label,
       tonic: global.tonic,
       mode: global.mode,
@@ -599,7 +618,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
       pitched: true,
       display: global.label,
       changes: [],
-    };
+    });
   }
   if (!globallyPitched && !key.pitched) {
     key = {
@@ -699,7 +718,7 @@ export async function analyzePcm(input: PcmInput): Promise<TrackAnalysis> {
       confidence: Math.round(key.confidence * 100) / 100,
       changes: key.changes.map((c) => ({ ...c, confidence: Math.round(c.confidence * 100) / 100 })),
       method:
-        "Krumhansl profile on FFT chroma, 8-second windows, whole track. Unpitched audio is not given a key.",
+        "Krumhansl profile on peak-interpolated FFT chroma, 8-second windows, whole track. Relative and submediant keys are separated with the leading tone and V–I / V–i resolutions. Unpitched audio is not given a key.",
     },
     loudness: {
       integratedLufs: loudness.integratedLufs,
