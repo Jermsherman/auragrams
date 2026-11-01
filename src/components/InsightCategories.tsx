@@ -69,8 +69,16 @@ function TensionArc({ points }: { points: { t: number; value: number }[] }) {
   );
 }
 
+function Locked({ title }: { title: string }) {
+  return (
+    <Category title={title}>
+      <p className="text-muted-foreground">Pro</p>
+    </Category>
+  );
+}
+
 /** Measured categories. Each one cites a field from the whole-track analysis. */
-export function InsightCategories({ analysis }: { analysis: TrackAnalysis }) {
+export function InsightCategories({ analysis, pro = false }: { analysis: TrackAnalysis; pro?: boolean }) {
   const bpmText =
     analysis.bpm != null && analysis.bpmConfidence >= 0.35
       ? `${Math.round(analysis.bpm)} BPM`
@@ -144,61 +152,69 @@ export function InsightCategories({ analysis }: { analysis: TrackAnalysis }) {
       <Category title="The moment">
         {analysis.moment ? (
           <p>
-            {clock(analysis.moment.startSec)} · {analysis.moment.durationSec}s.{" "}
-            {analysis.moment.reason} Export comes later.
+            {clock(analysis.moment.startSec)} · {analysis.moment.durationSec}s. {analysis.moment.reason}
           </p>
         ) : (
           <p>No moment marked.</p>
         )}
       </Category>
-      <Category title="Low end">
-        <p>
-          {Math.round(analysis.lowEnd.shareBelow120Hz * 100)}% of spectral energy is below 120 Hz.
-        </p>
-      </Category>
-      <Category title="Loudness & dynamics">
-        <p>
-          {analysis.loudness.integratedLufs.toFixed(1)} LUFS integrated · LRA{" "}
-          {analysis.loudness.loudnessRangeLu.toFixed(1)} LU · level span{" "}
-          {analysis.loudness.levelSpanLu.toFixed(1)} LU · crest{" "}
-          {analysis.loudness.crestDb.toFixed(1)} dB
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">{analysis.loudness.method}</p>
-      </Category>
-      <Category title="Width">
-        <p>
-          {analysis.width.label}
-          {analysis.width.correlation != null
-            ? ` · correlation ${analysis.width.correlation.toFixed(2)}`
-            : ""}
-        </p>
-      </Category>
-      <Category title="Tension">
-        {analysis.tension.length > 1 ? (
-          <>
-            <TensionArc points={analysis.tension} />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Distance from the home-key profile. Higher means less resolved.
-            </p>
-          </>
-        ) : (
-          <p>No tension curve. The key was not clear enough to measure resolution against.</p>
-        )}
-      </Category>
-      <Category title="Fingerprint">
-        {analysis.fingerprint.length > 0 ? (
-          <ul className="space-y-1">
-            {analysis.fingerprint.map((row) => (
-              <li key={row.id}>{row.text}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>Nothing here stands far from the fixed references.</p>
-        )}
-        <p className="mt-1 text-xs text-muted-foreground">
-          Compared with fixed references, not other Auragram songs.
-        </p>
-      </Category>
+      {pro ? (
+        <Category title="Low end">
+          <p>{Math.round(analysis.lowEnd.shareBelow120Hz * 100)}% of spectral energy is below 120 Hz.</p>
+        </Category>
+      ) : (
+        <Locked title="Low end" />
+      )}
+      {pro ? (
+        <Category title="Loudness & dynamics">
+          <p>
+            {analysis.loudness.integratedLufs.toFixed(1)} LUFS integrated · LRA {analysis.loudness.loudnessRangeLu.toFixed(1)} LU · level span {analysis.loudness.levelSpanLu.toFixed(1)} LU · crest {analysis.loudness.crestDb.toFixed(1)} dB
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{analysis.loudness.method}</p>
+        </Category>
+      ) : (
+        <Locked title="Loudness & dynamics" />
+      )}
+      {pro ? (
+        <Category title="Width">
+          <p>
+            {analysis.width.label}
+            {analysis.width.correlation != null ? ` · correlation ${analysis.width.correlation.toFixed(2)}` : ""}
+          </p>
+        </Category>
+      ) : (
+        <Locked title="Width" />
+      )}
+      {pro ? (
+        <Category title="Tension">
+          {analysis.tension.length > 1 ? (
+            <>
+              <TensionArc points={analysis.tension} />
+              <p className="mt-1 text-xs text-muted-foreground">Distance from the home-key profile. Higher means less resolved.</p>
+            </>
+          ) : (
+            <p>No tension curve. The key was not clear enough to measure resolution against.</p>
+          )}
+        </Category>
+      ) : (
+        <Locked title="Tension" />
+      )}
+      {pro ? (
+        <Category title="Fingerprint">
+          {analysis.fingerprint.length > 0 ? (
+            <ul className="space-y-1">
+              {analysis.fingerprint.map((row) => (
+                <li key={row.id}>{row.text}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>Nothing here stands far from the fixed references.</p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">Compared with fixed references, not other Auragram songs.</p>
+        </Category>
+      ) : (
+        <Locked title="Fingerprint" />
+      )}
     </div>
   );
 }

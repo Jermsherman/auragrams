@@ -7,4 +7,6 @@ export const flags = {
   enableInfluence: false,
   enableEditPalette: false,
   enableColorInfluence: false,
+  // No billing. Pro only unlocks extra measurements. Flip this, or open a page with ?tier=pro.
+  enableProInsights: false,
 } as const;

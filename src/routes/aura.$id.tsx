@@ -11,6 +11,7 @@ import { AudioUploadPlayer } from "@/components/AudioUploadPlayer";
 import { ShareDialog } from "@/components/ShareDialog";
 import { AuraProfileCard } from "@/components/AuraProfileCard";
 import { InsightCategories } from "@/components/InsightCategories";
+import { useProTier } from "@/lib/tier";
 import { StreamingChips } from "@/components/StreamingLinks";
 import { PlatformCard } from "@/components/PlatformCard";
 import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
@@ -142,6 +143,7 @@ export const Route = createFileRoute("/aura/$id")({
 });
 
 function AuraPage() {
+  const pro = useProTier();
   const { id } = Route.useParams();
   const { claim, reveal } = Route.useSearch();
   const nav = useNavigate();
@@ -848,7 +850,7 @@ function AuraPage() {
           />
         </div>
 
-        {track.analysis && <InsightCategories analysis={track.analysis} />}
+        {track.analysis && <InsightCategories analysis={track.analysis} pro={pro} />}
 
         {isOwner && auraStatus && ownerUserId === profile?.id && (
           <div className="mt-8 w-full max-w-md">
