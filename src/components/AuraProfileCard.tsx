@@ -265,7 +265,14 @@ export function AuraProfileCard({
                 <span className="mt-0.5 shrink-0 inline-flex items-center rounded-full bg-aura-gradient/25 border border-foreground/15 px-2.5 h-6 text-[10px] uppercase tracking-[0.22em] text-foreground/90">
                   {e.emotion}
                 </span>
-                <span className="text-[13px] leading-relaxed text-muted-foreground">{e.why}</span>
+                <span className="text-[13px] leading-relaxed text-muted-foreground">
+                  {e.why}
+                  {e.evidence?.length ? (
+                    <span className="mt-1 block text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                      {e.evidence.join(" · ")}
+                    </span>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
@@ -280,7 +287,14 @@ export function AuraProfileCard({
                 <span className="mt-0.5 shrink-0 inline-flex items-center rounded-full border border-foreground/20 bg-background/30 px-2.5 h-6 text-[10px] uppercase tracking-[0.22em] text-foreground/90">
                   {t.trait}
                 </span>
-                <span className="text-[13px] leading-relaxed text-muted-foreground">{t.why}</span>
+                <span className="text-[13px] leading-relaxed text-muted-foreground">
+                  {t.why}
+                  {t.evidence?.length ? (
+                    <span className="mt-1 block text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                      {t.evidence.join(" · ")}
+                    </span>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
