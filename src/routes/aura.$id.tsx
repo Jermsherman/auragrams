@@ -785,6 +785,7 @@ function AuraPage() {
             density={track.density}
             analysis={track.analysis}
             moodScores={track.analysis?.moods}
+            hasVocals={track.hasVocals}
             paletteName={track.paletteName}
             vibeDescription={track.vibeDescription}
             motionKeywords={track.motionKeywords}

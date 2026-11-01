@@ -349,7 +349,7 @@ function AurascopeLens({
           profile={aura.profile}
           particles={!isCompact}
           hero={hero}
-          hasVocals={aura.hasVocals !== false && aura.hasVocals !== null}
+          hasVocals={false}
           bands={aura.bands}
           effect={effect}
           quality={size === "large" || hero ? "high" : "low"}

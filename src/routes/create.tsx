@@ -25,6 +25,7 @@ import { putGuestAudio } from "@/lib/guestAudioStore";
 import { generateAura, slugify, type UserColorInfluence } from "@/lib/aura";
 import { analysisFromAudioBuffer, type TrackAnalysis } from "@/lib/analysis/analyze";
 import { seedFromContentHash } from "@/lib/analysis/dsp";
+import { artistVocalHint, artistVocalValue } from "@/lib/artistVocals";
 import { decodeOnce } from "@/lib/audioDecode";
 import { MoodPicker } from "@/components/MoodPicker";
 import { BandCustomizer } from "@/components/BandCustomizer";
@@ -93,6 +94,7 @@ function CreatePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [moods, setMoods] = useState<string[]>([]);
+  const [hasVocals, setHasVocals] = useState<boolean | null>(null);
   const [bands, setBands] = useState<BandsConfig>(DEFAULT_BANDS);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -131,6 +133,7 @@ function CreatePage() {
     autoMoodDoneRef.current = false;
     setAnalysis(null);
     setMoods([]);
+    setHasVocals(null);
     setAnalysisError(null);
     setAnalyzing(false);
   };
@@ -141,6 +144,7 @@ function CreatePage() {
     autoMoodDoneRef.current = false;
     setAnalysis(null);
     setMoods([]);
+    setHasVocals(null);
     setAnalysisError(null);
     setAnalyzing(true);
     try {
@@ -434,7 +438,7 @@ function CreatePage() {
         artistHandle: slugify(artist.trim()) || "artist",
         coverDataUrl,
         seed: seedFromContentHash(analysis.contentHash),
-        hasVocals: null,
+        hasVocals,
         bands,
         createdAt: Date.now(),
         moods,
@@ -846,7 +850,8 @@ function CreatePage() {
                   value={bands}
                   onChange={setBands}
                   swatches={preview?.colors?.swatches}
-                  hasVocals={null}
+                  hasVocals={hasVocals}
+                  onHasVocalsChange={setHasVocals}
                 />
 
                 {flags.enableColorInfluence && (
@@ -863,7 +868,7 @@ function CreatePage() {
                         colors: preview?.colors,
                         moods,
                         energy: 0,
-                        hasVocals: null,
+                        hasVocals: false,
                         bands,
                       }}
                       size="mini"
@@ -875,18 +880,24 @@ function CreatePage() {
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-muted-foreground">Aura preview</div>
                     <div className="mt-1 truncate font-display text-base text-foreground">{preview?.auraName || "Name unrevealed"}</div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {analysis
-                        ? [
-                            analysis.key.display,
-                            analysis.key.confidenceLabel !== "none" ? analysis.key.confidenceLabel : null,
-                            analysis.bpm != null && analysis.bpmConfidence >= 0.35 ? `${Math.round(analysis.bpm)} BPM` : "tempo unclear",
+                    {analysis ? (
+                      <div className="mt-1">
+                        <div className="font-display text-2xl tabular-nums leading-none">
+                          {analysis.bpm != null && analysis.bpmConfidence >= 0.35 ? `${Math.round(analysis.bpm)} BPM` : "Tempo unclear"}
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {[
                             analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : null,
                             analysis.feel !== "unclear" ? analysis.feel : null,
-                            "Voice: Not sure",
-                          ].filter(Boolean).join(" · ")
-                        : "Add a track to reveal its musical character."}
-                    </p>
+                            analysis.key.display,
+                            analysis.key.confidenceLabel !== "none" ? analysis.key.confidenceLabel : null,
+                            `Vocals: ${artistVocalValue(hasVocals)} · ${artistVocalHint(hasVocals)}`,
+                          ].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Add a track to reveal its musical character.</p>
+                    )}
                   </div>
                 </div>
               </div>

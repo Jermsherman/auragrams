@@ -21,6 +21,7 @@ import type { AuraInsight } from "@/lib/auraInsight";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import { cn } from "@/lib/utils";
 import { toEnergyPercent } from "@/lib/energy";
+import { artistVocalHint, artistVocalValue } from "@/lib/artistVocals";
 import type { TrackAnalysis } from "@/lib/analysis/analyze";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
@@ -52,6 +53,7 @@ export function AuraProfileCard({
   onSaveStory,
   analysis,
   moodScores,
+  hasVocals,
 }: {
   name: string;
   moods: string[];
@@ -78,6 +80,8 @@ export function AuraProfileCard({
   onSaveStory?: (text: string) => Promise<void> | void;
   analysis?: TrackAnalysis | null;
   moodScores?: { mood: string; strength: number }[];
+  /** Artist's answer. Null means they have not answered. Not a detection. */
+  hasVocals?: boolean | null;
 }) {
   const energyPct = toEnergyPercent(energy);
   const p = getPersonality(palette);
@@ -160,24 +164,19 @@ export function AuraProfileCard({
         />
         <Trait
           label="Tempo"
+          prominent
           value={
-            analysis
-              ? analysis.bpm != null && analysis.bpmConfidence >= 0.35
-                ? `${Math.round(analysis.bpm)} BPM`
-                : "Unclear"
-              : tempoBand && tempoBand !== "Unclear"
-                ? tempoBand
-                : "Unclear"
+            analysis && analysis.bpm != null && analysis.bpmConfidence >= 0.35
+              ? `${Math.round(analysis.bpm)} BPM`
+              : "Unclear"
           }
           hint={
-            analysis && analysis.bpm != null && analysis.bpmConfidence >= 0.35
-              ? [
-                  analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : null,
-                  analysis.feel !== "unclear" ? analysis.feel : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              : undefined
+            [
+              analysis?.tempoLabel && analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : tempoBand && tempoBand !== "Unclear" ? tempoBand : null,
+              analysis?.feel && analysis.feel !== "unclear" ? analysis.feel : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
           }
         />
         {showPitch && (
@@ -188,8 +187,9 @@ export function AuraProfileCard({
           />
         )}
         <Trait
-          label="Voice"
-          value={analysis?.vocals.status === "not_sure" || !analysis ? "Not sure" : "Not sure"}
+          label="Vocals"
+          value={artistVocalValue(hasVocals)}
+          hint={artistVocalHint(hasVocals)}
         />
       </div>
       {analysis && analysis.key.changes.length > 0 && (
@@ -355,14 +355,26 @@ function EnergyArc({
   );
 }
 
-function Trait({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Trait({
+  label,
+  value,
+  hint,
+  prominent = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  prominent?: boolean;
+}) {
   return (
     <div className="rounded-2xl border border-border/60 bg-background/30 px-3 py-2.5">
       <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground flex items-center justify-between">
         <span>{label}</span>
-        {hint && <span className="text-[8px] text-foreground/60">{hint}</span>}
+        {hint && <span className="text-[8px] normal-case text-foreground/60">{hint}</span>}
       </div>
-      <div className="mt-0.5 text-sm font-medium capitalize">{value}</div>
+      <div className={prominent ? "mt-0.5 font-display text-2xl tabular-nums" : "mt-0.5 text-sm font-medium"}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -523,6 +535,8 @@ function StoryEditor({
 }: {
   story?: string;
   onSaveStory?: (text: string) => Promise<void> | void;
+  /** Artist's answer. Null means they have not answered. Not a detection. */
+  hasVocals?: boolean | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(story ?? "");
