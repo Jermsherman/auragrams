@@ -58,6 +58,7 @@ const CHORD: Record<string, number[]> = {
   Dm: [146.83, 174.61, 220],
   F: [174.61, 220, 261.63],
   G: [196, 246.94, 293.66],
+  A: [220, 277.18, 329.63],
 };
 
 function chord(name: string, sec: number, amp = 0.2, start = 0, bass = 1): Float32Array {
@@ -67,6 +68,14 @@ function chord(name: string, sec: number, amp = 0.2, start = 0, bass = 1): Float
     addTone(x, hz, amp, start, start + sec);
     addTone(x, hz * 2, amp * 0.45, start, start + sec);
     addTone(x, hz / 2, amp * 0.35 * bass, start, start + sec);
+  }
+  return x;
+}
+
+function sawChord(name: string, sec: number, amp = 0.08): Float32Array {
+  const x = silence(sec);
+  for (const hz of CHORD[name]) {
+    for (let h = 1; h <= 12; h++) addTone(x, hz * h, amp / h, 0, sec);
   }
   return x;
 }
@@ -248,6 +257,19 @@ describe("whole-track analysis", () => {
       `relative minor got ${minor.key.display} conf ${minor.key.confidence}`,
     );
     assert.ok(minor.key.confidence >= 0.3, `relative confidence ${minor.key.confidence}`);
+  });
+
+  it("reads a harmonic-rich A minor progression as minor and a real A major triad as major", async () => {
+    // A sawtooth's 5th harmonic sits about 14 cents flat of the major third.
+    // That overtone must not flip a true minor triad. A played C# must stay major.
+    const cycle = concat([sawChord("Am", 2), sawChord("F", 2), sawChord("G", 2), sawChord("E", 2)]);
+    const minor = await run([concat([cycle, cycle, cycle])]);
+    assert.equal(minor.key.display, "A minor", `saw Am-F-G-E got ${minor.key.display} conf ${minor.key.confidence}`);
+    assert.ok(minor.key.confidence >= 0.3, `minor confidence ${minor.key.confidence}`);
+
+    const major = await run([sawChord("A", 8)]);
+    assert.equal(major.key.display, "A major", `saw A major got ${major.key.display} conf ${major.key.confidence}`);
+    assert.ok(major.key.confidence >= 0.3, `major confidence ${major.key.confidence}`);
   });
 
   it("raises tension on the E chord in A minor", async () => {
