@@ -21,7 +21,7 @@ type Props = {
 /** Shared explainer: what audio actually drives each band on the orb. */
 export function BandDriveInfo({
   bands,
-  hasVocals = true,
+  hasVocals = null,
   defaultOpen = false,
   className,
   title = "How your song drives the orb",
@@ -30,8 +30,9 @@ export function BandDriveInfo({
 
   const stateFor = (key: BandKey): string | null => {
     if (!bands) return null;
-    if (key === "vocal" && hasVocals === false) return "Off — instrumental";
-    if (key === "vocal" && hasVocals === null) return "Not set";
+    if (key === "vocal" && hasVocals === true) return "Artist-reported yes";
+    if (key === "vocal" && hasVocals === false) return "Artist-reported no";
+    if (key === "vocal") return "Not sure — artist hasn't answered";
     return bands[key].enabled ? "On" : "Off";
   };
 

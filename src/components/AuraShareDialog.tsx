@@ -5,16 +5,10 @@ import { useMemo, useRef, useState } from "react";
 import { Download, Copy, Share2, X, Instagram, Twitter } from "lucide-react";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AuraShareCard, type ShareVariant } from "./AuraShareCard";
 import type { Track } from "@/lib/tracks";
 import type { AuraInsight } from "@/lib/auraInsight";
-import { computeAuraTraits } from "@/lib/auraTraits";
 
 type Props = {
   track: Track;
@@ -34,7 +28,7 @@ export function AuraShareDialog({ track, insight, shareUrl, open, onOpenChange }
     if (insight?.personalityTraits?.length) {
       return insight.personalityTraits.slice(0, 3).map((t) => t.trait);
     }
-    return computeAuraTraits(track).traits.slice(0, 3).map((t) => t.value);
+    return track.moods.slice(0, 3);
   }, [insight, track]);
 
   const auraName = insight?.auraName || track.auraName;

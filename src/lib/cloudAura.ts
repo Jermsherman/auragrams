@@ -118,7 +118,9 @@ export async function saveAuraToCloud(opts: {
     embed_url: saved.embedUrl ?? null,
     mood_tags: saved.moodTags ?? [],
     detected_key: saved.musicalKey ?? null,
-    pitch_center: saved.pitchCenter ? `${saved.pitchCenter.note} · ${Math.round(saved.pitchCenter.hz)}Hz` : null,
+    pitch_center: saved.pitchCenter
+      ? `${saved.pitchCenter.note} · ${Math.round(saved.pitchCenter.hz)}Hz`
+      : null,
     energy_level: saved.energyLevel ?? null,
     aura_name: saved.auraName,
     aura_description: saved.auraDescription,
@@ -149,6 +151,8 @@ export async function saveAuraToCloud(opts: {
     extra: {
       coverUrl: coverUrl ?? null,
       keyConfidence: saved.keyConfidence,
+      contentHash: saved.contentHash ?? null,
+      analysis: saved.analysis ?? null,
       userColorInfluence: saved.userColorInfluence ?? null,
       colorGuided: saved.colorGuided ?? false,
       influenceSettings: saved.influenceSettings ?? null,
@@ -264,9 +268,9 @@ export async function deleteAuraAudio(storagePath: string | null | undefined): P
  * Populate audioPublicUrl on a batch of SavedAura via short-lived signed URLs.
  * Mutates in place and returns the same array for convenience.
  */
-export async function hydrateSavedAuraAudioUrls<T extends { audioStoragePath?: string; audioPublicUrl?: string }>(
-  items: T[],
-): Promise<T[]> {
+export async function hydrateSavedAuraAudioUrls<
+  T extends { audioStoragePath?: string; audioPublicUrl?: string },
+>(items: T[]): Promise<T[]> {
   const paths = items.map((i) => i.audioStoragePath).filter((p): p is string => !!p);
   if (paths.length === 0) return items;
   const signed = await getSignedAudioUrls(paths);
@@ -300,6 +304,8 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     userColorInfluence?: import("./aura").UserColorInfluence;
     colorGuided?: boolean;
     influenceSettings?: import("./farm").SavedAura["influenceSettings"];
+    contentHash?: string | null;
+    analysis?: import("./analysis/analyze").TrackAnalysis | null;
   };
   const anon = row.visibility_mode === "anonymous";
   return {
@@ -341,12 +347,19 @@ export function mapAuraRowToSaved(row: CloudAuraRow): import("./farm").SavedAura
     audioMimeType: row.audio_mime_type ?? undefined,
     audioSizeBytes: row.audio_size_bytes ?? undefined,
     audioDurationSeconds: row.audio_duration_seconds ?? undefined,
+    contentHash: extra.contentHash ?? undefined,
+    analysis: extra.analysis ?? undefined,
   };
 }
 
 export async function updateAuraVisibility(
   id: string,
-  patch: { visibility_mode: VisibilityMode; artist_profile_id: string | null; public_artist_name: string | null; public_handle: string | null },
+  patch: {
+    visibility_mode: VisibilityMode;
+    artist_profile_id: string | null;
+    public_artist_name: string | null;
+    public_handle: string | null;
+  },
 ) {
   const { error } = await supabase.from("auras").update(patch).eq("id", id);
   if (error) throw error;

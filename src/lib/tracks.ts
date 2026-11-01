@@ -1,4 +1,12 @@
-import { generateAura, slugify, type PaletteKey, type SourceType, type PitchCenter, type UserColorInfluence } from "./aura";
+import {
+  generateAura,
+  slugify,
+  type PaletteKey,
+  type SourceType,
+  type PitchCenter,
+  type UserColorInfluence,
+} from "./aura";
+import type { TrackAnalysis } from "./analysis/analyze";
 
 export type Provider =
   | "spotify"
@@ -68,6 +76,8 @@ export type Track = {
   pitchCenter?: PitchCenter;
   keyConfidence?: number;
   detectedEnergy?: number;
+  contentHash?: string;
+  analysis?: TrackAnalysis;
 
   // Phase 5 — Color Influence
   userColorInfluence?: UserColorInfluence;
@@ -146,8 +156,13 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
   const moods = t.moods ?? [];
   // Always run the engine so v3 fields (colors, vibe, etc) are present.
   const gen = generateAura({
-    id: t.id, title: t.title, artist: t.artist, moods,
+    id: t.contentHash || t.id,
+    title: t.title,
+    artist: t.artist,
+    moods,
     detectedKey: t.detectedKey ?? null,
+    analysis: t.analysis ?? null,
+    keyConfidence: t.keyConfidence ?? null,
   });
   return {
     id: t.id,
@@ -185,6 +200,8 @@ function hydrate(t: Partial<Track> & { id: string; title: string; artist: string
     pitchCenter: t.pitchCenter,
     keyConfidence: t.keyConfidence,
     detectedEnergy: t.detectedEnergy,
+    contentHash: t.contentHash,
+    analysis: t.analysis,
     userColorInfluence: t.userColorInfluence,
     colorGuided: t.colorGuided ?? gen.colorGuided,
     visibilityMode: t.visibilityMode,
@@ -346,8 +363,7 @@ export function detectProvider(url: string): ProviderInfo | null {
   if (host.endsWith("bandcamp.com")) return make("bandcamp");
   if (host.endsWith("tidal.com")) return make("tidal");
   if (host.endsWith("deezer.com")) return make("deezer");
-  if (host.endsWith("music.amazon.com") || host.endsWith("amazon.com"))
-    return make("amazon");
+  if (host.endsWith("music.amazon.com") || host.endsWith("amazon.com")) return make("amazon");
   if (host.endsWith("pandora.com")) return make("pandora");
   if (host.endsWith("boomplay.com")) return make("boomplay");
   if (host.endsWith("audius.co")) return make("audius");

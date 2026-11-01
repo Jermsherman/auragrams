@@ -30,14 +30,14 @@ type Props = {
   /** Palette swatches offered as per-band colors. */
   swatches?: string[];
   hasVocals?: boolean | null;
-  onHasVocalsChange?: (value: boolean) => void;
+  onHasVocalsChange?: (value: boolean | null) => void;
 };
 
 export function BandCustomizer({
   value,
   onChange,
   swatches = [],
-  hasVocals = true,
+  hasVocals = null,
   onHasVocalsChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -66,18 +66,18 @@ export function BandCustomizer({
 
       {open && (
         <div className="mt-4 space-y-4">
-          {onHasVocalsChange && (
-            <div className="rounded-xl border border-border/50 bg-background/40 p-3">
-              <div className="text-xs font-medium">Does this track have vocals?</div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Vocals add a separate reactive layer driven by the voice.
-                {hasVocals == null ? " Not set yet — Auragram does not guess." : ""}
-              </p>
+          <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+            <div className="text-xs font-medium">Does this track have vocals?</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Auragram does not detect vocals. The default is Not sure. A Yes or No is saved as artist-reported.
+            </p>
+            {onHasVocalsChange && (
               <div className="mt-3 flex gap-2">
-                {[
+                {([
+                  { label: "Not sure", value: null },
                   { label: "Yes", value: true },
                   { label: "No", value: false },
-                ].map((option) => (
+                ] as const).map((option) => (
                   <button
                     key={option.label}
                     type="button"
@@ -94,38 +94,15 @@ export function BandCustomizer({
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Vocal band shape */}
-          {hasVocals === true && (
-            <div className="rounded-xl border border-border/50 bg-background/40 p-3">
-              <div className="text-xs font-medium">Vocal band shape</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {VOCAL_SHAPES.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => onChange({ ...value, vocalShape: s.value })}
-                    aria-pressed={value.vocalShape === s.value}
-                    className={cn(
-                      "rounded-xl px-3 py-2 text-left text-[11px] transition-colors",
-                      value.vocalShape === s.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/40 text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <span className="block font-medium">{s.label}</span>
-                    <span className="block opacity-80">{s.hint}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+            <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {hasVocals == null ? "Not sure" : hasVocals ? "Yes · artist-reported" : "No · artist-reported"}
+            </p>
+          </div>
 
           {BAND_ORDER.map((key) => {
             const b = value[key];
-            const dimmed = key === "vocal" && hasVocals !== true;
+            const dimmed = key === "vocal";
             return (
               <div
                 key={key}

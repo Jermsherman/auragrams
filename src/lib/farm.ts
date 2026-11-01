@@ -3,6 +3,7 @@
 
 import type { Track, Provider } from "./tracks";
 import type { PaletteKey, AuraPalette, PitchCenter, UserColorInfluence } from "./aura";
+import type { TrackAnalysis } from "./analysis/analyze";
 
 export type SourceType = "upload" | "platform_link" | "external_link" | "raw_recording";
 
@@ -56,6 +57,8 @@ export type SavedAura = {
   audioMimeType?: string;
   audioSizeBytes?: number;
   audioDurationSeconds?: number;
+  contentHash?: string;
+  analysis?: TrackAnalysis;
 };
 
 const KEY = "auragram_farm_auras";
@@ -88,15 +91,16 @@ export function deleteAura(id: string) {
 }
 
 export function saveAuraFromTrack(t: Track): SavedAura {
-  const sourceType: SourceType = t.sourceType === "raw_recording"
-    ? "raw_recording"
-    : t.hasLocalAudio
-      ? "upload"
-      : t.provider === "external" || !t.provider
-        ? t.streamUrl
-          ? "external_link"
-          : "upload"
-        : "platform_link";
+  const sourceType: SourceType =
+    t.sourceType === "raw_recording"
+      ? "raw_recording"
+      : t.hasLocalAudio
+        ? "upload"
+        : t.provider === "external" || !t.provider
+          ? t.streamUrl
+            ? "external_link"
+            : "upload"
+          : "platform_link";
 
   const aura: SavedAura = {
     id: t.id,
@@ -105,8 +109,7 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     artistName: t.artist,
     artistHandle: t.artistHandle,
     sourceType,
-    platformName:
-      t.provider && t.provider !== "external" ? prettyProvider(t.provider) : undefined,
+    platformName: t.provider && t.provider !== "external" ? prettyProvider(t.provider) : undefined,
     platformUrl: t.streamUrl,
     embedUrl: t.embedUrl,
     provider: t.provider,
@@ -139,6 +142,8 @@ export function saveAuraFromTrack(t: Track): SavedAura {
     audioMimeType: t.audioMimeType,
     audioSizeBytes: t.audioSizeBytes,
     audioDurationSeconds: t.audioDurationSeconds,
+    contentHash: t.contentHash,
+    analysis: t.analysis,
   };
 
   const all = read();

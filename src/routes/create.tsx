@@ -19,14 +19,14 @@ import {
   fileToDataUrl,
   makeId,
   saveTrack,
-  seedFromId,
 } from "@/lib/tracks";
 import { setSessionAudio } from "@/lib/session";
 import { putGuestAudio } from "@/lib/guestAudioStore";
-import { generateAura, slugify, type PitchCenter, type UserColorInfluence } from "@/lib/aura";
-import { detectKey, detectPitchCenter, type KeyDetection } from "@/lib/keyDetect";
-import { analyzeFile, type AudioFeatures } from "@/lib/audioFeatures";
-import { suggestMoods } from "@/lib/moodDetect";
+import { generateAura, slugify, type UserColorInfluence } from "@/lib/aura";
+import { analysisFromAudioBuffer, type TrackAnalysis } from "@/lib/analysis/analyze";
+import { seedFromContentHash } from "@/lib/analysis/dsp";
+import { artistVocalHint, artistVocalValue } from "@/lib/artistVocals";
+import { decodeOnce } from "@/lib/audioDecode";
 import { MoodPicker } from "@/components/MoodPicker";
 import { BandCustomizer } from "@/components/BandCustomizer";
 import { DEFAULT_BANDS, type BandsConfig } from "@/lib/auraBands";
@@ -94,7 +94,6 @@ function CreatePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [moods, setMoods] = useState<string[]>([]);
-  // The analyzer does not detect vocals. Leave this unanswered until the artist chooses.
   const [hasVocals, setHasVocals] = useState<boolean | null>(null);
   const [bands, setBands] = useState<BandsConfig>(DEFAULT_BANDS);
   const [drag, setDrag] = useState(false);
@@ -103,9 +102,7 @@ function CreatePage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [compressionStatus, setCompressionStatus] = useState<string | null>(null);
-  const [keyDetection, setKeyDetection] = useState<KeyDetection | null>(null);
-  const [features, setFeatures] = useState<AudioFeatures | null>(null);
-  const [pitchCenter, setPitchCenter] = useState<PitchCenter | null>(null);
+  const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
   // Guards the one-shot auto mood detection per uploaded file.
   const autoMoodDoneRef = useRef(false);
   const analysisRunRef = useRef(0);
@@ -134,9 +131,7 @@ function CreatePage() {
   const resetAudioAnalysis = () => {
     analysisRunRef.current += 1;
     autoMoodDoneRef.current = false;
-    setKeyDetection(null);
-    setFeatures(null);
-    setPitchCenter(null);
+    setAnalysis(null);
     setMoods([]);
     setHasVocals(null);
     setAnalysisError(null);
@@ -147,28 +142,31 @@ function CreatePage() {
     const runId = analysisRunRef.current + 1;
     analysisRunRef.current = runId;
     autoMoodDoneRef.current = false;
-    setKeyDetection(null);
-    setFeatures(null);
-    setPitchCenter(null);
+    setAnalysis(null);
     setMoods([]);
+    setHasVocals(null);
     setAnalysisError(null);
     setAnalyzing(true);
-    const [keyResult, featureResult, pitchResult] = await Promise.allSettled([
-      detectKey(f),
-      analyzeFile(f),
-      detectPitchCenter(f),
-    ]);
-    if (analysisRunRef.current !== runId) return;
-    if (keyResult.status === "fulfilled" && keyResult.value) {
-      setKeyDetection(keyResult.value);
-      if (keyResult.value.confidence >= 0.15) toast.success(`Key detected: ${keyResult.value.key}`);
+    try {
+      const decoded = await decodeOnce(f);
+      if (analysisRunRef.current !== runId) return;
+      if (!decoded) {
+        setAnalysisError("We couldn't read this track. Try another audio file.");
+        setAnalyzing(false);
+        return;
+      }
+      const result = await analysisFromAudioBuffer(decoded);
+      if (analysisRunRef.current !== runId) return;
+      setAnalysis(result);
+      setMoods(result.moods.map((m) => m.mood));
+      autoMoodDoneRef.current = true;
+      if (result.key.label) toast.success(`Key detected: ${result.key.display} (${result.key.confidenceLabel})`);
+      else toast.message("Key unclear");
+    } catch (e) {
+      console.warn("[create] analysis failed", e);
+      if (analysisRunRef.current === runId) setAnalysisError("We couldn't read this track. Try another audio file.");
     }
-    if (featureResult.status === "fulfilled" && featureResult.value) setFeatures(featureResult.value);
-    if (pitchResult.status === "fulfilled" && pitchResult.value) setPitchCenter(pitchResult.value);
-    if ([keyResult, featureResult, pitchResult].every((result) => result.status === "rejected")) {
-      setAnalysisError("We couldn't read this track. Try another audio file.");
-    }
-    setAnalyzing(false);
+    if (analysisRunRef.current === runId) setAnalyzing(false);
   };
 
   const onPick = (f: File | undefined | null) => {
@@ -184,14 +182,12 @@ function CreatePage() {
     setCompressionStatus(null);
     setUploadPct(null);
     setAudio(f);
-    setHasVocals(null);
     if (!title.trim()) setTitle(f.name.replace(/\.[^.]+$/, "").trim());
     void runAnalysis(f);
   };
 
   const onRawRecorded = (f: File) => {
     setAudio(f);
-    setHasVocals(null);
     void runAnalysis(f);
   };
 
@@ -230,35 +226,19 @@ function CreatePage() {
       mode === "auracle"
         ? title.trim().length > 0 && auracleFiles.length >= 2
         : mode === "raw"
-          ? !!audio
-          : !!(title.trim() && !!audio)
+          ? !!audio && !!analysis
+          : !!(title.trim() && !!audio && !!analysis)
     );
 
-  const detectedKeyStr = keyDetection?.key ?? null;
   const sourceType: "raw_recording" | "upload" =
     mode === "raw" ? "raw_recording" : "upload";
 
-  const handleDetectMood = async () => {
-    if (!audio) {
+  const handleDetectMood = () => {
+    if (!analysis) {
       toast("Couldn't detect moods yet. Pick up to 4 manually.");
       return;
     }
-    let feat = features;
-    if (!feat) {
-      feat = await analyzeFile(audio);
-      if (feat) setFeatures(feat);
-    }
-    let kd = keyDetection;
-    if (!kd) {
-      kd = await detectKey(audio);
-      if (kd) setKeyDetection(kd);
-    }
-    const sug = suggestMoods({
-      features: feat,
-      keyDetection: kd,
-      pitchHz: pitchCenter?.hz ?? null,
-      sourceType,
-    });
+    const sug = analysis.moods.map((m) => m.mood);
     if (sug.length === 0) {
       toast("Couldn't detect moods yet. Pick up to 4 manually.");
       return;
@@ -266,16 +246,6 @@ function CreatePage() {
     setMoods(sug);
     toast.success("Moods detected. You can still adjust them.");
   };
-
-  // Auto-run mood detection once analysis lands — never overwrites manual picks.
-  useEffect(() => {
-    if (autoMoodDoneRef.current) return;
-    if (!audio || !features || !keyDetection) return;
-    if (moods.length > 0) return;
-    autoMoodDoneRef.current = true;
-    void handleDetectMood();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audio, features, keyDetection]);
 
 
 
@@ -308,19 +278,18 @@ function CreatePage() {
   // Live preview of generated aura
   const preview = useMemo(
     () =>
-      generateAura({
-        id: title + artist,
-        title: title || (mode === "raw" ? "Untitled Raw Aura" : "Untitled"),
-        artist: artist || "Unknown",
-        moods,
-        detectedKey: detectedKeyStr,
-        pitchCenter,
-        energyOverride: features?.energy ?? null,
-        keyConfidence: keyDetection?.confidence ?? null,
-        sourceType,
-        userColorInfluence: colorInfluence,
-      }),
-    [title, artist, moods, detectedKeyStr, pitchCenter, features, keyDetection, sourceType, mode, colorInfluence],
+      analysis
+        ? generateAura({
+            id: analysis.contentHash,
+            title: title || (mode === "raw" ? "Untitled Raw Aura" : "Untitled"),
+            artist: artist || "Unknown",
+            moods,
+            analysis,
+            sourceType,
+            userColorInfluence: colorInfluence,
+          })
+        : null,
+    [title, artist, moods, analysis, sourceType, mode, colorInfluence],
   );
 
   const canDetect = !!audio;
@@ -396,7 +365,7 @@ function CreatePage() {
             title: trackTitle,
             artist: artist.trim(),
             artistHandle: slugify(artist.trim()) || "artist",
-            seed: seedFromId(id),
+            seed: 0,
             createdAt: Date.now(),
             moods: [],
             hasLocalAudio: true,
@@ -449,18 +418,16 @@ function CreatePage() {
         return;
       }
 
+      if (!analysis) return;
       const id = makeId();
       const coverDataUrl = cover ? await fileToDataUrl(cover) : undefined;
       const finalTitle = (title.trim() || (mode === "raw" ? "Untitled Raw Aura" : title.trim()));
       const aura = generateAura({
-        id,
+        id: analysis.contentHash,
         title: finalTitle,
         artist: artist.trim(),
         moods,
-        detectedKey: detectedKeyStr,
-        pitchCenter,
-        energyOverride: features?.energy ?? null,
-        keyConfidence: keyDetection?.confidence ?? null,
+        analysis,
         sourceType,
         userColorInfluence: colorInfluence,
       });
@@ -470,16 +437,16 @@ function CreatePage() {
         artist: artist.trim(),
         artistHandle: slugify(artist.trim()) || "artist",
         coverDataUrl,
-        seed: seedFromId(id),
+        seed: seedFromContentHash(analysis.contentHash),
         hasVocals,
         bands,
         createdAt: Date.now(),
         moods,
-        detectedKey: detectedKeyStr ?? undefined,
+        detectedKey: analysis.key.label ?? undefined,
         sourceType,
-        pitchCenter: pitchCenter ?? undefined,
-        keyConfidence: keyDetection?.confidence,
-        detectedEnergy: features?.energy,
+        keyConfidence: analysis.key.confidence,
+        contentHash: analysis.contentHash,
+        analysis,
         ...aura,
       };
       if (!audio) return;
@@ -872,7 +839,7 @@ function CreatePage() {
                 <MoodPicker
                   value={moods}
                   onChange={setMoods}
-                  glowColor={preview.colors?.glow}
+                  glowColor={preview?.colors?.glow}
                   onDetect={handleDetectMood}
                   detectLabel={moods.length > 0 ? "Re-detect" : "Detect Mood"}
                   canDetect={canDetect}
@@ -882,7 +849,7 @@ function CreatePage() {
                 <BandCustomizer
                   value={bands}
                   onChange={setBands}
-                  swatches={preview.colors?.swatches}
+                  swatches={preview?.colors?.swatches}
                   hasVocals={hasVocals}
                   onHasVocalsChange={setHasVocals}
                 />
@@ -896,12 +863,12 @@ function CreatePage() {
                     <Aurascope
                       aura={{
                         id: "create-preview",
-                        palette: preview.palette,
-                        seed: seedFromId(title + artist || "create-preview"),
-                        colors: preview.colors,
+                        palette: preview?.palette ?? "warm",
+                        seed: analysis ? seedFromContentHash(analysis.contentHash) : 0,
+                        colors: preview?.colors,
                         moods,
-                        energy: features?.energy,
-                        hasVocals,
+                        energy: 0,
+                        hasVocals: false,
                         bands,
                       }}
                       size="mini"
@@ -912,12 +879,25 @@ function CreatePage() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-muted-foreground">Aura preview</div>
-                    <div className="mt-1 truncate font-display text-base text-foreground">Name unrevealed</div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {[detectedKeyStr, features ? `${preview.energy}% energy` : null, moods.slice(0, 2).join(" · ")]
-                        .filter(Boolean)
-                        .join(" · ") || "Add a track to reveal its musical character."}
-                    </p>
+                    <div className="mt-1 truncate font-display text-base text-foreground">{preview?.auraName || "Name unrevealed"}</div>
+                    {analysis ? (
+                      <div className="mt-1">
+                        <div className="font-display text-2xl tabular-nums leading-none">
+                          {analysis.bpm != null && analysis.bpmConfidence >= 0.35 ? `${Math.round(analysis.bpm)} BPM` : "Tempo unclear"}
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {[
+                            analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : null,
+                            analysis.feel !== "unclear" ? analysis.feel : null,
+                            analysis.key.display,
+                            analysis.key.confidenceLabel !== "none" ? analysis.key.confidenceLabel : null,
+                            `Vocals: ${artistVocalValue(hasVocals)} · ${artistVocalHint(hasVocals)}`,
+                          ].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Add a track to reveal its musical character.</p>
+                    )}
                   </div>
                 </div>
               </div>
