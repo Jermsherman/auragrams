@@ -669,7 +669,7 @@ export function OrbVisual({
 
           // Vocal band — centered core pulse or equator streak. Uses its own
           // slower "voice" oscillator, independent of the mix waveform above.
-          if (hasVocals && bandsCfg.vocal.enabled) {
+          if (false && hasVocals && bandsCfg.vocal.enabled) {
             const g = bandGain(bandsCfg.vocal.intensity);
             const amp = 0.4 + 0.4 * swell;
             const vAt = (u: number) =>
@@ -1013,7 +1013,7 @@ export function OrbVisual({
             <div>Outer ring · loudness {live.loudness}</div>
             <div>Halo · bass {live.bass}</div>
             <div>Radar · onsets {live.onsets}</div>
-            <div>Core · voice not sure</div>
+            <div>Core · off. No vocal measurement.</div>
           </div>
         )}
       </div>
