@@ -259,6 +259,29 @@ describe("whole-track analysis", () => {
     assert.ok(minor.key.confidence >= 0.3, `relative confidence ${minor.key.confidence}`);
   });
 
+  it("reads a corrected test-track voicing as A minor", async () => {
+    // Same shape as the uploaded file: 90 BPM, four beats per chord, three loops (32s),
+    // sine partials in the measured registers. The tonic third is C4, not C#4.
+    const beat = 60 / 90;
+    const chordSec = beat * 4;
+    const voice: Record<string, [number, number][]> = {
+      Am: [[110, 0.22], [220, 0.098], [261.63, 0.115], [329.63, 0.115]],
+      F: [[87.31, 0.2], [174.61, 0.132], [220, 0.128], [261.63, 0.13]],
+      G: [[98, 0.2], [196, 0.126], [246.94, 0.124], [293.66, 0.13]],
+      E: [[82.41, 0.2], [164.81, 0.12], [207.65, 0.122], [246.94, 0.118]],
+    };
+    const cycle = concat(["Am", "F", "G", "E"].map((name) => {
+      const x = silence(chordSec);
+      for (const [hz, amp] of voice[name]) addTone(x, hz, amp, 0, chordSec);
+      return x;
+    }));
+    const track = concat([cycle, cycle, cycle]);
+    assert.ok(Math.abs(track.length / SR - 32) < 0.05, `duration ${track.length / SR}`);
+    const minor = await run([track]);
+    assert.equal(minor.key.display, "A minor", `corrected track got ${minor.key.display} conf ${minor.key.confidence}`);
+    assert.ok(minor.key.confidence >= 0.3, `confidence ${minor.key.confidence}`);
+  });
+
   it("reads a harmonic-rich A minor progression as minor and a real A major triad as major", async () => {
     // A sawtooth's 5th harmonic sits about 14 cents flat of the major third.
     // That overtone must not flip a true minor triad. A played C# must stay major.
