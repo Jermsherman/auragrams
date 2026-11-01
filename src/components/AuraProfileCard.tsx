@@ -1,10 +1,27 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Pencil, Sparkles, Loader2, Check, X, Heart, User, Palette as PaletteIcon } from "lucide-react";
-import { getPersonality, type PaletteKey, type AuraPalette, type PitchCenter, type SourceType } from "@/lib/aura";
+import {
+  ChevronDown,
+  Pencil,
+  Sparkles,
+  Loader2,
+  Check,
+  X,
+  Heart,
+  User,
+  Palette as PaletteIcon,
+} from "lucide-react";
+import {
+  getPersonality,
+  type PaletteKey,
+  type AuraPalette,
+  type PitchCenter,
+  type SourceType,
+} from "@/lib/aura";
 import type { AuraInsight } from "@/lib/auraInsight";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import { cn } from "@/lib/utils";
 import { toEnergyPercent } from "@/lib/energy";
+import type { TrackAnalysis } from "@/lib/analysis/analyze";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
   upload: "Uploaded Audio",
@@ -20,7 +37,6 @@ export function AuraProfileCard({
   palette,
   musicalKey,
   tempoBand,
-  density,
   paletteName,
   vibeDescription,
   motionKeywords,
@@ -34,6 +50,8 @@ export function AuraProfileCard({
   colorGuided = false,
   insight,
   onSaveStory,
+  analysis,
+  moodScores,
 }: {
   name: string;
   moods: string[];
@@ -58,6 +76,8 @@ export function AuraProfileCard({
   insight?: AuraInsight | null;
   /** Artist-written Aura Story. Omit to hide the editor. */
   onSaveStory?: (text: string) => Promise<void> | void;
+  analysis?: TrackAnalysis | null;
+  moodScores?: { mood: string; strength: number }[];
 }) {
   const energyPct = toEnergyPercent(energy);
   const p = getPersonality(palette);
@@ -79,8 +99,7 @@ export function AuraProfileCard({
       className="glass-card hairline-aura cursor-light reveal-up rounded-3xl p-6 sm:p-7 text-left"
       style={{
         ["--surface-light" as string]: colors?.glow ?? p.glow,
-        transform:
-          "perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))",
+        transform: "perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))",
       }}
     >
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -106,33 +125,96 @@ export function AuraProfileCard({
 
       {moods.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
-          {moods.map((m) => (
-            <span
-              key={m}
-              className="rounded-full border border-border/70 bg-background/30 px-2.5 h-6 inline-flex items-center text-[11px] text-foreground/85"
-            >
-              {m}
-            </span>
-          ))}
+          {moods.map((m) => {
+            const score = moodScores?.find((row) => row.mood === m);
+            return (
+              <span
+                key={m}
+                className="rounded-full border border-border/70 bg-background/30 px-2.5 h-6 inline-flex items-center text-[11px] text-foreground/85"
+              >
+                {m}
+                {score ? (
+                  <span className="ml-1 tabular-nums text-muted-foreground">
+                    {Math.round(score.strength * 100)}
+                  </span>
+                ) : null}
+              </span>
+            );
+          })}
         </div>
       )}
 
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <Trait label="Key" value={musicalKey ?? "Unknown"} hint={keyDetected ? "detected" : undefined} />
-        <Trait label="Energy" value={`${energyPct}%`} />
-        {showPitch && <Trait label="Pitch Center" value={pitchCenter!.note} hint={`${Math.round(pitchCenter!.hz)} Hz`} />}
-        {!showPitch && tempoBand && <Trait label="Tempo" value={tempoBand} />}
-        {density && <Trait label="Density" value={density} />}
+        <Trait
+          label="Key"
+          value={analysis?.key.display ?? musicalKey ?? "Key unclear"}
+          hint={
+            analysis
+              ? analysis.key.label
+                ? analysis.key.confidenceLabel
+                : "not enough pitch"
+              : keyDetected
+                ? "detected"
+                : undefined
+          }
+        />
+        <Trait
+          label="Tempo"
+          value={
+            analysis
+              ? analysis.bpm != null && analysis.bpmConfidence >= 0.35
+                ? `${Math.round(analysis.bpm)} BPM`
+                : "Unclear"
+              : tempoBand && tempoBand !== "Unclear"
+                ? tempoBand
+                : "Unclear"
+          }
+          hint={
+            analysis && analysis.bpm != null && analysis.bpmConfidence >= 0.35
+              ? [
+                  analysis.tempoLabel !== "Unclear" ? analysis.tempoLabel : null,
+                  analysis.feel !== "unclear" ? analysis.feel : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : undefined
+          }
+        />
+        {showPitch && (
+          <Trait
+            label="Pitch Center"
+            value={pitchCenter!.note}
+            hint={`${Math.round(pitchCenter!.hz)} Hz`}
+          />
+        )}
+        <Trait
+          label="Voice"
+          value={analysis?.vocals.status === "not_sure" || !analysis ? "Not sure" : "Not sure"}
+        />
       </div>
-      <div className="mt-4">
-        <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
-          <span>Energy</span>
-          <span className="tabular-nums text-foreground/85">{energyPct}%</span>
+      {analysis && analysis.key.changes.length > 0 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {analysis.key.changes
+            .map((change) => `${change.label} at ${formatClock(change.atSec)}`)
+            .join(" · ")}
+        </p>
+      )}
+      {analysis && analysis.energyCurve.length > 1 ? (
+        <EnergyArc curve={analysis.energyCurve} peak={analysis.energyPeak} />
+      ) : (
+        <div className="mt-4">
+          <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
+            <span>Energy</span>
+            <span className="tabular-nums text-foreground/85">{energyPct}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${energyPct}%`, background: grad }}
+            />
+          </div>
         </div>
-        <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
-          <div className="h-full rounded-full" style={{ width: `${energyPct}%`, background: grad }} />
-        </div>
-      </div>
+      )}
 
       <Section title="Vibe" defaultOpen>
         <VibeEditor
@@ -193,7 +275,9 @@ export function AuraProfileCard({
 
       {insight?.visualMeaning && (
         <Section title="Aura Meaning" icon={<PaletteIcon className="h-3.5 w-3.5" />}>
-          <p className="text-[13px] leading-relaxed text-muted-foreground">{insight.visualMeaning}</p>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {insight.visualMeaning}
+          </p>
         </Section>
       )}
 
@@ -208,12 +292,65 @@ export function AuraProfileCard({
             />
           ))}
         </div>
+        {analysis?.paletteBecause && analysis.paletteBecause.length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {analysis.paletteBecause.map((line) => (
+              <li key={line} className="text-xs leading-relaxed text-muted-foreground">
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
         {colorGuided && (
           <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-aura-gradient/40 border border-foreground/15 px-2.5 h-6 text-[10px] uppercase tracking-[0.24em] text-foreground/90">
             <Sparkles className="h-3 w-3" /> Color-guided
           </div>
         )}
       </Section>
+    </div>
+  );
+}
+
+function formatClock(sec: number): string {
+  const s = Math.max(0, Math.round(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function EnergyArc({
+  curve,
+  peak,
+}: {
+  curve: { t: number; lufs: number }[];
+  peak: { t: number; lufs: number };
+}) {
+  const w = 280;
+  const h = 46;
+  const min = -60;
+  const max = 0;
+  const last = curve[curve.length - 1]?.t || 1;
+  const yOf = (lufs: number) =>
+    h - ((Math.max(min, Math.min(max, lufs)) - min) / (max - min)) * (h - 4) - 2;
+  const points = curve
+    .map((row, i) => `${(i / Math.max(1, curve.length - 1)) * w},${yOf(row.lufs)}`)
+    .join(" ");
+  const px = (peak.t / last) * w;
+  return (
+    <div className="mt-4">
+      <div className="flex justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">
+        <span>Energy arc</span>
+        <span className="tabular-nums text-foreground/85">
+          Peak {formatClock(peak.t)} · {peak.lufs.toFixed(1)} LUFS
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="w-full h-12"
+        role="img"
+        aria-label="Energy over time"
+      >
+        <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points} />
+        <circle cx={px} cy={yOf(peak.lufs)} r="3.5" fill="currentColor" />
+      </svg>
     </div>
   );
 }
@@ -323,7 +460,11 @@ function VibeEditor({
               disabled={saving || !draft.trim()}
               className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-8 px-3.5 text-[11px] disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
               Save vibe
             </button>
           </div>
@@ -362,7 +503,11 @@ function VibeEditor({
             disabled={generating}
             className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 h-8 px-3 text-[11px] hover:bg-foreground/5 transition-colors disabled:opacity-60"
           >
-            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {generating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
             Generate the vibe
           </button>
         </div>
@@ -430,7 +575,11 @@ function StoryEditor({
               disabled={saving || !draft.trim()}
               className="inline-flex items-center gap-1.5 rounded-full bg-aura-gradient text-primary-foreground h-8 px-3.5 text-[11px] disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
               Save story
             </button>
           </div>

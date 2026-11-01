@@ -8,9 +8,7 @@ import { deleteAura as deleteAuraLocal, type SavedAura } from "@/lib/farm";
 import { deleteAura as deleteAuraCloud, deleteAuraAudio } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
 import { getPersonality } from "@/lib/aura";
-import { computeAuraTraits } from "@/lib/auraTraits";
 import { AURA_STATUS_META } from "@/lib/auraStatus";
-import { TraitChipStrip } from "./TraitSheet";
 import { useCursorLight } from "@/hooks/useCursorLight";
 import {
   AlertDialog,
@@ -44,7 +42,7 @@ export function AuraFarmCard({
     ? "Raw Aura"
     : aura.sourceType === "upload"
       ? "Uploaded Audio"
-      : aura.platformName ?? "External Link";
+      : (aura.platformName ?? "External Link");
 
   const isOwner = !!profile?.id && (!aura.userId || aura.userId === profile.id);
 
@@ -91,7 +89,6 @@ export function AuraFarmCard({
         ["--surface-light" as string]: p.glow,
       }}
     >
-
       <div className="absolute inset-x-5 top-3 flex items-center justify-between gap-2">
         <span
           className={
@@ -104,7 +101,9 @@ export function AuraFarmCard({
         </span>
         <div className="flex items-center gap-1">
           {isOwner && aura.status && (
-            <span className={`status-${aura.status} rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em]`}>
+            <span
+              className={`status-${aura.status} rounded-full border border-foreground/15 bg-background/40 px-1.5 h-5 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em]`}
+            >
               {AURA_STATUS_META[aura.status].label}
             </span>
           )}
@@ -148,11 +147,6 @@ export function AuraFarmCard({
         <div className="text-xs text-muted-foreground truncate">{aura.artistName}</div>
       </div>
 
-      <div className="mt-3 flex justify-center">
-        <TraitChipStrip traits={computeAuraTraits(aura)} />
-      </div>
-
-
       <div className="mt-4 w-full flex items-center gap-2">
         <Link
           to="/aura/$id"
@@ -161,9 +155,6 @@ export function AuraFarmCard({
         >
           Open AuraLink <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
-
-
-
 
         <button
           type="button"
@@ -193,7 +184,9 @@ export function AuraFarmCard({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={remove} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction>
+              <AlertDialogAction onClick={remove} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

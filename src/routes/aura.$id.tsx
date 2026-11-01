@@ -14,10 +14,10 @@ import { StreamingChips } from "@/components/StreamingLinks";
 import { PlatformCard } from "@/components/PlatformCard";
 import { getTrack, providerLabel, updateTrack, type Track } from "@/lib/tracks";
 import { getSessionAudio } from "@/lib/session";
-import { getPersonality, generateAura } from "@/lib/aura";
+import { getPersonality } from "@/lib/aura";
 import { toEnergyPercent } from "@/lib/energy";
 import { AuraAtmosphere } from "@/components/AuraAtmosphere";
-import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Palette, Shuffle } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Trash2, Share2, Sparkles, Layers, Palette } from "lucide-react";
 import { isAuraSaved, saveAuraFromTrack, deleteAura as deleteAuraLocal, getSavedAuras } from "@/lib/farm";
 import { updateAuraVibe, getPublicAura, deleteAura as deleteAuraCloud, deleteAuraAudio, saveAuraToCloud } from "@/lib/cloudAura";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,10 +38,7 @@ const AuraShareDialog = lazy(() =>
 import { AddToAuracleDialog } from "@/components/AddToAuracleDialog";
 import { EditPaletteDialog } from "@/components/EditPaletteDialog";
 import { flags } from "@/lib/featureFlags";
-import { computeAuraTraits } from "@/lib/auraTraits";
-import { TraitSheet } from "@/components/TraitSheet";
 import { SongPersonalityProfilePending } from "@/components/SongPersonalityProfile";
-import { TraitProvenance } from "@/components/TraitProvenance";
 import { AuraSocialBar } from "@/components/AuraSocialBar";
 import { generateAuraInsight } from "@/lib/auraInsight.functions";
 import { isAuraInsight, type AuraInsight } from "@/lib/auraInsight";
@@ -228,12 +225,14 @@ function AuraPage() {
           setAudioState((prevState) => (prevState === "ready" ? prevState : "unavailable"));
         }
         if (!t) {
+          const extra = (row.extra ?? {}) as { analysis?: Track["analysis"]; contentHash?: string | null };
+          const visual = (row.visual_style ?? {}) as { seed?: number; tempoBand?: string };
           const shell = {
             id: row.id,
             title: row.track_title,
             artist: row.public_artist_name ?? "Unknown",
             artistHandle: row.public_handle ?? "artist",
-            seed: 0,
+            seed: Number(visual.seed ?? 0),
             createdAt: new Date(row.created_at).getTime(),
             moods: row.mood_tags ?? [],
             palette: ((row.palette_name as Track["palette"]) ?? "amethyst"),
@@ -253,7 +252,11 @@ function AuraPage() {
             colors: (row.color_palette as Track["colors"]) ?? undefined,
             paletteName: row.palette_name ?? undefined,
             vibeDescription: row.vibe_description ?? undefined,
+            musicalKey: row.detected_key ?? undefined,
+            tempoBand: visual.tempoBand,
             visibilityMode: row.visibility_mode,
+            contentHash: extra.contentHash ?? undefined,
+            analysis: extra.analysis ?? undefined,
           } as Track;
           setTrack(shell);
         }
@@ -440,27 +443,6 @@ function AuraPage() {
     deleteAuraLocal(track.id);
     toast.success("Aura deleted.");
     nav({ to: "/farm" });
-  };
-
-  const shufflePalette = () => {
-    if (!track) return null;
-    const gen = generateAura({
-      id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
-      title: track.title,
-      artist: track.artist,
-      moods: track.moods,
-      detectedKey: track.detectedKey ?? null,
-      pitchCenter: track.pitchCenter ?? null,
-      energyOverride: track.energy,
-      sourceType: track.sourceType,
-      userColorInfluence: track.userColorInfluence,
-    });
-    updateTrack(track.id, { colors: gen.colors, paletteName: gen.paletteName });
-    setTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
-    if (saved) {
-      saveAuraFromTrack({ ...track, colors: gen.colors, paletteName: gen.paletteName });
-    }
-    return { colors: gen.colors, name: gen.paletteName };
   };
 
   return (
@@ -660,14 +642,6 @@ function AuraPage() {
           </div>
         ) : null}
 
-        <TraitSheet traits={computeAuraTraits(track)} reveal={revealActive} />
-
-        <div className="mt-6">
-          <TraitProvenance />
-        </div>
-
-
-
         {/* Primary action row */}
         <div className="mt-6 w-full max-w-md mx-auto animate-fade-up grid grid-cols-2 gap-2 sm:grid-cols-3">
           {!user && pendingId === id ? (
@@ -743,19 +717,6 @@ function AuraPage() {
             <Layers className="h-3.5 w-3.5" /> Add to Auracle
           </button>
           )}
-          {track.colors && (
-            <button
-              onClick={() => {
-                const r = shufflePalette();
-                if (r) toast.success("Palette shuffled");
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-full glass px-4 h-9 text-xs hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
-              title="Reroll palette colors"
-              aria-label="Shuffle palette colors"
-            >
-              <Shuffle className="h-3.5 w-3.5" /> Shuffle
-            </button>
-          )}
           {flags.enableEditPalette && saved && track.colors && (
             <button
               onClick={() => setPaletteOpen(true)}
@@ -797,20 +758,6 @@ function AuraPage() {
               updateTrack(track.id, { colors: next, paletteName: name });
               setTrack({ ...track, colors: next, paletteName: name });
             }}
-            onShuffle={() => {
-              const gen = generateAura({
-                id: track.id + "-shuffle-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
-                title: track.title,
-                artist: track.artist,
-                moods: track.moods,
-                detectedKey: track.detectedKey ?? null,
-                pitchCenter: track.pitchCenter ?? null,
-                energyOverride: track.energy,
-                sourceType: track.sourceType,
-                userColorInfluence: track.userColorInfluence,
-              });
-              return { colors: gen.colors, name: gen.paletteName };
-            }}
           />
         )}
 
@@ -836,6 +783,8 @@ function AuraPage() {
             musicalKey={track.musicalKey}
             tempoBand={track.tempoBand}
             density={track.density}
+            analysis={track.analysis}
+            moodScores={track.analysis?.moods}
             paletteName={track.paletteName}
             vibeDescription={track.vibeDescription}
             motionKeywords={track.motionKeywords}
@@ -878,29 +827,21 @@ function AuraPage() {
                 toast.success("Vibe saved locally");
               }
             }}
-            onRegenerateVibe={async () => {
-              const gen = generateAura({
-                id: track.id + "-" + Date.now(),
-                title: track.title,
-                artist: track.artist,
-                moods: track.moods,
-                detectedKey: track.detectedKey ?? null,
-                pitchCenter: track.pitchCenter ?? null,
-                energyOverride: track.energy,
-                sourceType: track.sourceType,
-                userColorInfluence: track.userColorInfluence,
-                vibeSeed: track.influenceSettings?.vibeNote ?? null,
-              });
-              const text = gen.vibeDescription;
-              updateTrack(track.id, { vibeDescription: text });
-              setTrack({ ...track, vibeDescription: text });
-              try {
-                await updateAuraVibe(track.id, text);
-                toast.success("New vibe generated");
-              } catch {
-                toast.success("New vibe (saved locally)");
-              }
-            }}
+            onRegenerateVibe={
+              track.analysis
+                ? async () => {
+                    const text = track.analysis?.read.text ?? "";
+                    updateTrack(track.id, { vibeDescription: text });
+                    setTrack({ ...track, vibeDescription: text });
+                    try {
+                      await updateAuraVibe(track.id, text);
+                      toast.success("Restored the measured read");
+                    } catch {
+                      toast.success("Restored locally");
+                    }
+                  }
+                : undefined
+            }
           />
         </div>
 

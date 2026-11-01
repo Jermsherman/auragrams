@@ -92,8 +92,14 @@ export function aurascopeAuraFromTrack(t: Track): AurascopeAura {
           tonic: t.tonic,
           mode: t.mode,
           keyDetected: t.keyDetected,
-          tempoBand: (t.tempoBand as "Slow" | "Mid" | "Fast") ?? "Mid",
-          density: (t.density as "Sparse" | "Lush" | "Dense") ?? "Lush",
+          tempoBand:
+            t.tempoBand === "Slow" ||
+            t.tempoBand === "Mid" ||
+            t.tempoBand === "Fast" ||
+            t.tempoBand === "Unclear"
+              ? t.tempoBand
+              : "Unclear",
+          density: t.density || "",
           colors: t.colors,
         }
       : undefined,
@@ -140,8 +146,6 @@ export function Aurascope({
     [aura.moods, aura.energy, aura.profile?.energy, aura.palette, aura.seed],
   );
 
-
-
   // Ensure OrbVisual uses the saved per-aura colors at every call site, not
   // just where a full AuraProfile was built. Without this, cards/story/etc.
   // fall back to the generic mood swatches.
@@ -155,8 +159,7 @@ export function Aurascope({
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
   const isCompact = size === "small" || size === "mini";
   const showGrid = mode !== "minimal" && size !== "mini";
-  const showLabelResolved =
-    showLabel ?? (mode === "full" || mode === "story");
+  const showLabelResolved = showLabel ?? (mode === "full" || mode === "story");
 
   const styleVars: CSSProperties = {
     width: dimCss,
@@ -266,7 +269,8 @@ function AurascopeLens({
 }) {
   const dim = SIZE_PX[size];
   const dimCss = typeof dim === "number" ? `${dim}px` : dim;
-  const radius = size === "mini" ? "rounded-[22%]" : size === "small" ? "rounded-[26%]" : "rounded-[28%]";
+  const radius =
+    size === "mini" ? "rounded-[22%]" : size === "small" ? "rounded-[26%]" : "rounded-[28%]";
 
   return (
     <div
@@ -290,7 +294,10 @@ function AurascopeLens({
       />
 
       {/* Machined bezel separates the housing from the recessed display. */}
-      <div className="aurascope-bezel pointer-events-none absolute inset-[4.5%] rounded-[26%]" aria-hidden />
+      <div
+        className="aurascope-bezel pointer-events-none absolute inset-[4.5%] rounded-[26%]"
+        aria-hidden
+      />
 
       {/* Rim highlight */}
       <div

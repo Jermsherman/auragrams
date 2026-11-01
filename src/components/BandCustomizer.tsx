@@ -66,6 +66,15 @@ export function BandCustomizer({
 
       {open && (
         <div className="mt-4 space-y-4">
+          {hasVocals == null && !onHasVocalsChange && (
+            <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+              <div className="text-xs font-medium">Voice</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Not sure. Auragram does not run a voice model, so this is not marked yes or no. The
+                vocal band stays off.
+              </p>
+            </div>
+          )}
           {onHasVocalsChange && (
             <div className="rounded-xl border border-border/50 bg-background/40 p-3">
               <div className="text-xs font-medium">Does this track have vocals?</div>

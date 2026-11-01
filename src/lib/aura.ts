@@ -1,4 +1,5 @@
 import { toEnergyPercent } from "./energy";
+import type { TrackAnalysis } from "./analysis/analyze";
 
 // Aura Engine v3 — mood + music-theory + RGB palette + poetic descriptions.
 // Pure functions, no side effects. Backward compatible with v2 imports.
@@ -723,7 +724,7 @@ export const NOUN_BANK = [
 
 
 export type MusicalKey = string;
-export type TempoBand = "Slow" | "Mid" | "Fast";
+export type TempoBand = "Slow" | "Mid" | "Fast" | "Unclear";
 // Extended density vocabulary; legacy values still accepted as strings.
 export type Density = string;
 export const DENSITY_LABELS = [
@@ -979,6 +980,12 @@ export type AuraProfile = {
   sourceType?: SourceType;
   tempoBand: TempoBand;
   density: Density;
+  /** Whole-track measurements. Present only after audio analysis. */
+  analysis?: TrackAnalysis;
+  contentHash?: string;
+  bpm?: number | null;
+  feel?: string;
+  swingRatio?: number | null;
   colors: AuraPalette;
   userColorInfluence?: UserColorInfluence;
   colorGuided?: boolean;
@@ -1006,73 +1013,78 @@ export function generateAura(input: {
   userColorInfluence?: UserColorInfluence | null;
   /** Optional user-written seed for the vibe description — fine-tunes rather than replaces. */
   vibeSeed?: string | null;
+  /** Measured audio. When set, the seed, key, tempo, name, and palette come from it. */
+  analysis?: TrackAnalysis | null;
 }): AuraProfile {
+  const measured = input.analysis ?? null;
   const baseKey = personalityFromMoods(input.moods);
-  const seedKey = input.id || `${input.artist}-${input.title}`;
+  const seedKey = measured?.contentHash || input.id || `${input.artist}-${input.title}`;
   const seed = hash(seedKey);
-  const energy = input.energyOverride != null
-    ? toEnergyPercent(input.energyOverride)
-    : energyFor(seedKey, input.moods);
+  const energy = measured
+    ? 0
+    : input.energyOverride != null
+      ? toEnergyPercent(input.energyOverride)
+      : energyFor(seedKey, input.moods);
 
-  const conf = input.keyConfidence ?? null;
-  const keyUncertain = conf != null && conf < 0.15;
-  const detected = !keyUncertain ? resolveKeyProfile(input.detectedKey) : null;
-  const fallbackKey = keyFor(seedKey, baseKey);
-  const musicalKey = detected
-    ? `${detected.tonic} ${detected.mode}`
-    : keyUncertain
-      ? "Unknown"
-      : fallbackKey;
-  const kp = detected ?? (keyUncertain ? null : resolveKeyProfile(musicalKey));
+  const conf = measured ? measured.key.confidence : (input.keyConfidence ?? null);
+  const detected = measured
+    ? measured.key.label
+      ? resolveKeyProfile(measured.key.label)
+      : null
+    : conf != null && conf < 0.3
+      ? null
+      : resolveKeyProfile(input.detectedKey);
+  const musicalKey = measured
+    ? measured.key.display
+    : detected
+      ? `${detected.tonic} ${detected.mode}`
+      : "Key unclear";
+  const kp = detected;
 
-  const colors = buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
-  const tempoBand = tempoBandFor(energy);
   const influence = input.userColorInfluence ?? null;
   const colorGuided = !!(influence && influence.mode !== "surprise" && (
     (influence.mode === "single" && influence.colors.length > 0) ||
     (influence.mode === "palette" && influence.colors.length > 0) ||
     (influence.mode === "description" && colorWordsToHex(influence.description).length > 0)
   ));
-  const desc = generateDescriptions({
-    seedKey, moods: input.moods, kp, baseKey, colors, tempoBand,
-    vibeSeed: input.vibeSeed ?? undefined,
-  });
+  const colors = measured && !colorGuided
+    ? measured.palette
+    : buildPalette(input.moods, kp, seed, input.userColorInfluence ?? null);
+  const tempoBand: TempoBand = measured ? measured.tempoLabel : "Unclear";
 
-  const isRaw = input.sourceType === "raw_recording";
-  const h = hash(`raw|${seedKey}|${input.moods.join(",")}`);
-  const auraName = isRaw && (h % 10) < 7
-    ? pick(RAW_NAME_BANK, h)
-    : auraNameFor(seedKey, input.moods, kp, colors);
+  const desc = measured
+    ? null
+    : generateDescriptions({
+        seedKey, moods: input.moods, kp, baseKey, colors, tempoBand: tempoBand === "Unclear" ? "Mid" : tempoBand,
+        vibeSeed: input.vibeSeed ?? undefined,
+      });
 
-  let description = desc.short;
-  if (isRaw) {
-    const tmpl = pick(RAW_TEMPLATES, h >>> 5);
-    const personality = PERSONALITIES[baseKey];
-    description = fillTemplate(tmpl, {
-      tone: pick(personality.phrases.tone, h),
-      colorPhrase: pick(personality.phrases.color, h >>> 3),
-    });
-  }
+  const auraName = measured ? measured.auraName : auraNameFor(seedKey, input.moods, kp, colors);
 
   return {
     palette: baseKey,
     auraName,
-    paletteName: paletteName(seed, input.moods, kp, colors),
+    paletteName: measured ? "" : paletteName(seed, input.moods, kp, colors),
     energy,
-    description,
-    vibeDescription: desc.vibe,
-    motionKeywords: desc.motionKeywords,
+    description: measured ? measured.read.affirm : (desc?.short ?? ""),
+    vibeDescription: measured ? measured.read.text : (desc?.vibe ?? ""),
+    motionKeywords: measured ? [] : (desc?.motionKeywords ?? []),
     musicalKey,
-    tonic: kp?.tonic,
-    mode: kp?.mode,
-    keyDetected: !!detected,
+    tonic: measured?.key.tonic ?? kp?.tonic,
+    mode: measured?.key.mode ?? kp?.mode,
+    keyDetected: measured ? measured.key.label != null : !!detected,
     keyConfidence: conf ?? undefined,
     pitchCenter: input.pitchCenter ?? undefined,
     sourceType: input.sourceType,
     tempoBand,
-    density: densityFor(seedKey, baseKey),
+    density: "",
     colors,
     userColorInfluence: influence ?? undefined,
     colorGuided,
+    analysis: measured ?? undefined,
+    contentHash: measured?.contentHash,
+    bpm: measured?.bpm ?? null,
+    feel: measured?.feel,
+    swingRatio: measured?.swingRatio ?? null,
   };
 }
