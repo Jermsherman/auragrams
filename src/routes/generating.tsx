@@ -34,8 +34,10 @@ function GeneratingPage() {
     let raf = 0;
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / TOTAL_MS);
-      setProgress(p);
-      const idx = Math.min(STEPS.length - 1, Math.floor(p * STEPS.length));
+      setProgress(Number.isFinite(p) ? p : 0);
+      const idx = Number.isFinite(p)
+        ? Math.min(STEPS.length - 1, Math.max(0, Math.floor(p * STEPS.length)))
+        : 0;
       setStep(idx);
       if (p < 1) raf = requestAnimationFrame(tick);
     };
@@ -164,13 +166,13 @@ function GeneratingPage() {
           key={step}
           className="font-display text-lg sm:text-xl tracking-wide text-foreground/95 animate-fade-up"
         >
-          {STEPS[step].label}
+          {(STEPS[step] ?? STEPS[0]).label}
         </p>
         <p
           key={`s-${step}`}
           className="mt-2 text-xs uppercase tracking-[0.32em] text-muted-foreground animate-fade-up"
         >
-          {STEPS[step].sub}
+          {(STEPS[step] ?? STEPS[0]).sub}
         </p>
         <p className="mt-4 text-[10px] tabular-nums tracking-[0.4em] text-muted-foreground/70">
           {String(pct).padStart(2, "0")}%

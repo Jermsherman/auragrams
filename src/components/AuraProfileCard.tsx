@@ -548,7 +548,7 @@ function VibeEditor({
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            Generate the vibe
+            Restore measured read
           </button>
         </div>
       )}
